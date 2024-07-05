@@ -3,7 +3,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     zig.url = "github:mitchellh/zig-overlay";
-    zls.url = "github:zigtools/zls";
+    zls.url = "github:zigtools/zls/0.13.0";
   };
 
   outputs = { self, nixpkgs, zig, zls, flake-utils, ... }:
@@ -13,7 +13,8 @@
         zlsPkg = zls.packages.${system}.default;
         pkgs = import nixpkgs { inherit system overlays; };
 
-        runtimeDeps = with pkgs; [ SDL2 pkg-config ];
+        xorgDeps = with pkgs.xorg; [ libXrandr libXinerama libXi ];
+        runtimeDeps = with pkgs; [ raylib xorg.libXcursor pkg-config ] ++ xorgDeps;
 
       in
       {
@@ -24,7 +25,7 @@
             buildInputs =
               [
                 # NOTE: these need to be roughly in sync
-                pkgs.zigpkgs.master
+                pkgs.zigpkgs."0.13.0" # keep in sync with zls
                 zlsPkg
 
                 # common

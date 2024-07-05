@@ -23,9 +23,9 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .jok = .{
-            .url = "https://github.com/jack-ji/jok/archive/2e9c5259aa04d576c6b7d943ceca72ba72e0d31e.tar.gz",
-            .hash = "1220183aec82b1066c7abe6004f872d728244c454843c67142545a990be2ac55503e",
+        .@"raylib-zig" = .{
+            .url = "https://github.com/Not-Nik/raylib-zig/archive/devel.tar.gz",
+            .hash = "1220d32c92222ded6912529bbd502b2e0c5c5c2056c4b709ad0f6924d6524343a2d2",
         },
     },
     .paths = .{

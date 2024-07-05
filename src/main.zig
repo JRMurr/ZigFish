@@ -1,77 +1,32 @@
-const std = @import("std");
-const jok = @import("jok");
-const sdl = jok.sdl;
-const j2d = jok.j2d;
+const rl = @import("raylib");
 
-var sheet: *j2d.SpriteSheet = undefined;
+pub fn main() anyerror!void {
+    // Initialization
+    //--------------------------------------------------------------------------------------
+    const screenWidth = 800;
+    const screenHeight = 450;
 
-pub fn init(ctx: jok.Context) !void {
-    std.log.info("game init", .{});
+    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
+    defer rl.closeWindow(); // Close window and OpenGL context
 
-    // create sprite sheet
-    // const size = ctx.getCanvasSize();
+    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
+    //--------------------------------------------------------------------------------------
 
-    // 540 width and height for each
-    const sprite_size = 540;
+    // Main game loop
+    while (!rl.windowShouldClose()) { // Detect window close button or ESC key
+        // Update
+        //----------------------------------------------------------------------------------
+        // TODO: Update your variables here
+        //----------------------------------------------------------------------------------
 
-    const king = j2d.SpriteSheet.SpriteInfo{ .name = "king", .rect = sdl.RectangleF{
-        .x = 0,
-        .y = 0,
-        .width = sprite_size,
-        .height = sprite_size,
-    } };
-    const sprites = [_]j2d.SpriteSheet.SpriteInfo{king};
+        // Draw
+        //----------------------------------------------------------------------------------
+        rl.beginDrawing();
+        defer rl.endDrawing();
 
-    sheet = try j2d.SpriteSheet.fromSinglePicture(ctx, "assets/Chess_Pieces_Sprite.png", &sprites);
-    //sheet = try j2d.SpriteSheet.fromSheetFiles(
-    //    ctx.allocator,
-    //    ctx.renderer,
-    //    "sheet",
-    //);
-}
+        rl.clearBackground(rl.Color.white);
 
-pub fn event(ctx: jok.Context, e: sdl.Event) !void {
-    _ = ctx;
-    _ = e;
-}
-
-pub fn update(ctx: jok.Context) !void {
-    _ = ctx;
-}
-
-pub fn draw(ctx: jok.Context) !void {
-    ctx.clear(sdl.Color.rgb(77, 77, 77));
-
-    const sprite = sheet.getSpriteByName("king").?;
-    j2d.begin(.{ .depth_sort = .back_to_forth });
-    defer j2d.end();
-    try j2d.image(
-        sheet.tex,
-        .{ .x = 0, .y = 0 },
-        .{ .depth = 1 },
-    );
-    try j2d.sprite(sprite, .{
-        .pos = .{ .x = 400, .y = 300 },
-        .scale = .{ .x = 2, .y = 2 },
-        .flip_h = true,
-        .flip_v = true,
-        //.rotate_degree = ctx.seconds() * 30,
-    });
-    try j2d.sprite(sprite, .{
-        .pos = .{ .x = 400, .y = 300 },
-        .tint_color = sdl.Color.rgb(255, 0, 0),
-        .scale = .{
-            .x = 4 + 2 * @cos(ctx.seconds()),
-            .y = 4 + 2 * @sin(ctx.seconds()),
-        },
-        .rotate_degree = ctx.seconds() * 30,
-        .anchor_point = .{ .x = 0.5, .y = 0.5 },
-        .depth = 0.6,
-    });
-}
-
-pub fn quit(ctx: jok.Context) void {
-    _ = ctx;
-    std.log.info("game quit", .{});
-    sheet.destroy();
+        rl.drawText("Congrats! You created your first window!", 190, 200, 20, rl.Color.light_gray);
+        //----------------------------------------------------------------------------------
+    }
 }
