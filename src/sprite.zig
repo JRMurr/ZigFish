@@ -1,17 +1,47 @@
 const rl = @import("raylib");
-const piece = @import("piece.zig");
+const Piece = @import("piece.zig").Piece;
+const Board = @import("board.zig").Board;
 
 const num_piece_types = 6;
 const num_colors = 2;
 
-const SpriteManager = struct {
+pub const SpriteManager = struct {
     texture: rl.Texture,
     sprite_w: f32,
     sprite_h: f32,
 
+    pub fn init(texture: rl.Texture) SpriteManager {
+        return .{
+            .texture = texture,
+            .sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types))),
+            .sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors))),
+        };
+    }
+
+    pub fn draw_board(self: SpriteManager, board: Board, cell_size: f32) void {
+        const scale = cell_size / self.sprite_w;
+
+        for (board.cells, 0..) |rank_cells, file| {
+            for (rank_cells, 0..) |cell, rank| {
+                const pos_x = cell_size * @as(f32, @floatFromInt(rank));
+                const pos_y = cell_size * @as(f32, @floatFromInt(file));
+
+                switch (cell) {
+                    .piece => |p| self.draw_piece_scaled(
+                        p,
+                        pos_x,
+                        pos_y,
+                        scale,
+                    ),
+                    .empty => {},
+                }
+            }
+        }
+    }
+
     pub fn draw_piece_scaled(
         self: SpriteManager,
-        p: piece.Piece,
+        p: Piece,
         pos_x: f32,
         pos_y: f32,
         scale: f32,
@@ -49,11 +79,3 @@ const SpriteManager = struct {
         self.texture.drawPro(frameRec, position, rl.Vector2.zero(), 0, rl.Color.white);
     }
 };
-
-pub fn init(texture: rl.Texture) SpriteManager {
-    return .{
-        .texture = texture,
-        .sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types))),
-        .sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors))),
-    };
-}
