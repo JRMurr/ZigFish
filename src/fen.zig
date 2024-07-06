@@ -40,7 +40,6 @@ pub fn parse(str: []const u8) Board {
     var cells: [8][8]Cell = undefined;
     var rank_idx: usize = 7; // fen starts from the top, board arr has bottom as 0
     while (rank_strs.next()) |rank_str| {
-        std.debug.print("rank_str {s}\trank {}\n", .{ rank_str, rank_idx });
         var file_idx: usize = 0;
         cells[rank_idx] = undefined;
         for (rank_str) |char| {

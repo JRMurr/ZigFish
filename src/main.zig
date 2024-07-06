@@ -30,8 +30,8 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
-    // var board = Board.init();
-    var board = Board.from_fen("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
+    var board = Board.init();
+    // var board = Board.from_fen("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
 
     var moving_piece: ?MovingPiece = null;
 
