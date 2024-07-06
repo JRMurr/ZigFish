@@ -21,17 +21,27 @@ pub const Cell = union(enum) {
     }
 };
 
+inline fn difference(a: usize, b: usize) usize {
+    var diff = @as(i8, @intCast(a)) - @as(i8, @intCast(b));
+
+    if (diff < 0) {
+        diff *= -1;
+    }
+
+    return @as(usize, @intCast(diff));
+}
+
 pub const Position = struct {
     rank: usize,
     file: usize,
 
-    pub fn to_index(self: Position) usize {
+    pub inline fn to_index(self: Position) usize {
         std.debug.assert(self.rank < 8);
         std.debug.assert(self.file < 8);
         return self.rank * 8 + self.file;
     }
 
-    pub fn from_index(idx: usize) Position {
+    pub inline fn from_index(idx: usize) Position {
         const file = idx % 8;
         const rank = @divFloor(idx, 8);
         return Position{ .file = file, .rank = rank };
@@ -47,6 +57,11 @@ pub const Position = struct {
         }
 
         return positions;
+    }
+
+    /// taxicab distance btwn positons
+    pub inline fn dist(self: Position, other: Position) usize {
+        return difference(self.rank, other.rank) + difference(self.file, other.file);
     }
 };
 
@@ -100,6 +115,26 @@ fn compute_num_cells_to_edge() [64][8]u8 {
 
 const num_squares_to_edge = compute_num_cells_to_edge();
 
+// TODO: try to precompute valid knight moves for each square at startup
+const knight_offsets = [8]i8{
+    // 2 * 8 + 1,
+    // 2 * 8 - 1,
+    // 2 * -8 + 1,
+    // 2 * -8 - 1,
+    // 8 + 2,
+    // 8 - 2,
+    // -8 + 2,
+    // -8 - 2,
+    -2 + 8,
+    -1 + 16,
+    1 + 16,
+    2 + 8,
+    2 - 8,
+    1 - 16,
+    -1 - 16,
+    -2 - 8,
+};
+
 pub const Board = struct {
     // TODO: track castling + en passant
     cells: [64]Cell,
@@ -131,7 +166,28 @@ pub const Board = struct {
         const cell = self.get_cell(pos);
         switch (cell) {
             .piece => |p| {
-                for (0..8) |dirIndex| {
+                if (p.is_knight()) {
+                    for (knight_offsets) |offset| {
+                        if (start_idx > offset) {
+                            const target = @as(i8, @intCast(start_idx)) + offset;
+                            if (target < 64) {
+                                const target_pos = Position.from_index(@intCast(target));
+                                // hack to make sure move is valid, should just pre-compute allowed moves
+                                if (pos.dist(target_pos) == 3) {
+                                    valid_pos.appendAssumeCapacity(target_pos);
+                                }
+                            }
+                        }
+                    }
+
+                    return valid_pos;
+                }
+
+                // moves for bishops, rooks, and queens
+                // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
+                const dir_start: u8 = if (p.is_bishop()) 4 else 0;
+                const dir_end: u8 = if (p.is_rook()) 4 else 8;
+                for (dir_start..dir_end) |dirIndex| {
                     const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
                     for (0..max_moves_in_dir) |n| {
                         const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n);

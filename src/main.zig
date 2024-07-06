@@ -47,7 +47,9 @@ pub fn main() anyerror!void {
     defer arena.deinit();
 
     var board = Board.init(arena.allocator());
-    // var board = Board.from_fen("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
+    // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
+
+    // var board = Board.from_fen(arena.allocator(), "8/8/8/8/4n3/8/8/8 b - - 99 50");
 
     var moving_piece: ?MovingPiece = null;
 
