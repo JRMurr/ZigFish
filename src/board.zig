@@ -18,13 +18,14 @@ pub const Position = struct {
 pub const Board = struct {
     // TODO: track castling + en passant
     cells: [64]Cell,
+    active_color: piece.Color = piece.Color.White,
 
     pub fn from_fen(fen_str: []const u8) Board {
         return fen.parse(fen_str);
     }
 
     pub fn init() Board {
-        return fen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+        return fen.parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
     }
 
     pub fn get_cell(self: Board, pos: Position) Cell {

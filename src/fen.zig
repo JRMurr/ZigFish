@@ -30,7 +30,7 @@ pub fn parse(str: []const u8) Board {
     var splits = std.mem.tokenizeScalar(u8, str, ' ');
 
     const pieces_str = splits.next().?;
-    const active_color = splits.next() orelse "w";
+    const active_color_str = splits.next() orelse "w";
     const castling_str = splits.next() orelse "-";
     const en_passant_str = splits.next() orelse "-";
     const half_move_str = splits.next() orelse "0";
@@ -52,6 +52,7 @@ pub fn parse(str: []const u8) Board {
                 cells[curr_pos.to_index()] = Cell{ .piece = piece };
                 curr_pos.file += 1;
             } else {
+                // TODO: char should just be an ascii digit but if i use it in the for loop below its sad
                 const num_empty = std.fmt.parseInt(usize, &key, 10) catch |err| {
                     std.debug.panic("erroring parsing {s} as usize {}", .{ key, err });
                 };
@@ -65,12 +66,16 @@ pub fn parse(str: []const u8) Board {
         if (curr_pos.rank > 0) curr_pos.rank -= 1;
     }
 
+    const active_color = if (std.mem.eql(u8, active_color_str, "w")) Color.White else Color.Black;
+
     // TODO: use these....
-    _ = active_color;
     _ = castling_str;
     _ = en_passant_str;
     _ = half_move_str;
     _ = full_move_str;
 
-    return Board{ .cells = cells };
+    return Board{
+        .cells = cells,
+        .active_color = active_color,
+    };
 }
