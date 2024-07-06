@@ -18,6 +18,15 @@ fn clamp_to_screen(val: i32) usize {
     return @intCast(clamped);
 }
 
+fn sub_ignore_overflow(a: anytype, b: anytype) @TypeOf(a, b) {
+    const res = @subWithOverflow(a, b);
+    if (res[1] == 1) {
+        // we overflowed so ignore
+        return 0;
+    }
+    return res[0];
+}
+
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -75,10 +84,11 @@ pub fn main() anyerror!void {
         if (moving_piece) |p| {
             const offset = cell_size / 2; // make sprite under mouse cursor
 
+            // TODO: this seems fine for the top / left sides, peice is half cut off on right / bottom
             sprite_manager.draw_piece(
                 p.piece,
-                @as(f32, @floatFromInt(mouse_x - offset)),
-                @as(f32, @floatFromInt(mouse_y - offset)),
+                @as(f32, @floatFromInt(sub_ignore_overflow(mouse_x, offset))),
+                @as(f32, @floatFromInt(sub_ignore_overflow(mouse_y, offset))),
             );
         }
 
