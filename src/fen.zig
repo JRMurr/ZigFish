@@ -9,6 +9,7 @@ const Kind = piece_types.Kind;
 const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Cell = board_types.Cell;
+const Position = board_types.Position;
 
 const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
     .{ "k", Piece{ .kind = Kind.King, .color = Color.White } },
@@ -37,29 +38,31 @@ pub fn parse(str: []const u8) Board {
 
     var rank_strs = std.mem.tokenizeScalar(u8, pieces_str, '/');
 
-    var cells: [8][8]Cell = undefined;
-    var rank_idx: usize = 7; // fen starts from the top, board arr has bottom as 0
+    var cells: [64]Cell = undefined;
+
+    // fen starts from the top, board arr has bottom as 0
+    var curr_pos = Position{ .file = 0, .rank = 7 };
+
     while (rank_strs.next()) |rank_str| {
-        var file_idx: usize = 0;
-        cells[rank_idx] = undefined;
+        curr_pos.file = 0;
         for (rank_str) |char| {
             const key = [_]u8{char};
             if (piece_lookup.has(&key)) {
                 const piece = piece_lookup.get(&key).?;
-                cells[rank_idx][file_idx] = Cell{ .piece = piece };
-                file_idx += 1;
+                cells[curr_pos.to_index()] = Cell{ .piece = piece };
+                curr_pos.file += 1;
             } else {
                 const num_empty = std.fmt.parseInt(usize, &key, 10) catch |err| {
                     std.debug.panic("erroring parsing {s} as usize {}", .{ key, err });
                 };
                 for (0..(num_empty)) |_| {
-                    cells[rank_idx][file_idx] = Cell.empty;
-                    file_idx += 1;
+                    cells[curr_pos.to_index()] = Cell.empty;
+                    curr_pos.file += 1;
                 }
             }
         }
 
-        if (rank_idx > 0) rank_idx -= 1;
+        if (curr_pos.rank > 0) curr_pos.rank -= 1;
     }
 
     // TODO: use these....

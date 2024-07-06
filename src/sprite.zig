@@ -32,8 +32,8 @@ pub const SpriteManager = struct {
     }
 
     pub fn draw_board(self: SpriteManager) void {
-        for (self.board.cells, 0..) |rank_cells, rank| {
-            for (rank_cells, 0..) |cell, file| {
+        for (0..8) |rank| {
+            for (0..8) |file| {
                 // const pos_x = cell_size * @as(f32, @floatFromInt(file));
                 // const pos_y = cell_size * @as(f32, @floatFromInt(rank));
                 const pos_x = self.cell_size * file;
@@ -51,7 +51,9 @@ pub const SpriteManager = struct {
                     cell_color,
                 );
 
-                switch (cell) {
+                const pos = Position{ .rank = rank, .file = file };
+
+                switch (self.board.get_cell(pos)) {
                     .piece => |p| self.draw_piece(
                         p,
                         @as(f32, @floatFromInt(pos_x)),
