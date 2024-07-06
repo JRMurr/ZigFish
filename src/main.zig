@@ -23,9 +23,9 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
-    const sprite_manager = sprite.SpriteManager.init(texture);
+    var board = Board.init();
 
-    const board = Board.init();
+    const sprite_manager = sprite.SpriteManager.init(texture, &board, cell_size);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -43,34 +43,7 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.ray_white);
-
-        // const p = piece.Piece{
-        //     .color = piece.Color.White,
-        //     .kind = piece.Kind.Bishop,
-        // };
-
-        // const x_gap = 300;
-        // const y_gap = 300;
-
-        sprite_manager.draw_board(board, cell_size);
-
-        // for (0..2) |color| {
-        //     for (0..6) |kind| {
-        //         const p = piece.Piece{
-        //             .color = @enumFromInt(color),
-        //             .kind = @enumFromInt(kind),
-        //         };
-        //         const x = 100 + (x_gap * kind);
-        //         const y = 100 + (y_gap * color);
-
-        //         sprite_manager.draw_piece_scaled(
-        //             p,
-        //             @as(f32, @floatFromInt(x)),
-        //             @as(f32, @floatFromInt(y)),
-        //             0.5,
-        //         );
-        //     }
-        // }
+        sprite_manager.draw_board();
 
         //----------------------------------------------------------------------------------
     }
