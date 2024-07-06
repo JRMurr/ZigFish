@@ -1,5 +1,6 @@
 const std = @import("std");
 const piece = @import("piece.zig");
+const fen = @import("fen.zig");
 
 pub const Cell = union(enum) { empty, piece: piece.Piece };
 
@@ -29,11 +30,16 @@ pub const Position = struct {
 };
 
 pub const Board = struct {
+    // TODO: track castling + en passant
     cells: [8][8]Cell, // TODO: make single arr?
 
     pub fn init_empty() Board {
         const cells: [8][8]Cell = .{.{Cell.empty} ** 8} ** 8;
         return .{ .cells = cells };
+    }
+
+    pub fn from_fen(fen_str: []const u8) Board {
+        return fen.parse(fen_str);
     }
 
     pub fn init() Board {
