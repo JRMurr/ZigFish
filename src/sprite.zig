@@ -18,19 +18,33 @@ pub const SpriteManager = struct {
         };
     }
 
-    pub fn draw_board(self: SpriteManager, board: Board, cell_size: f32) void {
-        const scale = cell_size / self.sprite_w;
+    pub fn draw_board(self: SpriteManager, board: Board, cell_size: u32) void {
+        const scale = @as(f32, @floatFromInt(cell_size)) / self.sprite_w;
 
-        for (board.cells, 0..) |rank_cells, file| {
-            for (rank_cells, 0..) |cell, rank| {
-                const pos_x = cell_size * @as(f32, @floatFromInt(rank));
-                const pos_y = cell_size * @as(f32, @floatFromInt(file));
+        for (board.cells, 0..) |rank_cells, rank| {
+            for (rank_cells, 0..) |cell, file| {
+                // const pos_x = cell_size * @as(f32, @floatFromInt(file));
+                // const pos_y = cell_size * @as(f32, @floatFromInt(rank));
+                const pos_x = cell_size * file;
+                const pos_y = cell_size * rank;
+
+                const is_white_cell = @mod(rank + file, 2) == 0;
+
+                const cell_color = if (is_white_cell) rl.Color.light_gray else rl.Color.dark_gray;
+
+                rl.drawRectangle(
+                    @intCast(pos_x),
+                    @intCast(pos_y),
+                    @intCast(cell_size),
+                    @intCast(cell_size),
+                    cell_color,
+                );
 
                 switch (cell) {
                     .piece => |p| self.draw_piece_scaled(
                         p,
-                        pos_x,
-                        pos_y,
+                        @as(f32, @floatFromInt(pos_x)),
+                        @as(f32, @floatFromInt(pos_y)),
                         scale,
                     ),
                     .empty => {},
