@@ -1,7 +1,7 @@
 const std = @import("std");
 const piece = @import("piece.zig");
 
-const Cell = union(enum) { empty, piece: piece.Piece };
+pub const Cell = union(enum) { empty, piece: piece.Piece };
 
 // TODO: can I do comptime stuff to make this generic over array length?
 
@@ -22,7 +22,7 @@ fn kinds_to_cell(kinds: [8]piece.Kind, color: piece.Color) [8]Cell {
 const empty_rank: [8]Cell = .{Cell.empty} ** 8;
 
 pub const Board = struct {
-    cells: [8][8]Cell,
+    cells: [8][8]Cell, // TODO: make single arr?
 
     pub fn init_empty() Board {
         const cells: [8][8]Cell = .{.{Cell.empty} ** 8} ** 8;

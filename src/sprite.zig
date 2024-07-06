@@ -1,6 +1,9 @@
+const std = @import("std");
 const rl = @import("raylib");
 const Piece = @import("piece.zig").Piece;
-const Board = @import("board.zig").Board;
+const board_types = @import("board.zig");
+const Board = board_types.Board;
+const Cell = board_types.Cell;
 
 const num_piece_types = 6;
 const num_colors = 2;
@@ -34,9 +37,9 @@ pub const SpriteManager = struct {
                 // const pos_x = cell_size * @as(f32, @floatFromInt(file));
                 // const pos_y = cell_size * @as(f32, @floatFromInt(rank));
                 const pos_x = self.cell_size * file;
-                const pos_y = self.cell_size * rank;
+                const pos_y = self.cell_size * (7 - rank);
 
-                const is_white_cell = @mod(rank + file, 2) == 0;
+                const is_white_cell = @mod(rank + file, 2) != 0;
 
                 const cell_color = if (is_white_cell) rl.Color.light_gray else rl.Color.dark_gray;
 
@@ -58,6 +61,12 @@ pub const SpriteManager = struct {
                 }
             }
         }
+    }
+
+    pub fn get_cell_at_pos(self: SpriteManager, x: usize, y: usize) Cell {
+        const file = @divFloor(x, self.cell_size);
+        const rank = @divFloor(y, self.cell_size);
+        return self.board.cells[7 - rank][file];
     }
 
     pub fn draw_piece(

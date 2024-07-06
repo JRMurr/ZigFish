@@ -12,8 +12,8 @@ pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
 
-    const cell_size = 150;
-    const screen_size = cell_size * 8;
+    const cell_size: usize = 150;
+    const screen_size: usize = cell_size * 8;
 
     rl.initAudioDevice(); // Initialize audio device
     rl.initWindow(screen_size, screen_size, "ZigFish");
@@ -34,7 +34,14 @@ pub fn main() anyerror!void {
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
         //----------------------------------------------------------------------------------
+        // const mouse_pos = rl.getMousePosition();
 
+        const mouse_x: usize = @intCast(rl.getMouseX());
+        const mouse_y: usize = @intCast(rl.getMouseY());
+
+        const cell = sprite_manager.get_cell_at_pos(mouse_x, mouse_y);
+
+        std.debug.print("{}\n", .{cell});
         //----------------------------------------------------------------------------------
 
         // Draw
