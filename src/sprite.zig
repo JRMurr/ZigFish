@@ -3,7 +3,7 @@ const rl = @import("raylib");
 const Piece = @import("piece.zig").Piece;
 const board_types = @import("board.zig");
 const Board = board_types.Board;
-const Cell = board_types.Cell;
+const Position = board_types.Position;
 
 const num_piece_types = 6;
 const num_colors = 2;
@@ -63,10 +63,14 @@ pub const SpriteManager = struct {
         }
     }
 
-    pub fn get_cell_at_pos(self: SpriteManager, x: usize, y: usize) Cell {
+    pub fn mouse_to_pos(self: SpriteManager, x: usize, y: usize) Position {
         const file = @divFloor(x, self.cell_size);
-        const rank = @divFloor(y, self.cell_size);
-        return self.board.cells[7 - rank][file];
+        const rank = 7 - @divFloor(y, self.cell_size);
+
+        return Position{
+            .rank = rank,
+            .file = file,
+        };
     }
 
     pub fn draw_piece(
