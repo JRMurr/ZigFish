@@ -85,6 +85,20 @@ pub const SpriteManager = struct {
         self.draw_sprite(sprite_id_x, sprite_id_y, pos_x, pos_y);
     }
 
+    pub fn draw_move_marker(self: SpriteManager, pos: Position) void {
+        const pos_x = self.cell_size * pos.file;
+        const pos_y = self.cell_size * pos.rank;
+
+        const rect = rl.Rectangle.init(
+            @as(f32, @floatFromInt(pos_x)),
+            @as(f32, @floatFromInt(pos_y)),
+            @as(f32, @floatFromInt(self.cell_size)),
+            @as(f32, @floatFromInt(self.cell_size)),
+        );
+
+        rl.drawRectangleLinesEx(rect, 10, rl.Color.red);
+    }
+
     fn draw_sprite(
         self: SpriteManager,
         sprite_id_x: u8,

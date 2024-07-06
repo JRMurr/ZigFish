@@ -26,7 +26,7 @@ const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
     .{ "P", Piece{ .kind = Kind.Pawn, .color = Color.Black } },
 });
 
-pub fn parse(str: []const u8) Board {
+pub fn parse(allocater: std.mem.Allocator, str: []const u8) Board {
     var splits = std.mem.tokenizeScalar(u8, str, ' ');
 
     const pieces_str = splits.next().?;
@@ -77,5 +77,6 @@ pub fn parse(str: []const u8) Board {
     return Board{
         .cells = cells,
         .active_color = active_color,
+        .allocater = allocater,
     };
 }

@@ -8,7 +8,11 @@ const Board = board_types.Board;
 const Position = board_types.Position;
 const Cell = board_types.Cell;
 
-const MovingPiece = struct { start: Position, piece: Piece };
+const MovingPiece = struct {
+    start: Position,
+    piece: Piece,
+    valid_moves: std.ArrayList(Position),
+};
 
 const cell_size: usize = 150;
 const screen_size: usize = cell_size * 8;
@@ -39,7 +43,10 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
-    var board = Board.init();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    var board = Board.init(arena.allocator());
     // var board = Board.from_fen("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
 
     var moving_piece: ?MovingPiece = null;
@@ -62,13 +69,16 @@ pub fn main() anyerror!void {
 
             switch (cell) {
                 .piece => |p| {
-                    moving_piece = MovingPiece{ .start = pos, .piece = p };
+                    const moves = try board.get_valid_moves(pos);
+                    moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     board.set_cell(pos, .empty);
                 },
                 .empty => {},
             }
         } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
             moving_piece = null;
+            // only reset once we are done using the possible moves
+            defer _ = arena.reset(.retain_capacity);
         }
 
         //----------------------------------------------------------------------------------
@@ -82,6 +92,10 @@ pub fn main() anyerror!void {
         sprite_manager.draw_board();
 
         if (moving_piece) |p| {
+            for (p.valid_moves.items) |pos| {
+                sprite_manager.draw_move_marker(pos);
+            }
+
             const offset = cell_size / 2; // make sprite under mouse cursor
 
             // TODO: this seems fine for the top / left sides, peice is half cut off on right / bottom
