@@ -11,11 +11,12 @@ const MIN_FRAME_SPEED = 1;
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const screenWidth = 1920;
-    const screenHeight = 1080;
+
+    const cell_size = 150;
+    const screen_size = cell_size * 8;
 
     rl.initAudioDevice(); // Initialize audio device
-    rl.initWindow(screenWidth, screenHeight, "ZigFish");
+    rl.initWindow(screen_size, screen_size, "ZigFish");
     defer rl.closeWindow(); // Close window and OpenGL context
 
     // NOTE: Textures MUST be loaded after Window initialization (OpenGL context is required)
@@ -51,7 +52,7 @@ pub fn main() anyerror!void {
         // const x_gap = 300;
         // const y_gap = 300;
 
-        sprite_manager.draw_board(board, 100);
+        sprite_manager.draw_board(board, cell_size);
 
         // for (0..2) |color| {
         //     for (0..6) |kind| {
