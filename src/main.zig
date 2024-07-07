@@ -87,12 +87,14 @@ pub fn main() anyerror!void {
         } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
 
-            const move_idx = indexOf(Position, moving_piece.?.valid_moves.items, pos);
+            const mp = moving_piece.?;
 
-            std.debug.print("{}\n{any}\nmove_idx: {?}\n", .{ pos, moving_piece.?.valid_moves.items, move_idx });
+            const move_idx = indexOf(Position, mp.valid_moves.items, pos);
 
-            if (indexOf(Position, moving_piece.?.valid_moves.items, pos) != null) {
-                board.set_cell(pos, .{ .piece = moving_piece.?.piece });
+            if (move_idx != null) {
+                board.set_cell(pos, .{ .piece = mp.piece });
+            } else {
+                board.set_cell(mp.start, .{ .piece = mp.piece });
             }
 
             moving_piece = null;

@@ -43,7 +43,7 @@ pub const Position = struct {
 
     pub inline fn from_index(idx: usize) Position {
         const file = idx % 8;
-        const rank = 7 - @divFloor(idx, 8);
+        const rank = @divFloor(idx, 8);
         return Position{ .file = file, .rank = rank };
     }
 
@@ -196,7 +196,6 @@ pub const Board = struct {
                 }
 
                 if (p.is_pawn()) {
-                    std.debug.print("pos {}", .{pos});
                     const offset: i8 = if (p.is_white()) 8 else -8;
                     const single_move = compute_target_idx(start_idx, offset, 0).?;
                     valid_pos.appendAssumeCapacity(Position.from_index(single_move));

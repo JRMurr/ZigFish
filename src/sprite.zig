@@ -87,7 +87,7 @@ pub const SpriteManager = struct {
 
     pub fn draw_move_marker(self: SpriteManager, pos: Position) void {
         const pos_x = self.cell_size * pos.file;
-        const pos_y = self.cell_size * pos.rank;
+        const pos_y = self.cell_size * (7 - pos.rank);
 
         const rect = rl.Rectangle.init(
             @as(f32, @floatFromInt(pos_x)),
