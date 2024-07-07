@@ -65,6 +65,11 @@ pub const Position = struct {
     }
 };
 
+pub const Move = struct {
+    start: Position,
+    end: Position,
+};
+
 const dir_offsets = [8]i8{
     8, // MoveOffset.North,
     -8, // MoveOffset.South,
@@ -142,6 +147,20 @@ pub const Board = struct {
             piece.Color.White => piece.Color.Black,
             piece.Color.Black => piece.Color.White,
         };
+    }
+
+    pub fn make_move(self: *Board, move: Move) void {
+        const start_cell = self.get_cell(move.start);
+
+        const start_peice = switch (start_cell) {
+            .empty => return,
+            .piece => |p| p,
+        };
+
+        self.set_cell(move.start, .empty);
+
+        self.set_cell(move.end, .{ .piece = start_peice });
+        self.flip_active_color();
     }
 
     pub fn get_valid_moves(self: Board, pos: Position) anyerror!std.ArrayList(Position) {

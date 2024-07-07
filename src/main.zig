@@ -7,6 +7,7 @@ const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
 const Cell = board_types.Cell;
+const Move = board_types.Move;
 
 const MovingPiece = struct {
     start: Position,
@@ -91,13 +92,13 @@ pub fn main() anyerror!void {
 
             const mp = moving_piece.?;
 
+            // reset the piece so board can do its own moving logic
+            board.set_cell(mp.start, .{ .piece = mp.piece });
+
             const move_idx = indexOf(Position, mp.valid_moves.items, pos);
 
             if (move_idx != null) {
-                board.set_cell(pos, .{ .piece = mp.piece });
-                board.flip_active_color();
-            } else {
-                board.set_cell(mp.start, .{ .piece = mp.piece });
+                board.make_move(Move{ .start = mp.start, .end = pos });
             }
 
             moving_piece = null;
