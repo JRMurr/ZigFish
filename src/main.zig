@@ -78,9 +78,11 @@ pub fn main() anyerror!void {
 
             switch (cell) {
                 .piece => |p| {
-                    const moves = try board.get_valid_moves(pos);
-                    moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
-                    board.set_cell(pos, .empty);
+                    if (p.color == board.active_color) {
+                        const moves = try board.get_valid_moves(pos);
+                        moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
+                        board.set_cell(pos, .empty);
+                    }
                 },
                 .empty => {},
             }
@@ -93,6 +95,7 @@ pub fn main() anyerror!void {
 
             if (move_idx != null) {
                 board.set_cell(pos, .{ .piece = mp.piece });
+                board.flip_active_color();
             } else {
                 board.set_cell(mp.start, .{ .piece = mp.piece });
             }

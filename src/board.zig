@@ -157,6 +157,13 @@ pub const Board = struct {
         self.cells[pos.to_index()] = cell;
     }
 
+    pub fn flip_active_color(self: *Board) void {
+        self.active_color = switch (self.active_color) {
+            piece.Color.White => piece.Color.Black,
+            piece.Color.Black => piece.Color.White,
+        };
+    }
+
     pub fn get_valid_moves(self: Board, pos: Position) anyerror!std.ArrayList(Position) {
         // TODO: need to see if a move would make the king be in check and remove it
         // 25ish should be more than the max possible moves a queen could make
