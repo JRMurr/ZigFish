@@ -101,4 +101,23 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+
+    const exe_check = b.addExecutable(.{
+        .name = "foo",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    exe_check.linkLibrary(raylib_artifact);
+    exe_check.root_module.addImport("raylib", raylib);
+    exe_check.root_module.addImport("raygui", raygui);
+
+    // Any other code to define dependencies would
+    // probably be here.
+
+    // These two lines you might want to copy
+    // (make sure to rename 'exe_check')
+    const check = b.step("check", "Check if foo compiles");
+    check.dependOn(&exe_check.step);
 }
