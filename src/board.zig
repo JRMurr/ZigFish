@@ -65,17 +65,6 @@ pub const Position = struct {
     }
 };
 
-// const MoveOffset = enum(i8) {
-//     North = 8,
-//     South = -8,
-//     West = -1,
-//     East = 1,
-//     NorthWest = 7,
-//     NorthEast = 9,
-//     SouthWest = -9,
-//     SouthEast = -7,
-// };
-
 const dir_offsets = [8]i8{
     8, // MoveOffset.North,
     -8, // MoveOffset.South,
@@ -96,7 +85,6 @@ fn compute_num_cells_to_edge() [64][8]u8 {
         const num_west = pos.file;
         const num_east = 7 - pos.file;
 
-        // TODO: should i make this a struct?
         dist_to_edge[pos.to_index()] = .{
             num_north,
             num_south,
@@ -117,14 +105,6 @@ const num_squares_to_edge = compute_num_cells_to_edge();
 
 // TODO: try to precompute valid knight moves for each square at startup
 const knight_offsets = [8]i8{
-    // 2 * 8 + 1,
-    // 2 * 8 - 1,
-    // 2 * -8 + 1,
-    // 2 * -8 - 1,
-    // 8 + 2,
-    // 8 - 2,
-    // -8 + 2,
-    // -8 - 2,
     -2 + 8,
     -1 + 16,
     1 + 16,
