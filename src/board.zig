@@ -203,12 +203,25 @@ pub const Board = struct {
                 }
 
                 if (p.is_pawn()) {
-                    const offset: i8 = if (p.is_white()) 8 else -8;
-                    const single_move = compute_target_idx(start_idx, offset, 0).?;
+                    const offset_mult: i8 = if (p.is_white()) 1 else -1;
+
+                    const file_offset: i8 = offset_mult * 8;
+
+                    const single_move = compute_target_idx(start_idx, file_offset, 0).?;
                     valid_pos.appendAssumeCapacity(Position.from_index(single_move));
                     if (p.on_starting_rank(pos.rank)) {
-                        const double_move = compute_target_idx(start_idx, offset, 1).?;
+                        const double_move = compute_target_idx(start_idx, file_offset, 1).?;
                         valid_pos.appendAssumeCapacity(Position.from_index(double_move));
+                    }
+
+                    for ([_]i8{ 7, 9 }) |diag_offset_base| {
+                        // TODO: enpassant check
+                        const diag_offset = diag_offset_base * offset_mult;
+                        const target_idx = compute_target_idx(start_idx, diag_offset, 0).?;
+                        const target = self.cells[target_idx];
+                        if (target.is_enemy(p)) {
+                            valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
+                        }
                     }
                     return valid_pos;
                 }
