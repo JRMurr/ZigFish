@@ -34,7 +34,7 @@ pub const SpriteManager = struct {
     pub fn draw_board(self: SpriteManager) void {
         for (0..8) |rank| {
             for (0..8) |file| {
-                // const flipped_rank = 7 - rank;
+                const flipped_rank = 7 - rank;
                 const pos_x = self.cell_size * file;
                 const pos_y = self.cell_size * (rank);
 
@@ -50,7 +50,7 @@ pub const SpriteManager = struct {
                     cell_color,
                 );
 
-                const pos = Position{ .rank = rank, .file = file };
+                const pos = Position{ .rank = flipped_rank, .file = file };
 
                 switch (self.board.get_cell(pos)) {
                     .piece => |p| self.draw_piece(
@@ -66,7 +66,7 @@ pub const SpriteManager = struct {
 
     pub fn mouse_to_pos(self: SpriteManager, x: usize, y: usize) Position {
         const file = @divFloor(x, self.cell_size);
-        const rank = @divFloor(y, self.cell_size);
+        const rank = 7 - @divFloor(y, self.cell_size);
 
         return Position{
             .rank = rank,

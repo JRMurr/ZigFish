@@ -51,4 +51,11 @@ pub const Piece = struct {
     pub inline fn is_freindly(self: Piece, other: Piece) bool {
         return self.color == other.color;
     }
+
+    pub inline fn on_starting_rank(self: Piece, rank: usize) bool {
+        return switch (self.color) {
+            Color.White => if (self.is_pawn()) rank == 1 else rank == 0,
+            Color.Black => if (self.is_pawn()) rank == 6 else rank == 7,
+        };
+    }
 };

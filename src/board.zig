@@ -43,7 +43,7 @@ pub const Position = struct {
 
     pub inline fn from_index(idx: usize) Position {
         const file = idx % 8;
-        const rank = @divFloor(idx, 8);
+        const rank = 7 - @divFloor(idx, 8);
         return Position{ .file = file, .rank = rank };
     }
 
@@ -158,6 +158,7 @@ pub const Board = struct {
     }
 
     pub fn get_valid_moves(self: Board, pos: Position) anyerror!std.ArrayList(Position) {
+        // TODO: need to see if a move would make the king be in check and remove it
         // 25ish should be more than the max possible moves a queen could make
         var valid_pos = try std.ArrayList(Position).initCapacity(self.allocater, 25);
 
@@ -183,6 +184,29 @@ pub const Board = struct {
                     return valid_pos;
                 }
 
+                if (p.is_king()) {
+                    for (dir_offsets) |offset| {
+                        const maybe_target_idx = compute_target_idx(start_idx, offset, 0);
+                        if (maybe_target_idx) |target_idx| {
+                            const target_pos = Position.from_index(target_idx);
+                            valid_pos.appendAssumeCapacity(target_pos);
+                        }
+                    }
+                    return valid_pos;
+                }
+
+                if (p.is_pawn()) {
+                    std.debug.print("pos {}", .{pos});
+                    const offset: i8 = if (p.is_white()) 8 else -8;
+                    const single_move = compute_target_idx(start_idx, offset, 0).?;
+                    valid_pos.appendAssumeCapacity(Position.from_index(single_move));
+                    if (p.on_starting_rank(pos.rank)) {
+                        const double_move = compute_target_idx(start_idx, offset, 1).?;
+                        valid_pos.appendAssumeCapacity(Position.from_index(double_move));
+                    }
+                    return valid_pos;
+                }
+
                 // moves for bishops, rooks, and queens
                 // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
                 const dir_start: u8 = if (p.is_bishop()) 4 else 0;
@@ -190,7 +214,7 @@ pub const Board = struct {
                 for (dir_start..dir_end) |dirIndex| {
                     const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
                     for (0..max_moves_in_dir) |n| {
-                        const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n);
+                        const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n).?;
                         const target = self.cells[target_idx];
 
                         // blocked by a freind, stop going in this dir
@@ -214,10 +238,14 @@ pub const Board = struct {
     }
 };
 
-inline fn compute_target_idx(start_idx: usize, dir: i8, n: usize) usize {
+inline fn compute_target_idx(start_idx: usize, dir: i8, n: usize) ?usize {
     const mult: i8 = @intCast(n + 1);
 
     const target_idx = @as(i8, @intCast(start_idx)) + (dir * mult);
+
+    if (target_idx < 0 or target_idx >= 64) {
+        return null;
+    }
 
     return @as(usize, @intCast(target_idx));
 }

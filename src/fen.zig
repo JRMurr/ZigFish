@@ -12,18 +12,18 @@ const Cell = board_types.Cell;
 const Position = board_types.Position;
 
 const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
-    .{ "k", Piece{ .kind = Kind.King, .color = Color.White } },
-    .{ "K", Piece{ .kind = Kind.King, .color = Color.Black } },
-    .{ "q", Piece{ .kind = Kind.Queen, .color = Color.White } },
-    .{ "Q", Piece{ .kind = Kind.Queen, .color = Color.Black } },
-    .{ "b", Piece{ .kind = Kind.Bishop, .color = Color.White } },
-    .{ "B", Piece{ .kind = Kind.Bishop, .color = Color.Black } },
-    .{ "n", Piece{ .kind = Kind.Knight, .color = Color.White } },
-    .{ "N", Piece{ .kind = Kind.Knight, .color = Color.Black } },
-    .{ "r", Piece{ .kind = Kind.Rook, .color = Color.White } },
-    .{ "R", Piece{ .kind = Kind.Rook, .color = Color.Black } },
-    .{ "p", Piece{ .kind = Kind.Pawn, .color = Color.White } },
-    .{ "P", Piece{ .kind = Kind.Pawn, .color = Color.Black } },
+    .{ "K", Piece{ .kind = Kind.King, .color = Color.White } },
+    .{ "k", Piece{ .kind = Kind.King, .color = Color.Black } },
+    .{ "Q", Piece{ .kind = Kind.Queen, .color = Color.White } },
+    .{ "q", Piece{ .kind = Kind.Queen, .color = Color.Black } },
+    .{ "B", Piece{ .kind = Kind.Bishop, .color = Color.White } },
+    .{ "b", Piece{ .kind = Kind.Bishop, .color = Color.Black } },
+    .{ "N", Piece{ .kind = Kind.Knight, .color = Color.White } },
+    .{ "n", Piece{ .kind = Kind.Knight, .color = Color.Black } },
+    .{ "R", Piece{ .kind = Kind.Rook, .color = Color.White } },
+    .{ "r", Piece{ .kind = Kind.Rook, .color = Color.Black } },
+    .{ "P", Piece{ .kind = Kind.Pawn, .color = Color.White } },
+    .{ "p", Piece{ .kind = Kind.Pawn, .color = Color.Black } },
 });
 
 pub fn parse(allocater: std.mem.Allocator, str: []const u8) Board {
