@@ -31,6 +31,13 @@ fn sub_ignore_overflow(a: anytype, b: anytype) @TypeOf(a, b) {
     return res[0];
 }
 
+fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
+    for (list, 0..) |x, index| {
+        if (std.meta.eql(x, elem)) return index;
+    }
+    return null;
+}
+
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -78,6 +85,16 @@ pub fn main() anyerror!void {
                 .empty => {},
             }
         } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
+            const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
+
+            const move_idx = indexOf(Position, moving_piece.?.valid_moves.items, pos);
+
+            std.debug.print("{}\n{any}\nmove_idx: {?}\n", .{ pos, moving_piece.?.valid_moves.items, move_idx });
+
+            if (indexOf(Position, moving_piece.?.valid_moves.items, pos) != null) {
+                board.set_cell(pos, .{ .piece = moving_piece.?.piece });
+            }
+
             moving_piece = null;
             // only reset once we are done using the possible moves
             defer _ = arena.reset(.retain_capacity);
