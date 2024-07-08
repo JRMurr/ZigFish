@@ -120,17 +120,20 @@ const knight_offsets = [8]i8{
     -2 - 8,
 };
 
+const Allocator = std.mem.Allocator;
+
 pub const Board = struct {
     // TODO: track castling + en passant
     cells: [64]Cell,
     active_color: piece.Color = piece.Color.White,
-    allocater: std.mem.Allocator,
+    /// allocator for internal state, returned moves will take in an allocator
+    allocater: Allocator,
 
-    pub fn from_fen(allocater: std.mem.Allocator, fen_str: []const u8) Board {
+    pub fn from_fen(allocater: Allocator, fen_str: []const u8) Board {
         return fen.parse(allocater, fen_str);
     }
 
-    pub fn init(allocater: std.mem.Allocator) Board {
+    pub fn init(allocater: Allocator) Board {
         return fen.parse(allocater, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
     }
 
@@ -163,10 +166,10 @@ pub const Board = struct {
         self.flip_active_color();
     }
 
-    pub fn get_valid_moves(self: Board, pos: Position) anyerror!std.ArrayList(Position) {
+    pub fn get_valid_moves(self: Board, allocater: Allocator, pos: Position) anyerror!std.ArrayList(Position) {
         // TODO: need to see if a move would make the king be in check and remove it
         // 27 is max number of possible postions a queen could move to
-        var valid_pos = try std.ArrayList(Position).initCapacity(self.allocater, 27);
+        var valid_pos = try std.ArrayList(Position).initCapacity(allocater, 27);
 
         const start_idx = pos.to_index();
 

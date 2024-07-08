@@ -51,10 +51,15 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
 
-    var board = Board.init(arena.allocator());
+    var arena_allocator = std.heap.ArenaAllocator.init(allocator); // TODO: should this take in not the gpa for perf?
+    defer arena_allocator.deinit();
+
+    const arena = arena_allocator.allocator();
+
+    var board = Board.init(allocator);
     // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
 
     // var board = Board.from_fen(arena.allocator(), "8/8/8/8/4n3/8/8/8 b - - 99 50");
@@ -80,7 +85,7 @@ pub fn main() anyerror!void {
             switch (cell) {
                 .piece => |p| {
                     if (p.color == board.active_color) {
-                        const moves = try board.get_valid_moves(pos);
+                        const moves = try board.get_valid_moves(arena, pos);
                         moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                         board.set_cell(pos, .empty);
                     }
@@ -103,7 +108,7 @@ pub fn main() anyerror!void {
 
             moving_piece = null;
             // only reset once we are done using the possible moves
-            defer _ = arena.reset(.retain_capacity);
+            defer _ = arena_allocator.reset(.retain_capacity);
         }
 
         //----------------------------------------------------------------------------------
