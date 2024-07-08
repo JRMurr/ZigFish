@@ -165,91 +165,92 @@ pub const Board = struct {
 
     pub fn get_valid_moves(self: Board, pos: Position) anyerror!std.ArrayList(Position) {
         // TODO: need to see if a move would make the king be in check and remove it
-        // 25ish should be more than the max possible moves a queen could make
-        var valid_pos = try std.ArrayList(Position).initCapacity(self.allocater, 25);
+        // 27 is max number of possible postions a queen could move to
+        var valid_pos = try std.ArrayList(Position).initCapacity(self.allocater, 27);
 
         const start_idx = pos.to_index();
 
         const cell = self.get_cell(pos);
-        switch (cell) {
-            .piece => |p| {
-                if (p.is_knight()) {
-                    for (knight_offsets) |offset| {
-                        if (start_idx > offset) {
-                            const target = @as(i8, @intCast(start_idx)) + offset;
-                            if (target < 64) {
-                                const target_pos = Position.from_index(@intCast(target));
-                                // hack to make sure move is valid, should just pre-compute allowed moves
-                                if (pos.dist(target_pos) == 3) {
-                                    valid_pos.appendAssumeCapacity(target_pos);
-                                }
-                            }
-                        }
-                    }
 
-                    return valid_pos;
-                }
+        const p = switch (cell) {
+            .piece => |p| p,
+            .empty => return valid_pos,
+        };
 
-                if (p.is_king()) {
-                    for (dir_offsets) |offset| {
-                        const maybe_target_idx = compute_target_idx(start_idx, offset, 0);
-                        if (maybe_target_idx) |target_idx| {
-                            const target_pos = Position.from_index(target_idx);
+        if (p.is_knight()) {
+            for (knight_offsets) |offset| {
+                if (start_idx > offset) {
+                    const target = @as(i8, @intCast(start_idx)) + offset;
+                    if (target < 64) {
+                        const target_pos = Position.from_index(@intCast(target));
+                        // hack to make sure move is valid, should just pre-compute allowed moves
+                        if (pos.dist(target_pos) == 3) {
                             valid_pos.appendAssumeCapacity(target_pos);
                         }
                     }
-                    return valid_pos;
+                }
+            }
+
+            return valid_pos;
+        }
+
+        if (p.is_king()) {
+            for (dir_offsets) |offset| {
+                const maybe_target_idx = compute_target_idx(start_idx, offset, 0);
+                if (maybe_target_idx) |target_idx| {
+                    const target_pos = Position.from_index(target_idx);
+                    valid_pos.appendAssumeCapacity(target_pos);
+                }
+            }
+            return valid_pos;
+        }
+
+        if (p.is_pawn()) {
+            const offset_mult: i8 = if (p.is_white()) 1 else -1;
+
+            const file_offset: i8 = offset_mult * 8;
+
+            const single_move = compute_target_idx(start_idx, file_offset, 0).?;
+            valid_pos.appendAssumeCapacity(Position.from_index(single_move));
+            if (p.on_starting_rank(pos.rank)) {
+                const double_move = compute_target_idx(start_idx, file_offset, 1).?;
+                valid_pos.appendAssumeCapacity(Position.from_index(double_move));
+            }
+
+            for ([_]i8{ 7, 9 }) |diag_offset_base| {
+                // TODO: enpassant check
+                const diag_offset = diag_offset_base * offset_mult;
+                const target_idx = compute_target_idx(start_idx, diag_offset, 0).?;
+                const target = self.cells[target_idx];
+                if (target.is_enemy(p)) {
+                    valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
+                }
+            }
+            return valid_pos;
+        }
+
+        // moves for bishops, rooks, and queens
+        // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
+        const dir_start: u8 = if (p.is_bishop()) 4 else 0;
+        const dir_end: u8 = if (p.is_rook()) 4 else 8;
+        for (dir_start..dir_end) |dirIndex| {
+            const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
+            for (0..max_moves_in_dir) |n| {
+                const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n).?;
+                const target = self.cells[target_idx];
+
+                // blocked by a freind, stop going in this dir
+                if (target.is_freindly(p)) {
+                    break;
                 }
 
-                if (p.is_pawn()) {
-                    const offset_mult: i8 = if (p.is_white()) 1 else -1;
+                valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
 
-                    const file_offset: i8 = offset_mult * 8;
-
-                    const single_move = compute_target_idx(start_idx, file_offset, 0).?;
-                    valid_pos.appendAssumeCapacity(Position.from_index(single_move));
-                    if (p.on_starting_rank(pos.rank)) {
-                        const double_move = compute_target_idx(start_idx, file_offset, 1).?;
-                        valid_pos.appendAssumeCapacity(Position.from_index(double_move));
-                    }
-
-                    for ([_]i8{ 7, 9 }) |diag_offset_base| {
-                        // TODO: enpassant check
-                        const diag_offset = diag_offset_base * offset_mult;
-                        const target_idx = compute_target_idx(start_idx, diag_offset, 0).?;
-                        const target = self.cells[target_idx];
-                        if (target.is_enemy(p)) {
-                            valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
-                        }
-                    }
-                    return valid_pos;
+                // can capture the peice here but no more
+                if (target.is_enemy(p)) {
+                    break;
                 }
-
-                // moves for bishops, rooks, and queens
-                // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
-                const dir_start: u8 = if (p.is_bishop()) 4 else 0;
-                const dir_end: u8 = if (p.is_rook()) 4 else 8;
-                for (dir_start..dir_end) |dirIndex| {
-                    const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
-                    for (0..max_moves_in_dir) |n| {
-                        const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n).?;
-                        const target = self.cells[target_idx];
-
-                        // blocked by a freind, stop going in this dir
-                        if (target.is_freindly(p)) {
-                            break;
-                        }
-
-                        valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
-
-                        // can capture the peice here but no more
-                        if (target.is_enemy(p)) {
-                            break;
-                        }
-                    }
-                }
-            },
-            .empty => {},
+            }
         }
 
         return valid_pos;
