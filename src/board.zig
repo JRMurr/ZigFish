@@ -3,6 +3,7 @@ const piece = @import("piece.zig");
 const Piece = piece.Piece;
 const fen = @import("fen.zig");
 
+// TODO: yeet
 pub const Cell = union(enum) {
     empty,
     piece: piece.Piece,
@@ -130,12 +131,12 @@ const SetIdentifer = enum(u8) {
     const Self = @This();
     White = 0,
     Black = 1,
-    King,
-    Queen,
-    Bishop,
-    Knight,
-    Rook,
-    Pawn,
+    King = 2,
+    Queen = 3,
+    Bishop = 4,
+    Knight = 5,
+    Rook = 6,
+    Pawn = 7,
 
     pub inline fn from_color(c: piece.Color) Self {
         return @enumFromInt(@intFromEnum(c));
@@ -150,6 +151,16 @@ pub const Board = struct {
     const Self = @This();
     bit_sets: [8]PieceBitSet,
 
+    pub fn init() Self {
+        var bit_sets: [8]PieceBitSet = undefined;
+
+        for (0..8) |i| {
+            bit_sets[i] = PieceBitSet.initEmpty();
+        }
+
+        return Self{ .bit_sets = bit_sets };
+    }
+
     pub fn get_piece(self: Self, pos: Position) ?Piece {
         const pos_idx = pos.to_index();
 
@@ -161,10 +172,10 @@ pub const Board = struct {
 
         const kind: piece.Kind = for (2..8) |idx| {
             if (self.bit_sets[idx].isSet(pos_idx)) {
-                break @enumFromInt(idx);
+                break @enumFromInt(idx - 2);
             }
         } else {
-            std.debug.panic("No kind found when color was set");
+            std.debug.panic("No kind found when color was set", .{});
         };
 
         return Piece{ .color = color, .kind = kind };
@@ -174,13 +185,13 @@ pub const Board = struct {
         const pos_idx = pos.to_index();
 
         // unset the position first to remove any piece that might be there
-        for (self.bit_sets) |bs| {
+        for (&self.bit_sets) |*bs| {
             bs.unset(pos_idx);
         }
 
         if (maybe_piece) |p| {
-            self.bit_sets[SetIdentifer.from_color(p.color)].set(pos_idx);
-            self.bit_sets[SetIdentifer.from_kind(p.kind)].set(pos_idx);
+            self.bit_sets[@intFromEnum(SetIdentifer.from_color(p.color))].set(pos_idx);
+            self.bit_sets[@intFromEnum(SetIdentifer.from_kind(p.kind))].set(pos_idx);
         }
     }
 };
@@ -189,7 +200,7 @@ pub const GameManager = struct {
     const Self = @This();
 
     // TODO: track castling + en passant
-    cells: [64]Cell,
+    board: Board,
     active_color: piece.Color = piece.Color.White,
     /// allocator for internal state, returned moves will take in an allocator
     allocater: Allocator,
@@ -200,15 +211,25 @@ pub const GameManager = struct {
 
     pub fn from_fen(allocater: Allocator, fen_str: []const u8) Self {
         const state = fen.parse(fen_str);
-        return Self{ .cells = state.cells, .active_color = state.active_color, .allocater = allocater };
+        return Self{ .board = state.board, .active_color = state.active_color, .allocater = allocater };
     }
 
     pub fn get_cell(self: Self, pos: Position) Cell {
-        return self.cells[pos.to_index()];
+        const maybe_piece = self.board.get_piece(pos);
+        if (maybe_piece) |p| {
+            return .{ .piece = p };
+        }
+
+        return .empty;
     }
 
     pub fn set_cell(self: *Self, pos: Position, cell: Cell) void {
-        self.cells[pos.to_index()] = cell;
+        const maybe_piece = switch (cell) {
+            .piece => |p| p,
+            .empty => null,
+        };
+
+        self.board.set_piece(pos, maybe_piece);
     }
 
     pub fn flip_active_color(self: *Self) void {
@@ -290,7 +311,7 @@ pub const GameManager = struct {
                 // TODO: enpassant check
                 const diag_offset = diag_offset_base * offset_mult;
                 const target_idx = compute_target_idx(start_idx, diag_offset, 0).?;
-                const target = self.cells[target_idx];
+                const target = self.get_cell(Position.from_index(target_idx));
                 if (target.is_enemy(p)) {
                     valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
                 }
@@ -306,7 +327,7 @@ pub const GameManager = struct {
             const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
             for (0..max_moves_in_dir) |n| {
                 const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n).?;
-                const target = self.cells[target_idx];
+                const target = self.get_cell(Position.from_index(target_idx));
 
                 // blocked by a freind, stop going in this dir
                 if (target.is_freindly(p)) {

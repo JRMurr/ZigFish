@@ -7,7 +7,7 @@ const Color = piece_types.Color;
 const Kind = piece_types.Kind;
 
 const board_types = @import("board.zig");
-const GameManager = board_types.GameManager;
+const Board = board_types.Board;
 const Cell = board_types.Cell;
 const Position = board_types.Position;
 
@@ -27,7 +27,7 @@ const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
 });
 
 pub const BoardState = struct {
-    cells: [64]Cell,
+    board: board_types.Board,
     active_color: Color,
 };
 
@@ -43,7 +43,7 @@ pub fn parse(str: []const u8) BoardState {
 
     var rank_strs = std.mem.tokenizeScalar(u8, pieces_str, '/');
 
-    var cells: [64]Cell = undefined;
+    var board = Board.init();
 
     // fen starts from the top, board arr has bottom as 0
     var curr_pos = Position{ .file = 0, .rank = 7 };
@@ -54,17 +54,18 @@ pub fn parse(str: []const u8) BoardState {
             const key = [_]u8{char};
             if (piece_lookup.has(&key)) {
                 const piece = piece_lookup.get(&key).?;
-                cells[curr_pos.to_index()] = Cell{ .piece = piece };
+                board.set_piece(curr_pos, piece);
                 curr_pos.file += 1;
             } else {
                 // TODO: char should just be an ascii digit but if i use it in the for loop below its sad
                 const num_empty = std.fmt.parseInt(usize, &key, 10) catch |err| {
                     std.debug.panic("erroring parsing {s} as usize {}", .{ key, err });
                 };
-                for (0..(num_empty)) |_| {
-                    cells[curr_pos.to_index()] = Cell.empty;
-                    curr_pos.file += 1;
-                }
+                curr_pos.file += num_empty;
+                // for (0..(num_empty)) |_| {
+                //     cells[curr_pos.to_index()] = Cell.empty;
+                //     curr_pos.file += 1;
+                // }
             }
         }
 
@@ -80,7 +81,7 @@ pub fn parse(str: []const u8) BoardState {
     _ = full_move_str;
 
     return BoardState{
-        .cells = cells,
+        .board = board,
         .active_color = active_color,
     };
 }

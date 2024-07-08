@@ -10,20 +10,20 @@ const num_colors = 2;
 
 pub const SpriteManager = struct {
     texture: rl.Texture,
-    board: *GameManager,
+    game_manager: *GameManager,
     sprite_w: f32,
     sprite_h: f32,
     cell_size: u32,
     scale: f32,
 
-    pub fn init(texture: rl.Texture, board: *GameManager, cell_size: u32) SpriteManager {
+    pub fn init(texture: rl.Texture, game_manager: *GameManager, cell_size: u32) SpriteManager {
         const sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types)));
         const sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors)));
         const scale = @as(f32, @floatFromInt(cell_size)) / sprite_w;
 
         return .{
             .texture = texture,
-            .board = board,
+            .game_manager = game_manager,
             .sprite_w = sprite_w,
             .sprite_h = sprite_h,
             .scale = scale,
@@ -52,7 +52,7 @@ pub const SpriteManager = struct {
 
                 const pos = Position{ .rank = flipped_rank, .file = file };
 
-                switch (self.board.get_cell(pos)) {
+                switch (self.game_manager.get_cell(pos)) {
                     .piece => |p| self.draw_piece(
                         p,
                         @as(f32, @floatFromInt(pos_x)),
