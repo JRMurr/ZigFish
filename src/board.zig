@@ -124,58 +124,83 @@ const knight_offsets = [8]i8{
 
 const Allocator = std.mem.Allocator;
 
-const PieceBitSet = std.bit_set.IntegerBitSet(64);
+const BoardBitSet = std.bit_set.IntegerBitSet(64);
 
-/// used for bitset lookup in the board
-const SetIdentifer = enum(u8) {
-    const Self = @This();
-    White = 0,
-    Black = 1,
-    King = 2,
-    Queen = 3,
-    Bishop = 4,
-    Knight = 5,
-    Rook = 6,
-    Pawn = 7,
+// /// used for bitset lookup in the board
+// const SetIdentifer = enum(u8) {
+//     const Self = @This();
+//     White = 0,
+//     Black = 1,
+//     King = 2,
+//     Queen = 3,
+//     Bishop = 4,
+//     Knight = 5,
+//     Rook = 6,
+//     Pawn = 7,
 
-    pub inline fn from_color(c: piece.Color) Self {
-        return @enumFromInt(@intFromEnum(c));
-    }
+//     pub inline fn from_color(c: piece.Color) Self {
+//         return @enumFromInt(@intFromEnum(c));
+//     }
 
-    pub inline fn from_kind(k: piece.Kind) Self {
-        return @enumFromInt(@intFromEnum(k) + 2);
-    }
-};
+//     pub inline fn from_kind(k: piece.Kind) Self {
+//         return @enumFromInt(@intFromEnum(k) + 2);
+//     }
+// };
+
+inline fn enum_len(comptime T: type) comptime_int {
+    return @typeInfo(T).Enum.fields.len;
+}
+
+const NUM_KINDS = enum_len(piece.Kind);
+const NUM_COLOR = enum_len(piece.Color);
 
 pub const Board = struct {
     const Self = @This();
-    bit_sets: [8]PieceBitSet,
+    peice_sets: [NUM_KINDS]BoardBitSet,
+    color_sets: [NUM_COLOR]BoardBitSet,
+
+    /// redudent set for easy check if a square is occupied
+    occupied_set: BoardBitSet,
 
     pub fn init() Self {
-        var bit_sets: [8]PieceBitSet = undefined;
+        var peice_sets: [NUM_KINDS]BoardBitSet = undefined;
 
-        for (0..8) |i| {
-            bit_sets[i] = PieceBitSet.initEmpty();
+        for (0..NUM_KINDS) |i| {
+            peice_sets[i] = BoardBitSet.initEmpty();
         }
 
-        return Self{ .bit_sets = bit_sets };
+        var color_sets: [NUM_COLOR]BoardBitSet = undefined;
+
+        for (0..NUM_COLOR) |i| {
+            color_sets[i] = BoardBitSet.initEmpty();
+        }
+
+        const occupied_set = BoardBitSet.initEmpty();
+
+        return Self{ .peice_sets = peice_sets, .color_sets = color_sets, .occupied_set = occupied_set };
     }
 
     pub fn get_piece(self: Self, pos: Position) ?Piece {
         const pos_idx = pos.to_index();
 
-        const color: piece.Color = for (0..2) |idx| {
-            if (self.bit_sets[idx].isSet(pos_idx)) {
+        if (!self.occupied_set.isSet(pos_idx)) {
+            return null;
+        }
+
+        const color: piece.Color = for (0..NUM_COLOR) |idx| {
+            if (self.color_sets[idx].isSet(pos_idx)) {
                 break @enumFromInt(idx);
             }
-        } else return null;
+        } else {
+            std.debug.panic("No color found when occupied was set", .{});
+        };
 
-        const kind: piece.Kind = for (2..8) |idx| {
-            if (self.bit_sets[idx].isSet(pos_idx)) {
-                break @enumFromInt(idx - 2);
+        const kind: piece.Kind = for (0..NUM_KINDS) |idx| {
+            if (self.peice_sets[idx].isSet(pos_idx)) {
+                break @enumFromInt(idx);
             }
         } else {
-            std.debug.panic("No kind found when color was set", .{});
+            std.debug.panic("No kind found when occupied was set", .{});
         };
 
         return Piece{ .color = color, .kind = kind };
@@ -185,13 +210,18 @@ pub const Board = struct {
         const pos_idx = pos.to_index();
 
         // unset the position first to remove any piece that might be there
-        for (&self.bit_sets) |*bs| {
+        for (&self.color_sets) |*bs| {
             bs.unset(pos_idx);
         }
+        for (&self.peice_sets) |*bs| {
+            bs.unset(pos_idx);
+        }
+        self.occupied_set.unset(pos_idx);
 
         if (maybe_piece) |p| {
-            self.bit_sets[@intFromEnum(SetIdentifer.from_color(p.color))].set(pos_idx);
-            self.bit_sets[@intFromEnum(SetIdentifer.from_kind(p.kind))].set(pos_idx);
+            self.color_sets[@intFromEnum(p.color)].set(pos_idx);
+            self.peice_sets[@intFromEnum(p.kind)].set(pos_idx);
+            self.occupied_set.set(pos_idx);
         }
     }
 };
