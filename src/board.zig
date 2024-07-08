@@ -123,36 +123,39 @@ const knight_offsets = [8]i8{
 const Allocator = std.mem.Allocator;
 
 pub const Board = struct {
+    const Self = @This();
+
     // TODO: track castling + en passant
     cells: [64]Cell,
     active_color: piece.Color = piece.Color.White,
     /// allocator for internal state, returned moves will take in an allocator
     allocater: Allocator,
 
-    pub fn from_fen(allocater: Allocator, fen_str: []const u8) Board {
-        return fen.parse(allocater, fen_str);
+    pub fn init(allocater: Allocator) Self {
+        return Self.from_fen(allocater, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
     }
 
-    pub fn init(allocater: Allocator) Board {
-        return fen.parse(allocater, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
+    pub fn from_fen(allocater: Allocator, fen_str: []const u8) Self {
+        const state = fen.parse(fen_str);
+        return Self{ .cells = state.cells, .active_color = state.active_color, .allocater = allocater };
     }
 
-    pub fn get_cell(self: Board, pos: Position) Cell {
+    pub fn get_cell(self: Self, pos: Position) Cell {
         return self.cells[pos.to_index()];
     }
 
-    pub fn set_cell(self: *Board, pos: Position, cell: Cell) void {
+    pub fn set_cell(self: *Self, pos: Position, cell: Cell) void {
         self.cells[pos.to_index()] = cell;
     }
 
-    pub fn flip_active_color(self: *Board) void {
+    pub fn flip_active_color(self: *Self) void {
         self.active_color = switch (self.active_color) {
             piece.Color.White => piece.Color.Black,
             piece.Color.Black => piece.Color.White,
         };
     }
 
-    pub fn make_move(self: *Board, move: Move) void {
+    pub fn make_move(self: *Self, move: Move) void {
         const start_cell = self.get_cell(move.start);
 
         const start_peice = switch (start_cell) {
@@ -166,7 +169,7 @@ pub const Board = struct {
         self.flip_active_color();
     }
 
-    pub fn get_valid_moves(self: Board, allocater: Allocator, pos: Position) anyerror!std.ArrayList(Position) {
+    pub fn get_valid_moves(self: Self, allocater: Allocator, pos: Position) anyerror!std.ArrayList(Position) {
         // TODO: need to see if a move would make the king be in check and remove it
         // 27 is max number of possible postions a queen could move to
         var valid_pos = try std.ArrayList(Position).initCapacity(allocater, 27);
