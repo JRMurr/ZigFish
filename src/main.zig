@@ -4,7 +4,7 @@ const rl = @import("raylib");
 const sprite = @import("sprite.zig");
 const Piece = @import("piece.zig").Piece;
 const board_types = @import("board.zig");
-const Board = board_types.Board;
+const GameManager = board_types.GameManager;
 const Position = board_types.Position;
 const Cell = board_types.Cell;
 const Move = board_types.Move;
@@ -59,7 +59,7 @@ pub fn main() anyerror!void {
 
     const arena = arena_allocator.allocator();
 
-    var board = Board.init(allocator);
+    var board = GameManager.init(allocator);
     // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
 
     // var board = Board.from_fen(arena.allocator(), "8/8/8/8/4n3/8/8/8 b - - 99 50");

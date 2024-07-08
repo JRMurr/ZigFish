@@ -2,7 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const Piece = @import("piece.zig").Piece;
 const board_types = @import("board.zig");
-const Board = board_types.Board;
+const GameManager = board_types.GameManager;
 const Position = board_types.Position;
 
 const num_piece_types = 6;
@@ -10,13 +10,13 @@ const num_colors = 2;
 
 pub const SpriteManager = struct {
     texture: rl.Texture,
-    board: *Board,
+    board: *GameManager,
     sprite_w: f32,
     sprite_h: f32,
     cell_size: u32,
     scale: f32,
 
-    pub fn init(texture: rl.Texture, board: *Board, cell_size: u32) SpriteManager {
+    pub fn init(texture: rl.Texture, board: *GameManager, cell_size: u32) SpriteManager {
         const sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types)));
         const sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors)));
         const scale = @as(f32, @floatFromInt(cell_size)) / sprite_w;

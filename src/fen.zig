@@ -7,7 +7,7 @@ const Color = piece_types.Color;
 const Kind = piece_types.Kind;
 
 const board_types = @import("board.zig");
-const Board = board_types.Board;
+const GameManager = board_types.GameManager;
 const Cell = board_types.Cell;
 const Position = board_types.Position;
 

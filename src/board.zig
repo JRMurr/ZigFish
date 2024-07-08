@@ -1,5 +1,6 @@
 const std = @import("std");
 const piece = @import("piece.zig");
+const Piece = piece.Piece;
 const fen = @import("fen.zig");
 
 pub const Cell = union(enum) {
@@ -122,7 +123,69 @@ const knight_offsets = [8]i8{
 
 const Allocator = std.mem.Allocator;
 
+const PieceBitSet = std.bit_set.IntegerBitSet(64);
+
+/// used for bitset lookup in the board
+const SetIdentifer = enum(u8) {
+    const Self = @This();
+    White = 0,
+    Black = 1,
+    King,
+    Queen,
+    Bishop,
+    Knight,
+    Rook,
+    Pawn,
+
+    pub inline fn from_color(c: piece.Color) Self {
+        return @enumFromInt(@intFromEnum(c));
+    }
+
+    pub inline fn from_kind(k: piece.Kind) Self {
+        return @enumFromInt(@intFromEnum(k) + 2);
+    }
+};
+
 pub const Board = struct {
+    const Self = @This();
+    bit_sets: [8]PieceBitSet,
+
+    pub fn get_piece(self: Self, pos: Position) ?Piece {
+        const pos_idx = pos.to_index();
+
+        const color: piece.Color = for (0..2) |idx| {
+            if (self.bit_sets[idx].isSet(pos_idx)) {
+                break @enumFromInt(idx);
+            }
+        } else return null;
+
+        const kind: piece.Kind = for (2..8) |idx| {
+            if (self.bit_sets[idx].isSet(pos_idx)) {
+                break @enumFromInt(idx);
+            }
+        } else {
+            std.debug.panic("No kind found when color was set");
+        };
+
+        return Piece{ .color = color, .kind = kind };
+    }
+
+    pub fn set_piece(self: *Self, pos: Position, maybe_piece: ?Piece) void {
+        const pos_idx = pos.to_index();
+
+        // unset the position first to remove any piece that might be there
+        for (self.bit_sets) |bs| {
+            bs.unset(pos_idx);
+        }
+
+        if (maybe_piece) |p| {
+            self.bit_sets[SetIdentifer.from_color(p.color)].set(pos_idx);
+            self.bit_sets[SetIdentifer.from_kind(p.kind)].set(pos_idx);
+        }
+    }
+};
+
+pub const GameManager = struct {
     const Self = @This();
 
     // TODO: track castling + en passant

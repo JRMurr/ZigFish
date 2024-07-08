@@ -1,9 +1,9 @@
-pub const Color = enum(u8) {
+pub const Color = enum(u1) {
     White = 0,
     Black = 1,
 };
 
-pub const Kind = enum(u8) {
+pub const Kind = enum(u6) {
     King = 0,
     Queen = 1,
     Bishop = 2,
