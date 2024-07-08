@@ -3,8 +3,11 @@ const rl = @import("raylib");
 
 const sprite = @import("sprite.zig");
 const Piece = @import("piece.zig").Piece;
+
+const game_types = @import("game.zig");
+const GameManager = game_types.GameManager;
+
 const board_types = @import("board.zig");
-const GameManager = board_types.GameManager;
 const Position = board_types.Position;
 const Cell = board_types.Cell;
 const Move = board_types.Move;
@@ -24,12 +27,7 @@ fn clamp_to_screen(val: i32) usize {
 }
 
 fn sub_ignore_overflow(a: anytype, b: anytype) @TypeOf(a, b) {
-    const res = @subWithOverflow(a, b);
-    if (res[1] == 1) {
-        // we overflowed so ignore
-        return 0;
-    }
-    return res[0];
+    return a -| b;
 }
 
 fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {

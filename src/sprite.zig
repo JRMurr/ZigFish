@@ -1,8 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
 const Piece = @import("piece.zig").Piece;
+const game_types = @import("game.zig");
+const GameManager = game_types.GameManager;
 const board_types = @import("board.zig");
-const GameManager = board_types.GameManager;
 const Position = board_types.Position;
 
 const num_piece_types = 6;
