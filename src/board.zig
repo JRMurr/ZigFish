@@ -2,6 +2,7 @@ const std = @import("std");
 const piece = @import("piece.zig");
 const Piece = piece.Piece;
 const fen = @import("fen.zig");
+const utils = @import("utils.zig");
 
 // TODO: yeet
 pub const Cell = union(enum) {
@@ -72,7 +73,7 @@ pub const Move = struct {
     end: Position,
 };
 
-const BoardBitSet = packed struct {
+pub const BoardBitSet = packed struct {
     const Self = @This();
     pub const BitSet = std.bit_set.IntegerBitSet(64);
 
@@ -84,6 +85,12 @@ const BoardBitSet = packed struct {
     /// Creates a bit set with no elements present.
     pub fn initEmpty() Self {
         return .{ .bit_set = BitSet.initEmpty() };
+    }
+
+    pub fn initWithIndex(index: usize) Self {
+        var bs = BitSet.initEmpty();
+        bs.set(index);
+        return .{ .bit_set = bs };
     }
 
     pub fn fromMask(mask: BitSet.MaskInt) Self {
@@ -163,12 +170,8 @@ const BoardBitSet = packed struct {
     }
 };
 
-inline fn enum_len(comptime T: type) comptime_int {
-    return @typeInfo(T).Enum.fields.len;
-}
-
-const NUM_KINDS = enum_len(piece.Kind);
-const NUM_COLOR = enum_len(piece.Color);
+const NUM_KINDS = utils.enum_len(piece.Kind);
+const NUM_COLOR = utils.enum_len(piece.Color);
 
 pub const Board = struct {
     const Self = @This();

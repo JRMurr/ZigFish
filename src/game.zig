@@ -1,10 +1,12 @@
 const std = @import("std");
+const utils = @import("utils.zig");
 
 const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Cell = board_types.Cell;
 const Position = board_types.Position;
 const Move = board_types.Move;
+const BoardBitSet = board_types.BoardBitSet;
 
 const piece = @import("piece.zig");
 const Piece = piece.Piece;
@@ -13,13 +15,71 @@ const fen = @import("fen.zig");
 
 const Allocator = std.mem.Allocator;
 
+const MoveFn = fn (self: BoardBitSet) BoardBitSet;
+
+pub const Dir = enum(u3) {
+    North,
+    South,
+    West,
+    East,
+    NorthWest,
+    NorthEast,
+    SouthWest,
+    SouthEast,
+
+    pub fn to_move_func(self: Dir) MoveFn {
+        return switch (self) {
+            .North => BoardBitSet.northOne,
+            .South => BoardBitSet.southOne,
+            .West => BoardBitSet.westOne,
+            .East => BoardBitSet.eastOne,
+            .NorthWest => BoardBitSet.noWeOne,
+            .NorthEast => BoardBitSet.noEaOne,
+            .SouthWest => BoardBitSet.soWeOne,
+            .SouthEast => BoardBitSet.soEaOne,
+        };
+    }
+};
+
+const NUM_DIRS = utils.enum_len(Dir);
+
+// TOOD: this is awful perf, switch to line attack generation https://www.chessprogramming.org/On_an_empty_Board#Line_Attacks
+fn generate_ray_attacks() [NUM_DIRS][64]BoardBitSet {
+    var all_attacks: [NUM_DIRS][64]BoardBitSet = undefined;
+
+    inline for (utils.enum_fields(Dir)) |f| {
+        const dir_idx = f.value;
+        const dir: Dir = @enumFromInt(dir_idx);
+        const move_fn = dir.to_move_func();
+
+        all_attacks[dir_idx] = undefined;
+        for (0..64) |square| {
+            var attacks = BoardBitSet.initEmpty();
+            // init at current position to make logic easier, rem
+            attacks.set(square);
+
+            var moved = move_fn(attacks);
+            while (moved.count() != 0) {
+                attacks.bit_set.setUnion(moved.bit_set);
+                moved = move_fn(attacks);
+            }
+
+            // start square is not a valid attack
+            attacks.bit_set.unset(square);
+            all_attacks[dir_idx][square] = attacks;
+        }
+    }
+
+    return all_attacks;
+}
+
 const dir_offsets = [8]i8{
-    8, // MoveOffset.North,
+    8, //  MoveOffset.North,
     -8, // MoveOffset.South,
     -1, // MoveOffset.West,
-    1, // MoveOffset.East,
-    7, // MoveOffset.NorthWest,
-    9, // MoveOffset.NorthEast,
+    1, //  MoveOffset.East,
+    7, //  MoveOffset.NorthWest,
+    9, //  MoveOffset.NorthEast,
     -9, // MoveOffset.SouthWest,
     -7, // MoveOffset.SouthEast,
 };
@@ -224,4 +284,23 @@ inline fn compute_target_idx(start_idx: usize, dir: i8, n: usize) ?usize {
     }
 
     return @as(usize, @intCast(target_idx));
+}
+
+test "check rays" {
+    const ray_attacks = generate_ray_attacks();
+
+    //https://www.chessprogramming.org/Classical_Approach
+    const dir = Dir.NorthWest;
+    const pos = Position{ .rank = 2, .file = 6 };
+    const pos_idx = pos.to_index();
+
+    const attacks = ray_attacks[@intFromEnum(dir)][pos_idx];
+
+    var iter = attacks.bit_set.iterator(.{});
+
+    while (iter.next()) |idx| {
+        std.debug.print("{}\n", .{Position.from_index(idx)});
+    }
+
+    try std.testing.expect(attacks.count() == 6);
 }

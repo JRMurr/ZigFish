@@ -3,7 +3,7 @@ pub const Color = enum(u1) {
     Black = 1,
 };
 
-pub const Kind = enum(u6) {
+pub const Kind = enum(u3) {
     King = 0,
     Queen = 1,
     Bishop = 2,
