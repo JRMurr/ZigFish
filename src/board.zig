@@ -110,49 +110,49 @@ const BoardBitSet = packed struct {
         return self.fromMask(self.bit_set.mask);
     }
 
-    // pub fn left_shift(self: *Self, x: BitSet.ShiftInt) void {
-    //     self.bit_set.mask <<= x;
-    // }
-
-    // pub fn right_shift(self: *Self, x: BitSet.ShiftInt) void {
-    //     self.bit_set.mask >>= x;
-    // }
-
     // https://www.chessprogramming.org/General_Setwise_Operations#OneStepOnly
 
+    /// shift south one
     pub fn southOne(self: Self) BoardBitSet {
         return Self.fromMask(self.bit_set.mask >> 8);
     }
 
+    /// shift north one
     pub fn northOne(self: Self) BoardBitSet {
         return Self.fromMask(self.bit_set.mask >> 8);
     }
 
+    /// shift east one
     pub fn eastOne(self: Self) BoardBitSet {
         const mask = (self.bit_set.mask << 1) & Self.NotAFile.mask;
         return Self.fromMask(mask);
     }
 
+    /// shift north east one
     pub fn noEaOne(self: Self) BoardBitSet {
         const mask = (self.bit_set.mask << 9) & Self.NotAFile.mask;
         return Self.fromMask(mask);
     }
 
+    /// shift south east one
     pub fn soEaOne(self: Self) BoardBitSet {
         const mask = (self.bit_set.mask >> 7) & Self.NotAFile.mask;
         return Self.fromMask(mask);
     }
 
+    /// shift west one
     pub fn westOne(self: Self) BoardBitSet {
         const mask = (self.bit_set.mask >> 1) & Self.NotHFile.mask;
         return Self.fromMask(mask);
     }
 
+    /// shift south west one
     pub fn soWeOne(self: Self) BoardBitSet {
         const mask = (self.bit_set.mask >> 9) & Self.NotHFile.mask;
         return Self.fromMask(mask);
     }
 
+    /// shift north west one
     pub fn noWeOne(self: Self) BoardBitSet {
         const mask = (self.bit_set.mask << 7) & Self.NotHFile.mask;
         return Self.fromMask(mask);
