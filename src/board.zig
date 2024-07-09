@@ -106,6 +106,10 @@ const BoardBitSet = packed struct {
         self.bit_set.unset(index);
     }
 
+    pub fn count(self: Self) usize {
+        return self.bit_set.count();
+    }
+
     pub fn clone(self: Self) BoardBitSet {
         return self.fromMask(self.bit_set.mask);
     }
@@ -119,7 +123,7 @@ const BoardBitSet = packed struct {
 
     /// shift north one
     pub fn northOne(self: Self) BoardBitSet {
-        return Self.fromMask(self.bit_set.mask >> 8);
+        return Self.fromMask(self.bit_set.mask << 8);
     }
 
     /// shift east one
@@ -237,3 +241,59 @@ pub const Board = struct {
         }
     }
 };
+
+test "north moves off the edge of the board should be removed" {
+    const pos = Position{ .rank = 7, .file = 1 };
+
+    const idx = pos.to_index();
+
+    var bs = BoardBitSet.initEmpty();
+
+    bs.set(idx);
+
+    const moved = bs.northOne();
+
+    try std.testing.expect(moved.count() == 0);
+}
+
+test "east moves off the edge of the board should be removed" {
+    const pos = Position{ .rank = 0, .file = 7 };
+
+    const idx = pos.to_index();
+
+    var bs = BoardBitSet.initEmpty();
+
+    bs.set(idx);
+
+    const moved = bs.eastOne();
+
+    try std.testing.expect(moved.count() == 0);
+}
+
+test "north east moves off the edge of the board should be removed" {
+    const pos = Position{ .rank = 4, .file = 7 };
+
+    const idx = pos.to_index();
+
+    var bs = BoardBitSet.initEmpty();
+
+    bs.set(idx);
+
+    const moved = bs.noEaOne();
+
+    try std.testing.expect(moved.count() == 0);
+}
+
+test "west moves off the edge of the board should be removed" {
+    const pos = Position{ .rank = 0, .file = 0 };
+
+    const idx = pos.to_index();
+
+    var bs = BoardBitSet.initEmpty();
+
+    bs.set(idx);
+
+    const moved = bs.westOne();
+
+    try std.testing.expect(moved.count() == 0);
+}
