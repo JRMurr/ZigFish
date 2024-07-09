@@ -4,6 +4,8 @@ const Piece = piece.Piece;
 const fen = @import("fen.zig");
 const utils = @import("utils.zig");
 
+pub const BoardBitSet = @import("bitset.zig").BoardBitSet;
+
 // TODO: yeet
 pub const Cell = union(enum) {
     empty,
@@ -71,103 +73,6 @@ pub const Position = struct {
 pub const Move = struct {
     start: Position,
     end: Position,
-};
-
-pub const BoardBitSet = packed struct {
-    const Self = @This();
-    pub const BitSet = std.bit_set.IntegerBitSet(64);
-
-    pub const NotAFile = BitSet{ .mask = 0xfefefefefefefefe };
-    pub const NotHFile = BitSet{ .mask = 0x7f7f7f7f7f7f7f7f };
-
-    bit_set: BitSet,
-
-    /// Creates a bit set with no elements present.
-    pub fn initEmpty() Self {
-        return .{ .bit_set = BitSet.initEmpty() };
-    }
-
-    pub fn initWithIndex(index: usize) Self {
-        var bs = BitSet.initEmpty();
-        bs.set(index);
-        return .{ .bit_set = bs };
-    }
-
-    pub fn fromMask(mask: BitSet.MaskInt) Self {
-        return .{ .bit_set = BitSet{ .mask = mask } };
-    }
-
-    /// Returns true if the bit at the specified index
-    /// is present in the set, false otherwise.
-    pub fn isSet(self: Self, index: usize) bool {
-        return self.bit_set.isSet(index);
-    }
-
-    /// Adds a specific bit to the bit set
-    pub fn set(self: *Self, index: usize) void {
-        self.bit_set.set(index);
-    }
-
-    /// Removes a specific bit from the bit set
-    pub fn unset(self: *Self, index: usize) void {
-        self.bit_set.unset(index);
-    }
-
-    pub fn count(self: Self) usize {
-        return self.bit_set.count();
-    }
-
-    pub fn clone(self: Self) BoardBitSet {
-        return self.fromMask(self.bit_set.mask);
-    }
-
-    // https://www.chessprogramming.org/General_Setwise_Operations#OneStepOnly
-
-    /// shift south one
-    pub fn southOne(self: Self) BoardBitSet {
-        return Self.fromMask(self.bit_set.mask >> 8);
-    }
-
-    /// shift north one
-    pub fn northOne(self: Self) BoardBitSet {
-        return Self.fromMask(self.bit_set.mask << 8);
-    }
-
-    /// shift east one
-    pub fn eastOne(self: Self) BoardBitSet {
-        const mask = (self.bit_set.mask << 1) & Self.NotAFile.mask;
-        return Self.fromMask(mask);
-    }
-
-    /// shift north east one
-    pub fn noEaOne(self: Self) BoardBitSet {
-        const mask = (self.bit_set.mask << 9) & Self.NotAFile.mask;
-        return Self.fromMask(mask);
-    }
-
-    /// shift south east one
-    pub fn soEaOne(self: Self) BoardBitSet {
-        const mask = (self.bit_set.mask >> 7) & Self.NotAFile.mask;
-        return Self.fromMask(mask);
-    }
-
-    /// shift west one
-    pub fn westOne(self: Self) BoardBitSet {
-        const mask = (self.bit_set.mask >> 1) & Self.NotHFile.mask;
-        return Self.fromMask(mask);
-    }
-
-    /// shift south west one
-    pub fn soWeOne(self: Self) BoardBitSet {
-        const mask = (self.bit_set.mask >> 9) & Self.NotHFile.mask;
-        return Self.fromMask(mask);
-    }
-
-    /// shift north west one
-    pub fn noWeOne(self: Self) BoardBitSet {
-        const mask = (self.bit_set.mask << 7) & Self.NotHFile.mask;
-        return Self.fromMask(mask);
-    }
 };
 
 const NUM_KINDS = utils.enum_len(piece.Kind);

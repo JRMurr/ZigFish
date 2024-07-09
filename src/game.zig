@@ -236,27 +236,20 @@ pub const GameManager = struct {
         }
 
         if (p.is_pawn()) {
-            const offset_mult: i8 = if (p.is_white()) 1 else -1;
+            var pawn_bs = BoardBitSet.initWithIndex(start_idx);
 
-            const file_offset: i8 = offset_mult * 8;
+            const occupied = self.board.occupied_set;
 
-            const single_move = compute_target_idx(start_idx, file_offset, 0).?;
-            valid_pos.set(single_move);
-            if (p.on_starting_rank(pos.rank)) {
-                const double_move = compute_target_idx(start_idx, file_offset, 1).?;
-                valid_pos.set(double_move);
-            }
+            const non_captures = pawn_bs.pawn_moves(occupied.complement(), p.color);
 
-            for ([_]i8{ 7, 9 }) |diag_offset_base| {
-                // TODO: enpassant check
-                const diag_offset = diag_offset_base * offset_mult;
-                const target_idx = compute_target_idx(start_idx, diag_offset, 0).?;
-                const target = self.get_cell(Position.from_index(target_idx));
-                if (target.is_enemy(p)) {
-                    valid_pos.set(target_idx);
-                }
-            }
-            return valid_pos;
+            const enemy_color = p.color.get_enemy();
+
+            // TODO: enpassant check
+            const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
+
+            const possible_attacks = pawn_bs.pawn_attacks(p.color, enemies);
+
+            return non_captures.unionWith(possible_attacks);
         }
 
         // moves for bishops, rooks, and queens

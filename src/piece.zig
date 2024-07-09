@@ -1,6 +1,13 @@
 pub const Color = enum(u1) {
     White = 0,
     Black = 1,
+
+    pub fn get_enemy(self: Color) Color {
+        return switch (self) {
+            .White => Color.Black,
+            .Black => Color.White,
+        };
+    }
 };
 
 pub const Kind = enum(u3) {
