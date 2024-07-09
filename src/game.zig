@@ -44,34 +44,34 @@ pub const Dir = enum(u3) {
 const NUM_DIRS = utils.enum_len(Dir);
 
 // TOOD: this is awful perf, switch to line attack generation https://www.chessprogramming.org/On_an_empty_Board#Line_Attacks
-fn generate_ray_attacks() [NUM_DIRS][64]BoardBitSet {
-    var all_attacks: [NUM_DIRS][64]BoardBitSet = undefined;
+// fn generate_ray_attacks() [NUM_DIRS][64]BoardBitSet {
+//     var all_attacks: [NUM_DIRS][64]BoardBitSet = undefined;
 
-    inline for (utils.enum_fields(Dir)) |f| {
-        const dir_idx = f.value;
-        const dir: Dir = @enumFromInt(dir_idx);
-        const move_fn = dir.to_move_func();
+//     inline for (utils.enum_fields(Dir)) |f| {
+//         const dir_idx = f.value;
+//         const dir: Dir = @enumFromInt(dir_idx);
+//         const move_fn = dir.to_move_func();
 
-        all_attacks[dir_idx] = undefined;
-        for (0..64) |square| {
-            var attacks = BoardBitSet.initEmpty();
-            // init at current position to make logic easier, rem
-            attacks.set(square);
+//         all_attacks[dir_idx] = undefined;
+//         for (0..64) |square| {
+//             var attacks = BoardBitSet.initEmpty();
+//             // init at current position to make logic easier, rem
+//             attacks.set(square);
 
-            var moved = move_fn(attacks);
-            while (moved.count() != 0) {
-                attacks.bit_set.setUnion(moved.bit_set);
-                moved = move_fn(attacks);
-            }
+//             var moved = move_fn(attacks);
+//             while (moved.count() != 0) {
+//                 attacks.bit_set.setUnion(moved.bit_set);
+//                 moved = move_fn(attacks);
+//             }
 
-            // start square is not a valid attack
-            attacks.bit_set.unset(square);
-            all_attacks[dir_idx][square] = attacks;
-        }
-    }
+//             // start square is not a valid attack
+//             attacks.bit_set.unset(square);
+//             all_attacks[dir_idx][square] = attacks;
+//         }
+//     }
 
-    return all_attacks;
-}
+//     return all_attacks;
+// }
 
 const dir_offsets = [8]i8{
     8, //  MoveOffset.North,
@@ -180,10 +180,10 @@ pub const GameManager = struct {
         self.flip_active_color();
     }
 
-    pub fn get_valid_moves(self: Self, allocater: Allocator, pos: Position) anyerror!std.ArrayList(Position) {
+    pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
         // TODO: need to see if a move would make the king be in check and remove it
-        // 27 is max number of possible postions a queen could move to
-        var valid_pos = try std.ArrayList(Position).initCapacity(allocater, 27);
+
+        var valid_pos = BoardBitSet.initEmpty();
 
         const start_idx = pos.to_index();
 
@@ -202,7 +202,7 @@ pub const GameManager = struct {
                         const target_pos = Position.from_index(@intCast(target));
                         // hack to make sure move is valid, should just pre-compute allowed moves
                         if (pos.dist(target_pos) == 3) {
-                            valid_pos.appendAssumeCapacity(target_pos);
+                            valid_pos.set(@intCast(target));
                         }
                     }
                 }
@@ -215,8 +215,7 @@ pub const GameManager = struct {
             for (dir_offsets) |offset| {
                 const maybe_target_idx = compute_target_idx(start_idx, offset, 0);
                 if (maybe_target_idx) |target_idx| {
-                    const target_pos = Position.from_index(target_idx);
-                    valid_pos.appendAssumeCapacity(target_pos);
+                    valid_pos.set(target_idx);
                 }
             }
             return valid_pos;
@@ -228,10 +227,10 @@ pub const GameManager = struct {
             const file_offset: i8 = offset_mult * 8;
 
             const single_move = compute_target_idx(start_idx, file_offset, 0).?;
-            valid_pos.appendAssumeCapacity(Position.from_index(single_move));
+            valid_pos.set(single_move);
             if (p.on_starting_rank(pos.rank)) {
                 const double_move = compute_target_idx(start_idx, file_offset, 1).?;
-                valid_pos.appendAssumeCapacity(Position.from_index(double_move));
+                valid_pos.set(double_move);
             }
 
             for ([_]i8{ 7, 9 }) |diag_offset_base| {
@@ -240,7 +239,7 @@ pub const GameManager = struct {
                 const target_idx = compute_target_idx(start_idx, diag_offset, 0).?;
                 const target = self.get_cell(Position.from_index(target_idx));
                 if (target.is_enemy(p)) {
-                    valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
+                    valid_pos.set(target_idx);
                 }
             }
             return valid_pos;
@@ -261,7 +260,7 @@ pub const GameManager = struct {
                     break;
                 }
 
-                valid_pos.appendAssumeCapacity(Position.from_index(target_idx));
+                valid_pos.set(target_idx);
 
                 // can capture the peice here but no more
                 if (target.is_enemy(p)) {
@@ -286,21 +285,21 @@ inline fn compute_target_idx(start_idx: usize, dir: i8, n: usize) ?usize {
     return @as(usize, @intCast(target_idx));
 }
 
-test "check rays" {
-    const ray_attacks = generate_ray_attacks();
+// test "check rays" {
+//     const ray_attacks = generate_ray_attacks();
 
-    //https://www.chessprogramming.org/Classical_Approach
-    const dir = Dir.NorthWest;
-    const pos = Position{ .rank = 2, .file = 6 };
-    const pos_idx = pos.to_index();
+//     //https://www.chessprogramming.org/Classical_Approach
+//     const dir = Dir.NorthWest;
+//     const pos = Position{ .rank = 2, .file = 6 };
+//     const pos_idx = pos.to_index();
 
-    const attacks = ray_attacks[@intFromEnum(dir)][pos_idx];
+//     const attacks = ray_attacks[@intFromEnum(dir)][pos_idx];
 
-    var iter = attacks.bit_set.iterator(.{});
+//     var iter = attacks.bit_set.iterator(.{});
 
-    while (iter.next()) |idx| {
-        std.debug.print("{}\n", .{Position.from_index(idx)});
-    }
+//     while (iter.next()) |idx| {
+//         std.debug.print("{}\n", .{Position.from_index(idx)});
+//     }
 
-    try std.testing.expect(attacks.count() == 6);
-}
+//     try std.testing.expect(attacks.count() == 6);
+// }

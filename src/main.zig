@@ -8,6 +8,7 @@ const game_types = @import("game.zig");
 const GameManager = game_types.GameManager;
 
 const board_types = @import("board.zig");
+const BoardBitSet = board_types.BoardBitSet;
 const Position = board_types.Position;
 const Cell = board_types.Cell;
 const Move = board_types.Move;
@@ -15,7 +16,7 @@ const Move = board_types.Move;
 const MovingPiece = struct {
     start: Position,
     piece: Piece,
-    valid_moves: std.ArrayList(Position),
+    valid_moves: BoardBitSet,
 };
 
 const cell_size: usize = 150;
@@ -55,7 +56,7 @@ pub fn main() anyerror!void {
     var arena_allocator = std.heap.ArenaAllocator.init(allocator); // TODO: should this take in not the gpa for perf?
     defer arena_allocator.deinit();
 
-    const arena = arena_allocator.allocator();
+    // const arena = arena_allocator.allocator();
 
     var board = GameManager.init(allocator);
     // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
@@ -83,7 +84,7 @@ pub fn main() anyerror!void {
             switch (cell) {
                 .piece => |p| {
                     if (p.color == board.active_color) {
-                        const moves = try board.get_valid_moves(arena, pos);
+                        const moves = board.get_valid_moves(pos);
                         moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                         board.set_cell(pos, .empty);
                     }
@@ -98,11 +99,15 @@ pub fn main() anyerror!void {
             // reset the piece so board can do its own moving logic
             board.set_cell(mp.start, .{ .piece = mp.piece });
 
-            const move_idx = indexOf(Position, mp.valid_moves.items, pos);
-
-            if (move_idx != null) {
+            if (mp.valid_moves.isSet(pos.to_index())) {
                 board.make_move(Move{ .start = mp.start, .end = pos });
             }
+
+            // const move_idx = indexOf(Position, mp.valid_moves.items, pos);
+
+            // if (move_idx != null) {
+            //     board.make_move(Move{ .start = mp.start, .end = pos });
+            // }
 
             moving_piece = null;
             // only reset once we are done using the possible moves
@@ -120,8 +125,9 @@ pub fn main() anyerror!void {
         sprite_manager.draw_board();
 
         if (moving_piece) |p| {
-            for (p.valid_moves.items) |pos| {
-                sprite_manager.draw_move_marker(pos);
+            var move_iter = p.valid_moves.bit_set.iterator(.{});
+            while (move_iter.next()) |p_idx| {
+                sprite_manager.draw_move_marker(Position.from_index(p_idx));
             }
 
             const offset = cell_size / 2; // make sprite under mouse cursor
