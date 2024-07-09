@@ -27,7 +27,20 @@ pub const Dir = enum(u3) {
     SouthWest,
     SouthEast,
 
-    pub fn to_move_func(self: Dir) MoveFn {
+    pub fn to_move_func_comptime(self: Dir) MoveFn {
+        return switch (self) {
+            .North => BoardBitSet.northOne,
+            .South => BoardBitSet.southOne,
+            .West => BoardBitSet.westOne,
+            .East => BoardBitSet.eastOne,
+            .NorthWest => BoardBitSet.noWeOne,
+            .NorthEast => BoardBitSet.noEaOne,
+            .SouthWest => BoardBitSet.soWeOne,
+            .SouthEast => BoardBitSet.soEaOne,
+        };
+    }
+
+    pub fn to_move_func(self: Dir) *const MoveFn {
         return switch (self) {
             .North => BoardBitSet.northOne,
             .South => BoardBitSet.southOne,
@@ -102,7 +115,7 @@ fn compute_num_cells_to_edge() [64][8]u8 {
             @min(num_north, num_west),
             @min(num_north, num_east),
             @min(num_south, num_west),
-            @min(num_south, num_west),
+            @min(num_south, num_east),
         };
     }
 
@@ -186,6 +199,7 @@ pub const GameManager = struct {
         var valid_pos = BoardBitSet.initEmpty();
 
         const start_idx = pos.to_index();
+        defer valid_pos.unset(start_idx);
 
         const cell = self.get_cell(pos);
 
@@ -251,8 +265,18 @@ pub const GameManager = struct {
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
         for (dir_start..dir_end) |dirIndex| {
             const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
-            for (0..max_moves_in_dir) |n| {
-                const target_idx = compute_target_idx(start_idx, dir_offsets[dirIndex], n).?;
+            const dir: Dir = @enumFromInt(dirIndex);
+            const move_fn = dir.to_move_func();
+
+            var attacks = BoardBitSet.initEmpty();
+            attacks.set(start_idx);
+
+            attacks = move_fn(attacks);
+
+            for (0..max_moves_in_dir) |_| {
+                defer attacks = move_fn(attacks);
+
+                const target_idx = attacks.bit_set.findFirstSet().?;
                 const target = self.get_cell(Position.from_index(target_idx));
 
                 // blocked by a freind, stop going in this dir
@@ -268,7 +292,6 @@ pub const GameManager = struct {
                 }
             }
         }
-
         return valid_pos;
     }
 };
