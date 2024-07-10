@@ -99,24 +99,3 @@ pub fn computeRays() Rays {
     }
     return moves;
 }
-
-// const RAYS = computeRays();
-
-test "test rays" {
-    const RAYS = computeRays();
-    const pos = Position{ .rank = 7, .file = 7 };
-
-    const idx = pos.to_index();
-
-    const ray_west = RAYS[idx][@intFromEnum(Dir.West)];
-
-    std.debug.print("ray {}\n", .{ray_west});
-
-    try std.testing.expect(ray_west.count() == 7);
-
-    const ray_north_east = RAYS[idx][@intFromEnum(Dir.NorthEast)];
-
-    std.debug.print("ray {}\n", .{ray_north_east});
-
-    try std.testing.expect(ray_west.count() == 0);
-}

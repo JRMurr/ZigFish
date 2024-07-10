@@ -152,8 +152,6 @@ pub const GameManager = struct {
 
             const dir: Dir = @enumFromInt(dirIndex);
 
-            std.debug.print("dir {}\t dirIndex {}\n", .{ dir, dirIndex });
-
             const blocker = moves.intersectWith(self.board.occupied_set);
             if (blocker.count() > 0) {
                 const sqaure = if (dir.is_positive())
@@ -161,7 +159,6 @@ pub const GameManager = struct {
                 else
                     blocker.bitScanReverse();
 
-                std.debug.print("blocker {}\n", .{Position.from_index(sqaure)});
                 moves.toggleSet(self.rays[sqaure][dirIndex]);
             }
             possible_moves.setUnion(moves);
@@ -183,22 +180,3 @@ inline fn compute_target_idx(start_idx: usize, dir: i8, n: usize) ?usize {
 
     return @as(usize, @intCast(target_idx));
 }
-
-// test "check rays" {
-//     const ray_attacks = generate_ray_attacks();
-
-//     //https://www.chessprogramming.org/Classical_Approach
-//     const dir = Dir.NorthWest;
-//     const pos = Position{ .rank = 2, .file = 6 };
-//     const pos_idx = pos.to_index();
-
-//     const attacks = ray_attacks[@intFromEnum(dir)][pos_idx];
-
-//     var iter = attacks.bit_set.iterator(.{});
-
-//     while (iter.next()) |idx| {
-//         std.debug.print("{}\n", .{Position.from_index(idx)});
-//     }
-
-//     try std.testing.expect(attacks.count() == 6);
-// }
