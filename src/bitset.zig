@@ -3,6 +3,35 @@ const std = @import("std");
 const piece_types = @import("piece.zig");
 const Color = piece_types.Color;
 
+pub const BitSet = std.bit_set.IntegerBitSet(64);
+pub const MaskInt = BitSet.MaskInt;
+
+pub const MAIN_DIAG = 0x8040201008040201; // A1 to H8
+pub const ANTI_DIAG = 0x0102040810204080; // H1 to A8
+
+// https://www.chessprogramming.org/On_an_empty_Board#By_Calculation_3
+pub fn rankMask(mask: MaskInt) MaskInt {
+    return 0xFF << (mask & 56);
+}
+
+pub fn fileMask(mask: MaskInt) MaskInt {
+    return 0x0101010101010101 << (mask & 7);
+}
+
+pub fn diagonalMask(mask: MaskInt) MaskInt {
+    const diag = 8 * (mask & 7) - (mask & 56);
+    const nort = -diag & (diag >> 31);
+    const sout = diag & (-diag >> 31);
+    return (MAIN_DIAG >> sout) << nort;
+}
+
+pub fn antiDiagMask(mask: MaskInt) MaskInt {
+    const diag = 56 - 8 * (mask & 7) - (mask & 56);
+    const nort = -diag & (diag >> 31);
+    const sout = diag & (-diag >> 31);
+    return (ANTI_DIAG >> sout) << nort;
+}
+
 pub const FILE_A = 0x0101010101010101;
 pub const FILE_H = 0x8080808080808080;
 pub const RANK_3 = 0x0000000000FF0000;
@@ -14,21 +43,19 @@ pub const NOT_FILE_H = 0x7f7f7f7f7f7f7f7f;
 pub const NOT_FILE_GH: u64 = 0x3f3f3f3f3f3f3f3f;
 pub const NOT_FILE_AB: u64 = 0xfcfcfcfcfcfcfcfc;
 
-pub const BitSet = std.bit_set.IntegerBitSet(64);
-
-fn southOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+fn southOneMask(mask: MaskInt) MaskInt {
     return mask >> 8;
 }
 
-fn northOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+fn northOneMask(mask: MaskInt) MaskInt {
     return mask << 8;
 }
 
-fn eastOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+fn eastOneMask(mask: MaskInt) MaskInt {
     return mask << 1 & NOT_FILE_A;
 }
 
-fn westOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+fn westOneMask(mask: MaskInt) MaskInt {
     return mask >> 1 & NOT_FILE_H;
 }
 
@@ -48,7 +75,7 @@ pub const BoardBitSet = packed struct {
         return .{ .bit_set = bs };
     }
 
-    pub fn fromMask(mask: BitSet.MaskInt) Self {
+    pub fn fromMask(mask: MaskInt) Self {
         return .{ .bit_set = BitSet{ .mask = mask } };
     }
 
@@ -200,7 +227,7 @@ pub const BoardBitSet = packed struct {
 };
 
 // used mostly for pawn moves
-fn shift_color(color: Color, x: BitSet.MaskInt, amount: BitSet.ShiftInt) BitSet.MaskInt {
+fn shift_color(color: Color, x: MaskInt, amount: BitSet.ShiftInt) MaskInt {
     return switch (color) {
         Color.White => x << amount,
         Color.Black => x >> amount,
