@@ -44,3 +44,15 @@ fn computeKnightMoves() [64]BoardBitSet {
 }
 
 pub const KNIGHT_MOVES = computeKnightMoves();
+
+fn computeKingMoves() [64]BoardBitSet {
+    var moves: [64]BoardBitSet = undefined;
+
+    for (0..64) |idx| {
+        const start_bs = BoardBitSet.initWithIndex(idx);
+        moves[idx] = start_bs.kingMoves();
+    }
+    return moves;
+}
+
+pub const KING_MOVES = computeKingMoves();

@@ -16,6 +16,22 @@ pub const NOT_FILE_AB: u64 = 0xfcfcfcfcfcfcfcfc;
 
 pub const BitSet = std.bit_set.IntegerBitSet(64);
 
+fn southOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+    return mask >> 8;
+}
+
+fn northOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+    return mask << 8;
+}
+
+fn eastOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+    return mask << 1 & NOT_FILE_A;
+}
+
+fn westOneMask(mask: BitSet.MaskInt) BitSet.MaskInt {
+    return mask >> 1 & NOT_FILE_H;
+}
+
 pub const BoardBitSet = packed struct {
     const Self = @This();
 
@@ -98,6 +114,12 @@ pub const BoardBitSet = packed struct {
         return Self.fromMask(mask);
     }
 
+    /// shift west one
+    pub fn westOne(self: Self) Self {
+        const mask = (self.bit_set.mask >> 1) & NOT_FILE_H;
+        return Self.fromMask(mask);
+    }
+
     /// shift north east one
     pub fn noEaOne(self: Self) Self {
         const mask = (self.bit_set.mask << 9) & NOT_FILE_A;
@@ -107,12 +129,6 @@ pub const BoardBitSet = packed struct {
     /// shift south east one
     pub fn soEaOne(self: Self) Self {
         const mask = (self.bit_set.mask >> 7) & NOT_FILE_A;
-        return Self.fromMask(mask);
-    }
-
-    /// shift west one
-    pub fn westOne(self: Self) Self {
-        const mask = (self.bit_set.mask >> 1) & NOT_FILE_H;
         return Self.fromMask(mask);
     }
 
@@ -170,6 +186,16 @@ pub const BoardBitSet = packed struct {
         const h1 = l1 | r1;
         const h2 = l2 | r2;
         return Self.fromMask((h1 << 16) | (h1 >> 16) | (h2 << 8) | (h2 >> 8));
+    }
+
+    pub fn kingMoves(self: Self) Self {
+        // https://www.chessprogramming.org/King_Pattern#by_Calculation
+        var kingSet = self.bit_set.mask;
+
+        var attacks = eastOneMask(kingSet) | westOneMask(kingSet);
+        kingSet |= attacks;
+        attacks |= northOneMask(kingSet) | southOneMask(kingSet);
+        return Self.fromMask(attacks);
     }
 };
 

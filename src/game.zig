@@ -189,21 +189,19 @@ pub const GameManager = struct {
         defer valid_pos.unset(start_idx); // TODO: just incase..
 
         if (p.is_knight()) {
-            const possible_attacks = precompute.KNIGHT_MOVES[start_idx];
+            const possible_moves = precompute.KNIGHT_MOVES[start_idx];
 
             const freinds = self.board.color_sets[@intFromEnum(p.color)];
 
-            return possible_attacks.differenceWith(freinds);
+            return possible_moves.differenceWith(freinds);
         }
 
         if (p.is_king()) {
-            for (dir_offsets) |offset| {
-                const maybe_target_idx = compute_target_idx(start_idx, offset, 0);
-                if (maybe_target_idx) |target_idx| {
-                    valid_pos.set(target_idx);
-                }
-            }
-            return valid_pos;
+            const possible_moves = precompute.KING_MOVES[start_idx];
+
+            const freinds = self.board.color_sets[@intFromEnum(p.color)];
+
+            return possible_moves.differenceWith(freinds);
         }
 
         // moves for bishops, rooks, and queens
