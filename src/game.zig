@@ -98,25 +98,36 @@ pub const GameManager = struct {
         const king_board = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King });
         const king_square = king_board.bitScanForward();
 
+        const enmey_queens = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
+
         var pinned = BoardBitSet.initEmpty();
 
-        for (0..NUM_DIRS) |dirIndex| {
-            var moves = precompute.RAYS[king_square][dirIndex];
+        for (0..NUM_DIRS) |dir_index| {
+            var moves = precompute.RAYS[king_square][dir_index];
 
-            const dir: Dir = @enumFromInt(dirIndex);
+            const dir: Dir = @enumFromInt(dir_index);
 
             var on_ray = moves.intersectWith(self.board.occupied_set);
             if (on_ray.count() > 1) {
                 const possible_pin = dir.first_hit_on_ray(on_ray);
 
+                if (!self.board.color_sets[color].isSet(possible_pin)) {
+                    continue;
+                }
+
                 on_ray.unset(possible_pin);
 
                 const possible_attacker = dir.first_hit_on_ray(on_ray);
 
-                // check if attacker is enemy color and valid type for this ray
+                const kind = if (dir_index < 4) piece.Kind.Rook else piece.Kind.Bishop;
+                const kind_board = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = kind });
 
+                const all_valid_enemies = kind_board.unionWith(enmey_queens);
+
+                if (all_valid_enemies.intersectWith(on_ray).isSet(possible_attacker)) {
+                    pinned.set(possible_pin);
+                }
             }
-            // possible_moves.setUnion(moves);
         }
         return pinned;
     }
