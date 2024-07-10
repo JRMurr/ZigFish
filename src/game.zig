@@ -108,6 +108,8 @@ pub const GameManager = struct {
 
         const start_bs = BoardBitSet.initWithIndex(start_idx);
 
+        const freinds = self.board.color_sets[@intFromEnum(p.color)];
+
         if (p.is_pawn()) {
             const occupied = self.board.occupied_set;
 
@@ -126,15 +128,11 @@ pub const GameManager = struct {
         if (p.is_knight()) {
             const possible_moves = precompute.KNIGHT_MOVES[start_idx];
 
-            const freinds = self.board.color_sets[@intFromEnum(p.color)];
-
             return possible_moves.differenceWith(freinds);
         }
 
         if (p.is_king()) {
             const possible_moves = precompute.KING_MOVES[start_idx];
-
-            const freinds = self.board.color_sets[@intFromEnum(p.color)];
 
             return possible_moves.differenceWith(freinds);
         }
@@ -161,7 +159,6 @@ pub const GameManager = struct {
             possible_moves.setUnion(moves);
         }
 
-        const freinds = self.board.color_sets[@intFromEnum(p.color)];
         return possible_moves.differenceWith(freinds);
     }
 };
