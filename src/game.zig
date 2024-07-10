@@ -11,6 +11,8 @@ const BoardBitSet = board_types.BoardBitSet;
 const piece = @import("piece.zig");
 const Piece = piece.Piece;
 
+const precompute = @import("precompute.zig");
+
 const fen = @import("fen.zig");
 
 const Allocator = std.mem.Allocator;
@@ -97,45 +99,6 @@ const dir_offsets = [8]i8{
     -7, // MoveOffset.SouthEast,
 };
 
-fn compute_num_cells_to_edge() [64][8]u8 {
-    const all_positon = Position.all_positions();
-    var dist_to_edge: [64][8]u8 = undefined;
-    for (all_positon) |pos| {
-        const num_north = 7 - pos.rank;
-        const num_south = pos.rank;
-        const num_west = pos.file;
-        const num_east = 7 - pos.file;
-
-        dist_to_edge[pos.to_index()] = .{
-            num_north,
-            num_south,
-            num_west,
-            num_east,
-
-            @min(num_north, num_west),
-            @min(num_north, num_east),
-            @min(num_south, num_west),
-            @min(num_south, num_east),
-        };
-    }
-
-    return dist_to_edge;
-}
-
-const num_squares_to_edge = compute_num_cells_to_edge();
-
-// TODO: try to precompute valid knight moves for each square at startup
-const knight_offsets = [8]i8{
-    -2 + 8,
-    -1 + 16,
-    1 + 16,
-    2 + 8,
-    2 - 8,
-    1 - 16,
-    -1 - 16,
-    -2 - 8,
-};
-
 pub const GameManager = struct {
     const Self = @This();
 
@@ -196,33 +159,41 @@ pub const GameManager = struct {
     pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
         // TODO: need to see if a move would make the king be in check and remove it
 
-        var valid_pos = BoardBitSet.initEmpty();
-
         const start_idx = pos.to_index();
-        defer valid_pos.unset(start_idx);
 
         const cell = self.get_cell(pos);
 
         const p = switch (cell) {
             .piece => |p| p,
-            .empty => return valid_pos,
+            .empty => return BoardBitSet.initEmpty(),
         };
 
-        if (p.is_knight()) {
-            for (knight_offsets) |offset| {
-                if (start_idx > offset) {
-                    const target = @as(i8, @intCast(start_idx)) + offset;
-                    if (target < 64) {
-                        const target_pos = Position.from_index(@intCast(target));
-                        // hack to make sure move is valid, should just pre-compute allowed moves
-                        if (pos.dist(target_pos) == 3) {
-                            valid_pos.set(@intCast(target));
-                        }
-                    }
-                }
-            }
+        const start_bs = BoardBitSet.initWithIndex(start_idx);
 
-            return valid_pos;
+        if (p.is_pawn()) {
+            const occupied = self.board.occupied_set;
+
+            const non_captures = start_bs.pawnMoves(occupied.complement(), p.color);
+
+            const enemy_color = p.color.get_enemy();
+
+            // TODO: enpassant check
+            const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
+
+            const possible_attacks = start_bs.pawnAttacks(p.color, enemies);
+
+            return non_captures.unionWith(possible_attacks);
+        }
+
+        var valid_pos = BoardBitSet.initEmpty();
+        defer valid_pos.unset(start_idx); // TODO: just incase..
+
+        if (p.is_knight()) {
+            const possible_attacks = precompute.KNIGHT_MOVES[start_idx];
+
+            const freinds = self.board.color_sets[@intFromEnum(p.color)];
+
+            return possible_attacks.differenceWith(freinds);
         }
 
         if (p.is_king()) {
@@ -235,29 +206,12 @@ pub const GameManager = struct {
             return valid_pos;
         }
 
-        if (p.is_pawn()) {
-            var pawn_bs = BoardBitSet.initWithIndex(start_idx);
-
-            const occupied = self.board.occupied_set;
-
-            const non_captures = pawn_bs.pawn_moves(occupied.complement(), p.color);
-
-            const enemy_color = p.color.get_enemy();
-
-            // TODO: enpassant check
-            const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
-
-            const possible_attacks = pawn_bs.pawn_attacks(p.color, enemies);
-
-            return non_captures.unionWith(possible_attacks);
-        }
-
         // moves for bishops, rooks, and queens
         // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
         for (dir_start..dir_end) |dirIndex| {
-            const max_moves_in_dir = num_squares_to_edge[start_idx][dirIndex];
+            const max_moves_in_dir = precompute.NUM_SQUARES_TO_EDGE[start_idx][dirIndex];
             const dir: Dir = @enumFromInt(dirIndex);
             const move_fn = dir.to_move_func();
 

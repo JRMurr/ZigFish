@@ -3,13 +3,16 @@ const std = @import("std");
 const piece_types = @import("piece.zig");
 const Color = piece_types.Color;
 
-const FILE_A = 0x0101010101010101;
-const FILE_H = 0x8080808080808080;
-const RANK_3 = 0x0000000000FF0000;
-const RANK_6 = 0x0000FF0000000000;
+pub const FILE_A = 0x0101010101010101;
+pub const FILE_H = 0x8080808080808080;
+pub const RANK_3 = 0x0000000000FF0000;
+pub const RANK_6 = 0x0000FF0000000000;
 
-const NOT_FILE_A = 0xfefefefefefefefe;
-const NOT_FILE_H = 0x7f7f7f7f7f7f7f7f;
+pub const NOT_FILE_A = 0xfefefefefefefefe;
+pub const NOT_FILE_H = 0x7f7f7f7f7f7f7f7f;
+
+pub const NOT_FILE_GH: u64 = 0x3f3f3f3f3f3f3f3f;
+pub const NOT_FILE_AB: u64 = 0xfcfcfcfcfcfcfcfc;
 
 pub const BitSet = std.bit_set.IntegerBitSet(64);
 
@@ -67,6 +70,12 @@ pub const BoardBitSet = packed struct {
         return result;
     }
 
+    pub fn differenceWith(self: Self, other: Self) Self {
+        var result = self;
+        result.bit_set.setIntersection(other.bit_set.complement());
+        return result;
+    }
+
     pub fn clone(self: Self) Self {
         return self.fromMask(self.bit_set.mask);
     }
@@ -120,7 +129,7 @@ pub const BoardBitSet = packed struct {
     }
 
     // returns all non capture pawn moves
-    pub fn pawn_moves(self: Self, empty_squares: BoardBitSet, color: Color) Self {
+    pub fn pawnMoves(self: Self, empty_squares: BoardBitSet, color: Color) Self {
         const mask = self.bit_set.mask;
         const empty = empty_squares.bit_set.mask;
 
@@ -135,7 +144,7 @@ pub const BoardBitSet = packed struct {
         return Self.fromMask(single_step | double_step);
     }
 
-    pub fn pawn_attacks(self: Self, color: Color, maybe_enemy_sqaures: ?BoardBitSet) Self {
+    pub fn pawnAttacks(self: Self, color: Color, maybe_enemy_sqaures: ?BoardBitSet) Self {
         const mask = self.bit_set.mask;
 
         const left_attacks = shift_color(color, mask, 7) & NOT_FILE_A;
@@ -148,6 +157,19 @@ pub const BoardBitSet = packed struct {
             possible_attacks &= enemies;
         }
         return Self.fromMask(possible_attacks);
+    }
+
+    pub fn knightMoves(self: Self) Self {
+        // https://www.chessprogramming.org/Knight_Pattern#Multiple_Knight_Attacks
+        const mask = self.bit_set.mask;
+
+        const l1 = (mask >> 1) & NOT_FILE_H;
+        const l2 = (mask >> 2) & NOT_FILE_GH;
+        const r1 = (mask << 1) & NOT_FILE_A;
+        const r2 = (mask << 2) & NOT_FILE_AB;
+        const h1 = l1 | r1;
+        const h2 = l2 | r2;
+        return Self.fromMask((h1 << 16) | (h1 >> 16) | (h2 << 8) | (h2 >> 8));
     }
 };
 
