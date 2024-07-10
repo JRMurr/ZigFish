@@ -56,7 +56,7 @@ pub const GameManager = struct {
     }
 
     pub fn get_cell(self: Self, pos: Position) Cell {
-        const maybe_piece = self.board.get_piece(pos);
+        const maybe_piece = self.board.get_pos(pos);
         if (maybe_piece) |p| {
             return .{ .piece = p };
         }
@@ -70,7 +70,7 @@ pub const GameManager = struct {
             .empty => null,
         };
 
-        self.board.set_piece(pos, maybe_piece);
+        self.board.set_pos(pos, maybe_piece);
     }
 
     pub fn flip_active_color(self: *Self) void {
@@ -92,6 +92,33 @@ pub const GameManager = struct {
 
         self.set_cell(move.end, .{ .piece = start_peice });
         self.flip_active_color();
+    }
+
+    pub fn find_pinned_pieces(self: Self, color: piece.Color) BoardBitSet {
+        const king_board = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King });
+        const king_square = king_board.bitScanForward();
+
+        var pinned = BoardBitSet.initEmpty();
+
+        for (0..NUM_DIRS) |dirIndex| {
+            var moves = precompute.RAYS[king_square][dirIndex];
+
+            const dir: Dir = @enumFromInt(dirIndex);
+
+            var on_ray = moves.intersectWith(self.board.occupied_set);
+            if (on_ray.count() > 1) {
+                const possible_pin = dir.first_hit_on_ray(on_ray);
+
+                on_ray.unset(possible_pin);
+
+                const possible_attacker = dir.first_hit_on_ray(on_ray);
+
+                // check if attacker is enemy color and valid type for this ray
+
+            }
+            // possible_moves.setUnion(moves);
+        }
+        return pinned;
     }
 
     pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {

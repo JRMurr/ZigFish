@@ -136,6 +136,15 @@ pub const Dir = enum(u3) {
         return BoardBitSet.fromMask(line_attacks.bit_set.mask & ray_mask);
     }
 
+    pub fn first_hit_on_ray(self: Dir, ray: BoardBitSet) usize {
+        std.debug.assert(ray.bit_set.mask != 0);
+        if (self.is_positive()) {
+            return ray.bitScanForward();
+        } else {
+            return ray.bitScanReverse();
+        }
+    }
+
     pub fn is_positive(self: Dir) bool {
         return switch (self) {
             .North => true,

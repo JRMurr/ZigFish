@@ -54,7 +54,7 @@ pub fn parse(str: []const u8) BoardState {
             const key = [_]u8{char};
             if (piece_lookup.has(&key)) {
                 const piece = piece_lookup.get(&key).?;
-                board.set_piece(curr_pos, piece);
+                board.set_pos(curr_pos, piece);
                 curr_pos.file += 1;
             } else {
                 // TODO: char should just be an ascii digit but if i use it in the for loop below its sad

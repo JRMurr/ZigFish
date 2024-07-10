@@ -80,17 +80,17 @@ const NUM_COLOR = utils.enum_len(piece.Color);
 
 pub const Board = struct {
     const Self = @This();
-    peice_sets: [NUM_KINDS]BoardBitSet,
+    kind_sets: [NUM_KINDS]BoardBitSet,
     color_sets: [NUM_COLOR]BoardBitSet,
 
     /// redudent set for easy check if a square is occupied
     occupied_set: BoardBitSet,
 
     pub fn init() Self {
-        var peice_sets: [NUM_KINDS]BoardBitSet = undefined;
+        var kind_sets: [NUM_KINDS]BoardBitSet = undefined;
 
         for (0..NUM_KINDS) |i| {
-            peice_sets[i] = BoardBitSet.initEmpty();
+            kind_sets[i] = BoardBitSet.initEmpty();
         }
 
         var color_sets: [NUM_COLOR]BoardBitSet = undefined;
@@ -101,10 +101,17 @@ pub const Board = struct {
 
         const occupied_set = BoardBitSet.initEmpty();
 
-        return Self{ .peice_sets = peice_sets, .color_sets = color_sets, .occupied_set = occupied_set };
+        return Self{ .kind_sets = kind_sets, .color_sets = color_sets, .occupied_set = occupied_set };
     }
 
-    pub fn get_piece(self: Self, pos: Position) ?Piece {
+    pub fn get_piece_set(self: Self, p: Piece) BoardBitSet {
+        const color = self.color_sets[@intFromEnum(p.color)];
+        const kind = self.kind_sets[@intFromEnum(p.kind)];
+
+        return color.unionWith(kind);
+    }
+
+    pub fn get_pos(self: Self, pos: Position) ?Piece {
         const pos_idx = pos.to_index();
 
         if (!self.occupied_set.isSet(pos_idx)) {
@@ -120,7 +127,7 @@ pub const Board = struct {
         };
 
         const kind: piece.Kind = for (0..NUM_KINDS) |idx| {
-            if (self.peice_sets[idx].isSet(pos_idx)) {
+            if (self.kind_sets[idx].isSet(pos_idx)) {
                 break @enumFromInt(idx);
             }
         } else {
@@ -130,21 +137,21 @@ pub const Board = struct {
         return Piece{ .color = color, .kind = kind };
     }
 
-    pub fn set_piece(self: *Self, pos: Position, maybe_piece: ?Piece) void {
+    pub fn set_pos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
         const pos_idx = pos.to_index();
 
         // unset the position first to remove any piece that might be there
         for (&self.color_sets) |*bs| {
             bs.unset(pos_idx);
         }
-        for (&self.peice_sets) |*bs| {
+        for (&self.kind_sets) |*bs| {
             bs.unset(pos_idx);
         }
         self.occupied_set.unset(pos_idx);
 
         if (maybe_piece) |p| {
             self.color_sets[@intFromEnum(p.color)].set(pos_idx);
-            self.peice_sets[@intFromEnum(p.kind)].set(pos_idx);
+            self.kind_sets[@intFromEnum(p.kind)].set(pos_idx);
             self.occupied_set.set(pos_idx);
         }
     }
