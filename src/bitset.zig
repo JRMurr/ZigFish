@@ -6,47 +6,60 @@ const Color = piece_types.Color;
 
 pub const BitSet = std.bit_set.IntegerBitSet(64);
 pub const MaskInt = BitSet.MaskInt;
+pub const ShiftInt = BitSet.ShiftInt;
 
-pub const MAIN_DIAG = 0x8040201008040201; // A1 to H8
-pub const ANTI_DIAG = 0x0102040810204080; // H1 to A8
+pub const MAIN_DIAG: MaskInt = 0x8040201008040201; // A1 to H8
+pub const ANTI_DIAG: MaskInt = 0x0102040810204080; // H1 to A8
 
-// https://www.chessprogramming.org/On_an_empty_Board#By_Calculation_3
-pub fn rankMask(mask: MaskInt) MaskInt {
-    return 0xFF << (mask & 56);
-}
+pub const RANK_0: MaskInt = 0x00000000000000FF;
+pub const RANK_3: MaskInt = 0x0000000000FF0000;
+pub const RANK_6: MaskInt = 0x0000FF0000000000;
 
-pub fn fileMask(mask: MaskInt) MaskInt {
-    return 0x0101010101010101 << (mask & 7);
-}
-
-pub fn mainDiagonalMask(mask: MaskInt) MaskInt {
-    const diag = 8 * (mask & 7) - (mask & 56);
-    const nort = -diag & (diag >> 31);
-    const sout = diag & (-diag >> 31);
-    return (MAIN_DIAG >> sout) << nort;
-}
-
-pub fn antiDiagonalMask(mask: MaskInt) MaskInt {
-    const diag = 56 - 8 * (mask & 7) - (mask & 56);
-    const nort = -diag & (diag >> 31);
-    const sout = diag & (-diag >> 31);
-    return (ANTI_DIAG >> sout) << nort;
-}
-
-pub fn diagonalMask(mask: MaskInt) MaskInt {
-    return mainDiagonalMask(mask) | antiDiagonalMask(mask);
-}
-
-pub const FILE_A = 0x0101010101010101;
-pub const FILE_H = 0x8080808080808080;
-pub const RANK_3 = 0x0000000000FF0000;
-pub const RANK_6 = 0x0000FF0000000000;
+pub const FILE_A: MaskInt = 0x0101010101010101;
+pub const FILE_H: MaskInt = 0x8080808080808080;
 
 pub const NOT_FILE_A = 0xfefefefefefefefe;
 pub const NOT_FILE_H = 0x7f7f7f7f7f7f7f7f;
 
 pub const NOT_FILE_GH: u64 = 0x3f3f3f3f3f3f3f3f;
 pub const NOT_FILE_AB: u64 = 0xfcfcfcfcfcfcfcfc;
+
+pub fn toMaskInt(x: anytype) MaskInt {
+    return @as(MaskInt, @intCast(x));
+}
+
+pub fn toShiftInt(x: anytype) ShiftInt {
+    return @as(ShiftInt, @intCast(x));
+}
+
+// https://www.chessprogramming.org/On_an_empty_Board#By_Calculation_3
+pub fn rankMask(sq: u32) MaskInt {
+    return RANK_0 << toShiftInt(sq & 56);
+}
+
+pub fn fileMask(sq: u32) MaskInt {
+    return FILE_A << toShiftInt(sq & 7);
+}
+
+fn mainDiagonalMask(sq: u32) MaskInt {
+    const sq_i32 = @as(i32, @intCast(sq));
+    const diag: i32 = 8 * (sq_i32 & 7) - (sq_i32 & 56);
+    const nort: i32 = -diag & (diag >> 31);
+    const sout: i32 = diag & (-diag >> 31);
+    return (MAIN_DIAG >> toShiftInt(sout)) << toShiftInt(nort);
+}
+
+fn antiDiagonalMask(sq: u32) MaskInt {
+    const sq_i32 = @as(i32, @intCast(sq));
+    const diag: i32 = 8 * (sq_i32 & 7) - (sq_i32 & 56);
+    const nort: i32 = -diag & (diag >> 31);
+    const sout: i32 = diag & (-diag >> 31);
+    return (ANTI_DIAG >> toShiftInt(sout)) << toShiftInt(nort);
+}
+
+pub fn diagonalMask(sq: u32) MaskInt {
+    return mainDiagonalMask(sq) | antiDiagonalMask(sq);
+}
 
 fn southOneMask(mask: MaskInt) MaskInt {
     return mask >> 8;
@@ -65,7 +78,6 @@ fn westOneMask(mask: MaskInt) MaskInt {
 }
 
 pub const MoveFn = fn (self: BoardBitSet) BoardBitSet;
-pub const MaskFn = fn (self: MaskInt) MaskInt;
 
 pub const LineType = enum {
     Rank,
@@ -97,22 +109,25 @@ pub const Dir = enum(u3) {
 
         const single_bit = sqaure.bit_set.mask;
 
+        const sq = sqaure.toSquare();
+
         const line_attacks = switch (line) {
-            .Rank => rankMask(single_bit),
-            .File => fileMask(single_bit),
-            .Diag => diagonalMask(single_bit),
+            .Rank => rankMask(sq),
+            .File => fileMask(sq),
+            .Diag => diagonalMask(sq),
         };
 
-        const ray_mask = if (self.is_positive()) {
-            const shifted = 2 * single_bit;
+        var ray_mask: MaskInt = undefined;
+        if (self.is_positive()) {
+            const shifted = single_bit << 1;
             // creates a mask where all bits to the left of the original single bit (including the bit itself)
             // are set to 0 and all bits to the right are set to 1.
-            0 -% shifted;
+            ray_mask = 0 -% shifted;
         } else {
             // creates a mask where all bits to the right of the single bit are set to 1
             // and all bits to the left (including the bit itself) are set to 0.
-            single_bit -| 1;
-        };
+            ray_mask = single_bit -| 1;
+        }
 
         return BoardBitSet.fromMask(line_attacks & ray_mask);
     }
@@ -226,6 +241,10 @@ pub const BoardBitSet = packed struct {
         return result;
     }
 
+    pub fn setUnion(self: *Self, other: Self) void {
+        self.bit_set.setUnion(other.bit_set);
+    }
+
     pub fn differenceWith(self: Self, other: Self) Self {
         var result = self;
         result.bit_set.setIntersection(other.bit_set.complement());
@@ -234,6 +253,10 @@ pub const BoardBitSet = packed struct {
 
     pub fn clone(self: Self) Self {
         return self.fromMask(self.bit_set.mask);
+    }
+
+    pub fn toSquare(self: Self) u32 {
+        return @as(u32, @intCast(self.bit_set.findFirstSet().?));
     }
 
     // https://www.chessprogramming.org/General_Setwise_Operations#OneStepOnly

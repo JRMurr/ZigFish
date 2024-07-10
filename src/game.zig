@@ -72,6 +72,7 @@ pub const GameManager = struct {
     active_color: piece.Color = piece.Color.White,
     /// allocator for internal state, returned moves will take in an allocator
     allocater: Allocator,
+    rays: precompute.Rays,
 
     pub fn init(allocater: Allocator) Self {
         return Self.from_fen(allocater, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
@@ -79,7 +80,13 @@ pub const GameManager = struct {
 
     pub fn from_fen(allocater: Allocator, fen_str: []const u8) Self {
         const state = fen.parse(fen_str);
-        return Self{ .board = state.board, .active_color = state.active_color, .allocater = allocater };
+        const rays = precompute.computeRays();
+        return Self{
+            .board = state.board,
+            .active_color = state.active_color,
+            .allocater = allocater,
+            .rays = rays,
+        };
     }
 
     pub fn get_cell(self: Self, pos: Position) Cell {
@@ -151,7 +158,6 @@ pub const GameManager = struct {
         }
 
         var valid_pos = BoardBitSet.initEmpty();
-        defer valid_pos.unset(start_idx); // TODO: just incase..
 
         if (p.is_knight()) {
             const possible_moves = precompute.KNIGHT_MOVES[start_idx];
@@ -174,34 +180,39 @@ pub const GameManager = struct {
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
         for (dir_start..dir_end) |dirIndex| {
-            const max_moves_in_dir = precompute.NUM_SQUARES_TO_EDGE[start_idx][dirIndex];
-            const dir: Dir = @enumFromInt(dirIndex);
-            const move_fn = dir.to_move_func();
+            const rays = self.rays[start_idx][dirIndex];
 
-            var attacks = BoardBitSet.initEmpty();
-            attacks.set(start_idx);
+            valid_pos.setUnion(rays);
 
-            attacks = move_fn(attacks);
+            // const max_moves_in_dir = precompute.NUM_SQUARES_TO_EDGE[start_idx][dirIndex];
+            // const dir: Dir = @enumFromInt(dirIndex);
+            // const move_fn = dir.to_move_func();
 
-            for (0..max_moves_in_dir) |_| {
-                defer attacks = move_fn(attacks);
+            // var attacks = BoardBitSet.initEmpty();
+            // attacks.set(start_idx);
 
-                const target_idx = attacks.bit_set.findFirstSet().?;
-                const target = self.get_cell(Position.from_index(target_idx));
+            // attacks = move_fn(attacks);
 
-                // blocked by a freind, stop going in this dir
-                if (target.is_freindly(p)) {
-                    break;
-                }
+            // for (0..max_moves_in_dir) |_| {
+            //     defer attacks = move_fn(attacks);
 
-                valid_pos.set(target_idx);
+            //     const target_idx = attacks.bit_set.findFirstSet().?;
+            //     const target = self.get_cell(Position.from_index(target_idx));
 
-                // can capture the peice here but no more
-                if (target.is_enemy(p)) {
-                    break;
-                }
-            }
+            //     // blocked by a freind, stop going in this dir
+            //     if (target.is_freindly(p)) {
+            //         break;
+            //     }
+
+            //     valid_pos.set(target_idx);
+
+            //     // can capture the peice here but no more
+            //     if (target.is_enemy(p)) {
+            //         break;
+            //     }
         }
+
+        valid_pos.unset(start_idx);
         return valid_pos;
     }
 };
