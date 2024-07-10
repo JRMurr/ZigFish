@@ -41,7 +41,6 @@ pub const GameManager = struct {
     active_color: piece.Color = piece.Color.White,
     /// allocator for internal state, returned moves will take in an allocator
     allocater: Allocator,
-    rays: precompute.Rays,
 
     pub fn init(allocater: Allocator) Self {
         return Self.from_fen(allocater, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
@@ -49,12 +48,10 @@ pub const GameManager = struct {
 
     pub fn from_fen(allocater: Allocator, fen_str: []const u8) Self {
         const state = fen.parse(fen_str);
-        const rays = precompute.computeRays();
         return Self{
             .board = state.board,
             .active_color = state.active_color,
             .allocater = allocater,
-            .rays = rays,
         };
     }
 
@@ -148,7 +145,7 @@ pub const GameManager = struct {
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
         for (dir_start..dir_end) |dirIndex| {
-            var moves = self.rays[start_idx][dirIndex];
+            var moves = precompute.RAYS[start_idx][dirIndex];
 
             const dir: Dir = @enumFromInt(dirIndex);
 
@@ -159,7 +156,7 @@ pub const GameManager = struct {
                 else
                     blocker.bitScanReverse();
 
-                moves.toggleSet(self.rays[sqaure][dirIndex]);
+                moves.toggleSet(precompute.RAYS[sqaure][dirIndex]);
             }
             possible_moves.setUnion(moves);
         }

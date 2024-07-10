@@ -64,11 +64,11 @@ pub const KING_MOVES = computeKingMoves();
 
 pub const Lines = [64][NUM_LINES]BoardBitSet;
 
-// This is too much for comptime :(
 pub fn computeLines() Lines {
-    var moves: [64][NUM_DIRS]BoardBitSet = undefined;
+    @setEvalBranchQuota(64 * NUM_LINES * 100 + 1);
+    var moves: [64][NUM_LINES]BoardBitSet = undefined;
 
-    for (0..64) |idx| {
+    inline for (0..64) |idx| {
         const start_bs = BoardBitSet.initWithIndex(idx);
         inline for (utils.enum_fields(Line)) |f| {
             const line_idx = f.value;
@@ -80,15 +80,15 @@ pub fn computeLines() Lines {
     return moves;
 }
 
-// pub const LINES = computeLines();
+pub const LINES = computeLines();
 
 pub const Rays = [64][NUM_DIRS]BoardBitSet;
 
-// This is too much for comptime :(
 pub fn computeRays() Rays {
+    @setEvalBranchQuota(64 * NUM_DIRS * 100 + 1);
     var moves: [64][NUM_DIRS]BoardBitSet = undefined;
 
-    for (0..64) |idx| {
+    inline for (0..64) |idx| {
         const start_bs = BoardBitSet.initWithIndex(idx);
         inline for (utils.enum_fields(Dir)) |f| {
             const dir_idx = f.value;
@@ -99,3 +99,5 @@ pub fn computeRays() Rays {
     }
     return moves;
 }
+
+pub const RAYS = computeRays();

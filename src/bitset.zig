@@ -26,11 +26,11 @@ pub const NOT_FILE_H = 0x7f7f7f7f7f7f7f7f;
 pub const NOT_FILE_GH: u64 = 0x3f3f3f3f3f3f3f3f;
 pub const NOT_FILE_AB: u64 = 0xfcfcfcfcfcfcfcfc;
 
-pub fn toMaskInt(x: anytype) MaskInt {
+pub inline fn toMaskInt(x: anytype) MaskInt {
     return @as(MaskInt, @intCast(x));
 }
 
-pub fn toShiftInt(x: anytype) ShiftInt {
+pub inline fn toShiftInt(x: anytype) ShiftInt {
     return @as(ShiftInt, @intCast(x));
 }
 
@@ -43,7 +43,7 @@ pub fn fileMask(sq: u32) MaskInt {
     return FILE_A << toShiftInt(sq & 7);
 }
 
-fn mainDiagonalMask(sq: u32) MaskInt {
+inline fn mainDiagonalMask(sq: u32) MaskInt {
     const sq_i32 = @as(i32, @intCast(sq));
 
     const diag: i32 = (sq_i32 & 7) - (sq_i32 >> 3);
@@ -53,7 +53,7 @@ fn mainDiagonalMask(sq: u32) MaskInt {
         MAIN_DIAG << (toShiftInt(-diag) * 8);
 }
 
-fn antiDiagonalMask(sq: u32) MaskInt {
+inline fn antiDiagonalMask(sq: u32) MaskInt {
     const sq_i32 = @as(i32, @intCast(sq));
     const diag: i32 = 7 - (sq_i32 & 7) - (sq_i32 >> 3);
     return if (diag >= 0)
@@ -117,10 +117,9 @@ pub const Dir = enum(u3) {
         const line = self.to_line();
 
         const single_bit = sqaure.bit_set.mask;
+        const sq = sqaure.toSquare();
 
-        const line_attacks = line.compute_line(sqaure);
-
-        // const line_attacks = precompute.LINES[sq][@intFromEnum(line)];
+        const line_attacks = precompute.LINES[sq][@intFromEnum(line)];
 
         var ray_mask: MaskInt = undefined;
         if (self.is_positive()) {
