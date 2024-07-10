@@ -126,8 +126,6 @@ pub const GameManager = struct {
             return non_captures.unionWith(possible_attacks);
         }
 
-        var valid_pos = BoardBitSet.initEmpty();
-
         if (p.is_knight()) {
             const possible_moves = precompute.KNIGHT_MOVES[start_idx];
 
@@ -144,6 +142,7 @@ pub const GameManager = struct {
             return possible_moves.differenceWith(freinds);
         }
 
+        var possible_moves = BoardBitSet.initEmpty();
         // moves for bishops, rooks, and queens
         // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
@@ -165,12 +164,11 @@ pub const GameManager = struct {
                 std.debug.print("blocker {}\n", .{Position.from_index(sqaure)});
                 moves.toggleSet(self.rays[sqaure][dirIndex]);
             }
-
-            valid_pos.setUnion(moves);
+            possible_moves.setUnion(moves);
         }
 
-        valid_pos.unset(start_idx);
-        return valid_pos;
+        const freinds = self.board.color_sets[@intFromEnum(p.color)];
+        return possible_moves.differenceWith(freinds);
     }
 };
 
