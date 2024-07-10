@@ -6,7 +6,11 @@ const Board = board_types.Board;
 const Cell = board_types.Cell;
 const Position = board_types.Position;
 const Move = board_types.Move;
-const BoardBitSet = board_types.BoardBitSet;
+
+const bit_set_types = @import("bitset.zig");
+const BoardBitSet = bit_set_types.BoardBitSet;
+const Dir = bit_set_types.Dir;
+const MoveFN = bit_set_types.MoveFN;
 
 const piece = @import("piece.zig");
 const Piece = piece.Piece;
@@ -16,45 +20,6 @@ const precompute = @import("precompute.zig");
 const fen = @import("fen.zig");
 
 const Allocator = std.mem.Allocator;
-
-const MoveFn = fn (self: BoardBitSet) BoardBitSet;
-
-pub const Dir = enum(u3) {
-    North,
-    South,
-    West,
-    East,
-    NorthWest,
-    NorthEast,
-    SouthWest,
-    SouthEast,
-
-    pub fn to_move_func_comptime(self: Dir) MoveFn {
-        return switch (self) {
-            .North => BoardBitSet.northOne,
-            .South => BoardBitSet.southOne,
-            .West => BoardBitSet.westOne,
-            .East => BoardBitSet.eastOne,
-            .NorthWest => BoardBitSet.noWeOne,
-            .NorthEast => BoardBitSet.noEaOne,
-            .SouthWest => BoardBitSet.soWeOne,
-            .SouthEast => BoardBitSet.soEaOne,
-        };
-    }
-
-    pub fn to_move_func(self: Dir) *const MoveFn {
-        return switch (self) {
-            .North => BoardBitSet.northOne,
-            .South => BoardBitSet.southOne,
-            .West => BoardBitSet.westOne,
-            .East => BoardBitSet.eastOne,
-            .NorthWest => BoardBitSet.noWeOne,
-            .NorthEast => BoardBitSet.noEaOne,
-            .SouthWest => BoardBitSet.soWeOne,
-            .SouthEast => BoardBitSet.soEaOne,
-        };
-    }
-};
 
 const NUM_DIRS = utils.enum_len(Dir);
 

@@ -1,10 +1,13 @@
 const std = @import("std");
+const utils = @import("utils.zig");
 
 const board_types = @import("board.zig");
 const Position = board_types.Position;
 
 const bitset = @import("bitset.zig");
 const BoardBitSet = bitset.BoardBitSet;
+const Dir = bitset.Dir;
+const NUM_DIRS = bitset.NUM_DIRS;
 
 fn computeNumCellsToEdge() [64][8]u8 {
     const all_positon = Position.all_positions();
@@ -56,3 +59,19 @@ fn computeKingMoves() [64]BoardBitSet {
 }
 
 pub const KING_MOVES = computeKingMoves();
+
+fn computeRays() [64][NUM_DIRS]BoardBitSet {
+    var moves: [64][NUM_DIRS]BoardBitSet = undefined;
+
+    for (0..64) |idx| {
+        const start_bs = BoardBitSet.initWithIndex(idx);
+        inline for (utils.enum_fields(Dir)) |f| {
+            const dir_idx = f.value;
+            const dir: Dir = @enumFromInt(dir_idx);
+
+            moves[idx][dir_idx] = dir.compute_ray(start_bs);
+        }
+    }
+}
+
+const RAYS = computeRays();

@@ -1,4 +1,5 @@
 const std = @import("std");
+const utils = @import("utils.zig");
 
 const piece_types = @import("piece.zig");
 const Color = piece_types.Color;
@@ -18,18 +19,22 @@ pub fn fileMask(mask: MaskInt) MaskInt {
     return 0x0101010101010101 << (mask & 7);
 }
 
-pub fn diagonalMask(mask: MaskInt) MaskInt {
+pub fn mainDiagonalMask(mask: MaskInt) MaskInt {
     const diag = 8 * (mask & 7) - (mask & 56);
     const nort = -diag & (diag >> 31);
     const sout = diag & (-diag >> 31);
     return (MAIN_DIAG >> sout) << nort;
 }
 
-pub fn antiDiagMask(mask: MaskInt) MaskInt {
+pub fn antiDiagonalMask(mask: MaskInt) MaskInt {
     const diag = 56 - 8 * (mask & 7) - (mask & 56);
     const nort = -diag & (diag >> 31);
     const sout = diag & (-diag >> 31);
     return (ANTI_DIAG >> sout) << nort;
+}
+
+pub fn diagonalMask(mask: MaskInt) MaskInt {
+    return mainDiagonalMask(mask) | antiDiagonalMask(mask);
 }
 
 pub const FILE_A = 0x0101010101010101;
@@ -58,6 +63,114 @@ fn eastOneMask(mask: MaskInt) MaskInt {
 fn westOneMask(mask: MaskInt) MaskInt {
     return mask >> 1 & NOT_FILE_H;
 }
+
+pub const MoveFn = fn (self: BoardBitSet) BoardBitSet;
+pub const MaskFn = fn (self: MaskInt) MaskInt;
+
+pub const LineType = enum {
+    Rank,
+    File,
+    Diag,
+
+    // pub fn to_mask_comptime(self: LineType) MaskFn {
+    //     return switch (self) {
+    //         .Rank => rankMask,
+    //         .File => fileMask,
+    //         .Diag => diagonalMask,
+    //     };
+    // }
+};
+
+pub const Dir = enum(u3) {
+    North,
+    South,
+    West,
+    East,
+    NorthWest,
+    NorthEast,
+    SouthWest,
+    SouthEast,
+
+    pub fn compute_ray(self: Dir, sqaure: BoardBitSet) BoardBitSet {
+        // https://www.chessprogramming.org/On_an_empty_Board#Rays_by_Line
+        const line = self.to_line();
+
+        const single_bit = sqaure.bit_set.mask;
+
+        const line_attacks = switch (line) {
+            .Rank => rankMask(single_bit),
+            .File => fileMask(single_bit),
+            .Diag => diagonalMask(single_bit),
+        };
+
+        const ray_mask = if (self.is_positive()) {
+            const shifted = 2 * single_bit;
+            // creates a mask where all bits to the left of the original single bit (including the bit itself)
+            // are set to 0 and all bits to the right are set to 1.
+            0 -% shifted;
+        } else {
+            // creates a mask where all bits to the right of the single bit are set to 1
+            // and all bits to the left (including the bit itself) are set to 0.
+            single_bit -| 1;
+        };
+
+        return BoardBitSet.fromMask(line_attacks & ray_mask);
+    }
+
+    pub fn is_positive(self: Dir) bool {
+        return switch (self) {
+            .North => true,
+            .South => false,
+            .West => false,
+            .East => true,
+            .NorthWest => true,
+            .NorthEast => true,
+            .SouthWest => false,
+            .SouthEast => false,
+        };
+    }
+
+    pub fn to_line(self: Dir) LineType {
+        return switch (self) {
+            .North => LineType.File,
+            .South => LineType.File,
+            .West => LineType.Rank,
+            .East => LineType.Rank,
+            .NorthWest => LineType.Diag,
+            .NorthEast => LineType.Diag,
+            .SouthWest => LineType.Diag,
+            .SouthEast => LineType.Diag,
+        };
+    }
+
+    pub fn to_move_func_comptime(self: Dir) MoveFn {
+        return switch (self) {
+            .North => BoardBitSet.northOne,
+            .South => BoardBitSet.southOne,
+            .West => BoardBitSet.westOne,
+            .East => BoardBitSet.eastOne,
+            .NorthWest => BoardBitSet.noWeOne,
+            .NorthEast => BoardBitSet.noEaOne,
+            .SouthWest => BoardBitSet.soWeOne,
+            .SouthEast => BoardBitSet.soEaOne,
+        };
+    }
+
+    pub fn to_move_func(self: Dir) *const MoveFn {
+        return switch (self) {
+            .North => BoardBitSet.northOne,
+            .South => BoardBitSet.southOne,
+            .West => BoardBitSet.westOne,
+            .East => BoardBitSet.eastOne,
+            .NorthWest => BoardBitSet.noWeOne,
+            .NorthEast => BoardBitSet.noEaOne,
+            .SouthWest => BoardBitSet.soWeOne,
+            .SouthEast => BoardBitSet.soEaOne,
+        };
+    }
+};
+
+pub const NUM_DIRS = utils.enum_len(Dir);
 
 pub const BoardBitSet = packed struct {
     const Self = @This();
