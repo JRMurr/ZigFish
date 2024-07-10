@@ -7,7 +7,9 @@ const Position = board_types.Position;
 const bitset = @import("bitset.zig");
 const BoardBitSet = bitset.BoardBitSet;
 const Dir = bitset.Dir;
+const Line = bitset.Line;
 const NUM_DIRS = bitset.NUM_DIRS;
+const NUM_LINES = bitset.NUM_LINES;
 
 fn computeNumCellsToEdge() [64][8]u8 {
     const all_positon = Position.all_positions();
@@ -60,10 +62,30 @@ fn computeKingMoves() [64]BoardBitSet {
 
 pub const KING_MOVES = computeKingMoves();
 
+pub const Lines = [64][NUM_LINES]BoardBitSet;
+
+// This is too much for comptime :(
+pub fn computeLines() Lines {
+    var moves: [64][NUM_DIRS]BoardBitSet = undefined;
+
+    for (0..64) |idx| {
+        const start_bs = BoardBitSet.initWithIndex(idx);
+        inline for (utils.enum_fields(Line)) |f| {
+            const line_idx = f.value;
+            const line: Line = @enumFromInt(line_idx);
+
+            moves[idx][line_idx] = line.compute_line(start_bs);
+        }
+    }
+    return moves;
+}
+
+// pub const LINES = computeLines();
+
 pub const Rays = [64][NUM_DIRS]BoardBitSet;
 
 // This is too much for comptime :(
-pub fn computeRays() [64][NUM_DIRS]BoardBitSet {
+pub fn computeRays() Rays {
     var moves: [64][NUM_DIRS]BoardBitSet = undefined;
 
     for (0..64) |idx| {

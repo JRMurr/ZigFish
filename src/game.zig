@@ -10,7 +10,6 @@ const Move = board_types.Move;
 const bit_set_types = @import("bitset.zig");
 const BoardBitSet = bit_set_types.BoardBitSet;
 const Dir = bit_set_types.Dir;
-const MoveFN = bit_set_types.MoveFN;
 
 const piece = @import("piece.zig");
 const Piece = piece.Piece;
@@ -22,36 +21,6 @@ const fen = @import("fen.zig");
 const Allocator = std.mem.Allocator;
 
 const NUM_DIRS = utils.enum_len(Dir);
-
-// TOOD: this is awful perf, switch to line attack generation https://www.chessprogramming.org/On_an_empty_Board#Line_Attacks
-// fn generate_ray_attacks() [NUM_DIRS][64]BoardBitSet {
-//     var all_attacks: [NUM_DIRS][64]BoardBitSet = undefined;
-
-//     inline for (utils.enum_fields(Dir)) |f| {
-//         const dir_idx = f.value;
-//         const dir: Dir = @enumFromInt(dir_idx);
-//         const move_fn = dir.to_move_func();
-
-//         all_attacks[dir_idx] = undefined;
-//         for (0..64) |square| {
-//             var attacks = BoardBitSet.initEmpty();
-//             // init at current position to make logic easier, rem
-//             attacks.set(square);
-
-//             var moved = move_fn(attacks);
-//             while (moved.count() != 0) {
-//                 attacks.bit_set.setUnion(moved.bit_set);
-//                 moved = move_fn(attacks);
-//             }
-
-//             // start square is not a valid attack
-//             attacks.bit_set.unset(square);
-//             all_attacks[dir_idx][square] = attacks;
-//         }
-//     }
-
-//     return all_attacks;
-// }
 
 const dir_offsets = [8]i8{
     8, //  MoveOffset.North,
@@ -180,36 +149,24 @@ pub const GameManager = struct {
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
         for (dir_start..dir_end) |dirIndex| {
-            const rays = self.rays[start_idx][dirIndex];
+            var moves = self.rays[start_idx][dirIndex];
 
-            valid_pos.setUnion(rays);
+            const dir: Dir = @enumFromInt(dirIndex);
 
-            // const max_moves_in_dir = precompute.NUM_SQUARES_TO_EDGE[start_idx][dirIndex];
-            // const dir: Dir = @enumFromInt(dirIndex);
-            // const move_fn = dir.to_move_func();
+            std.debug.print("dir {}\t dirIndex {}\n", .{ dir, dirIndex });
 
-            // var attacks = BoardBitSet.initEmpty();
-            // attacks.set(start_idx);
+            const blocker = moves.intersectWith(self.board.occupied_set);
+            if (blocker.count() > 0) {
+                const sqaure = if (dir.is_positive())
+                    blocker.bitScanForward()
+                else
+                    blocker.bitScanReverse();
 
-            // attacks = move_fn(attacks);
+                std.debug.print("blocker {}\n", .{Position.from_index(sqaure)});
+                moves.toggleSet(self.rays[sqaure][dirIndex]);
+            }
 
-            // for (0..max_moves_in_dir) |_| {
-            //     defer attacks = move_fn(attacks);
-
-            //     const target_idx = attacks.bit_set.findFirstSet().?;
-            //     const target = self.get_cell(Position.from_index(target_idx));
-
-            //     // blocked by a freind, stop going in this dir
-            //     if (target.is_freindly(p)) {
-            //         break;
-            //     }
-
-            //     valid_pos.set(target_idx);
-
-            //     // can capture the peice here but no more
-            //     if (target.is_enemy(p)) {
-            //         break;
-            //     }
+            valid_pos.setUnion(moves);
         }
 
         valid_pos.unset(start_idx);

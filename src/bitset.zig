@@ -4,6 +4,8 @@ const utils = @import("utils.zig");
 const piece_types = @import("piece.zig");
 const Color = piece_types.Color;
 
+const precompute = @import("precompute.zig");
+
 pub const BitSet = std.bit_set.IntegerBitSet(64);
 pub const MaskInt = BitSet.MaskInt;
 pub const ShiftInt = BitSet.ShiftInt;
@@ -43,22 +45,21 @@ pub fn fileMask(sq: u32) MaskInt {
 
 fn mainDiagonalMask(sq: u32) MaskInt {
     const sq_i32 = @as(i32, @intCast(sq));
-    const diag: i32 = 8 * (sq_i32 & 7) - (sq_i32 & 56);
-    const nort: i32 = -diag & (diag >> 31);
-    const sout: i32 = diag & (-diag >> 31);
-    return (MAIN_DIAG >> toShiftInt(sout)) << toShiftInt(nort);
+
+    const diag: i32 = (sq_i32 & 7) - (sq_i32 >> 3);
+    return if (diag >= 0)
+        MAIN_DIAG >> (toShiftInt(diag) * 8)
+    else
+        MAIN_DIAG << (toShiftInt(-diag) * 8);
 }
 
 fn antiDiagonalMask(sq: u32) MaskInt {
     const sq_i32 = @as(i32, @intCast(sq));
-    const diag: i32 = 8 * (sq_i32 & 7) - (sq_i32 & 56);
-    const nort: i32 = -diag & (diag >> 31);
-    const sout: i32 = diag & (-diag >> 31);
-    return (ANTI_DIAG >> toShiftInt(sout)) << toShiftInt(nort);
-}
-
-pub fn diagonalMask(sq: u32) MaskInt {
-    return mainDiagonalMask(sq) | antiDiagonalMask(sq);
+    const diag: i32 = 7 - (sq_i32 & 7) - (sq_i32 >> 3);
+    return if (diag >= 0)
+        ANTI_DIAG >> (toShiftInt(diag) * 8)
+    else
+        ANTI_DIAG << (toShiftInt(-diag) * 8);
 }
 
 fn southOneMask(mask: MaskInt) MaskInt {
@@ -79,29 +80,37 @@ fn westOneMask(mask: MaskInt) MaskInt {
 
 pub const MoveFn = fn (self: BoardBitSet) BoardBitSet;
 
-pub const LineType = enum {
+pub const Line = enum {
     Rank,
     File,
-    Diag,
+    MainDiag,
+    AntiDiag,
 
-    // pub fn to_mask_comptime(self: LineType) MaskFn {
-    //     return switch (self) {
-    //         .Rank => rankMask,
-    //         .File => fileMask,
-    //         .Diag => diagonalMask,
-    //     };
-    // }
+    pub fn compute_line(self: Line, sqaure: BoardBitSet) BoardBitSet {
+        const sq = sqaure.toSquare();
+
+        const mask = switch (self) {
+            .Rank => rankMask(sq),
+            .File => fileMask(sq),
+            .MainDiag => mainDiagonalMask(sq),
+            .AntiDiag => antiDiagonalMask(sq),
+        };
+
+        return BoardBitSet.fromMask(mask);
+    }
 };
 
+pub const NUM_LINES = utils.enum_len(Line);
+
 pub const Dir = enum(u3) {
-    North,
-    South,
-    West,
-    East,
-    NorthWest,
-    NorthEast,
-    SouthWest,
-    SouthEast,
+    North = 0,
+    South = 1,
+    West = 2,
+    East = 3,
+    NorthWest = 4,
+    NorthEast = 5,
+    SouthWest = 6,
+    SouthEast = 7,
 
     pub fn compute_ray(self: Dir, sqaure: BoardBitSet) BoardBitSet {
         // https://www.chessprogramming.org/On_an_empty_Board#Rays_by_Line
@@ -109,13 +118,9 @@ pub const Dir = enum(u3) {
 
         const single_bit = sqaure.bit_set.mask;
 
-        const sq = sqaure.toSquare();
+        const line_attacks = line.compute_line(sqaure);
 
-        const line_attacks = switch (line) {
-            .Rank => rankMask(sq),
-            .File => fileMask(sq),
-            .Diag => diagonalMask(sq),
-        };
+        // const line_attacks = precompute.LINES[sq][@intFromEnum(line)];
 
         var ray_mask: MaskInt = undefined;
         if (self.is_positive()) {
@@ -129,7 +134,7 @@ pub const Dir = enum(u3) {
             ray_mask = single_bit -| 1;
         }
 
-        return BoardBitSet.fromMask(line_attacks & ray_mask);
+        return BoardBitSet.fromMask(line_attacks.bit_set.mask & ray_mask);
     }
 
     pub fn is_positive(self: Dir) bool {
@@ -145,42 +150,16 @@ pub const Dir = enum(u3) {
         };
     }
 
-    pub fn to_line(self: Dir) LineType {
+    pub fn to_line(self: Dir) Line {
         return switch (self) {
-            .North => LineType.File,
-            .South => LineType.File,
-            .West => LineType.Rank,
-            .East => LineType.Rank,
-            .NorthWest => LineType.Diag,
-            .NorthEast => LineType.Diag,
-            .SouthWest => LineType.Diag,
-            .SouthEast => LineType.Diag,
-        };
-    }
-
-    pub fn to_move_func_comptime(self: Dir) MoveFn {
-        return switch (self) {
-            .North => BoardBitSet.northOne,
-            .South => BoardBitSet.southOne,
-            .West => BoardBitSet.westOne,
-            .East => BoardBitSet.eastOne,
-            .NorthWest => BoardBitSet.noWeOne,
-            .NorthEast => BoardBitSet.noEaOne,
-            .SouthWest => BoardBitSet.soWeOne,
-            .SouthEast => BoardBitSet.soEaOne,
-        };
-    }
-
-    pub fn to_move_func(self: Dir) *const MoveFn {
-        return switch (self) {
-            .North => BoardBitSet.northOne,
-            .South => BoardBitSet.southOne,
-            .West => BoardBitSet.westOne,
-            .East => BoardBitSet.eastOne,
-            .NorthWest => BoardBitSet.noWeOne,
-            .NorthEast => BoardBitSet.noEaOne,
-            .SouthWest => BoardBitSet.soWeOne,
-            .SouthEast => BoardBitSet.soEaOne,
+            .North => Line.File,
+            .South => Line.File,
+            .West => Line.Rank,
+            .East => Line.Rank,
+            .NorthWest => Line.AntiDiag,
+            .NorthEast => Line.MainDiag,
+            .SouthWest => Line.MainDiag,
+            .SouthEast => Line.AntiDiag,
         };
     }
 };
@@ -251,12 +230,40 @@ pub const BoardBitSet = packed struct {
         return result;
     }
 
+    pub fn intersectWith(self: Self, other: Self) Self {
+        var result = self;
+        result.bit_set.setIntersection(other.bit_set);
+        return result;
+    }
+
+    pub fn toggleSet(self: *Self, other: Self) void {
+        self.bit_set.toggleSet(other.bit_set);
+    }
+
+    pub fn xorWith(self: Self, other: Self) Self {
+        var result = self;
+        result.bit_set.xorWith(other.bit_set);
+        return result;
+    }
+
     pub fn clone(self: Self) Self {
         return self.fromMask(self.bit_set.mask);
     }
 
     pub fn toSquare(self: Self) u32 {
+        std.debug.assert(self.count() == 1);
         return @as(u32, @intCast(self.bit_set.findFirstSet().?));
+    }
+
+    pub fn bitScanForward(self: Self) u64 {
+        std.debug.assert(self.count() > 0);
+        return @ctz(self.bit_set.mask);
+    }
+
+    pub fn bitScanReverse(self: Self) u64 {
+        std.debug.assert(self.count() > 0);
+        const mask = self.bit_set.mask;
+        return @bitSizeOf(MaskInt) - 1 - @clz(mask);
     }
 
     // https://www.chessprogramming.org/General_Setwise_Operations#OneStepOnly
