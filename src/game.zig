@@ -208,8 +208,6 @@ pub const GameManager = struct {
     }
 
     pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
-        // TODO: need to see if a move would make the king be in check and remove it
-
         const start_idx = pos.to_index();
 
         const cell = self.get_cell(pos);
