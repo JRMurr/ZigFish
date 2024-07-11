@@ -66,9 +66,21 @@ pub const Position = packed struct {
     }
 };
 
+pub const MoveType = enum {
+    Normal,
+    Capture,
+    Promotion,
+    EnPassant,
+    Castling,
+};
+
 pub const Move = struct {
     start: Position,
     end: Position,
+    kind: piece.Kind,
+    move_type: MoveType = MoveType.Normal,
+    captured_piece: ?piece.Kind = null,
+    promotion_piece: ?piece.Kind = null,
 };
 
 const NUM_KINDS = utils.enum_len(piece.Kind);

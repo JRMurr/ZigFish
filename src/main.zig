@@ -102,7 +102,7 @@ pub fn main() anyerror!void {
             board.set_cell(mp.start, .{ .piece = mp.piece });
 
             if (mp.valid_moves.isSet(pos.toIndex())) {
-                board.make_move(Move{ .start = mp.start, .end = pos });
+                board.make_move(Move{ .start = mp.start, .end = pos, .kind = mp.piece.kind });
                 // attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
             }
 
