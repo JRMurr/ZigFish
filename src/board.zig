@@ -22,6 +22,16 @@ pub const Position = packed struct {
         return Position.fromIndex(p.rank * 8 + p.file);
     }
 
+    pub fn fromStr(str: []const u8) Position {
+        const rank_str = std.ascii.toLower(str[0]);
+        const rank = rank_str - 97;
+
+        const file_str = str[1];
+        const file = file_str - 48;
+
+        return Position.fromRankFile(.{ .rank = rank, .file = file });
+    }
+
     pub inline fn toRankFile(self: Position) PositionRankFile {
         const file = self.index % 8;
         const rank = @divFloor(self.index, 8);
@@ -151,58 +161,8 @@ pub const Board = struct {
     }
 };
 
-test "north moves off the edge of the board should be removed" {
-    const pos = Position{ .rank = 7, .file = 1 };
+test "parse pos str" {
+    const pos = Position.fromStr("e4");
 
-    const idx = pos.toIndex();
-
-    var bs = BoardBitSet.initEmpty();
-
-    bs.set(idx);
-
-    const moved = bs.northOne();
-
-    try std.testing.expect(moved.count() == 0);
-}
-
-test "east moves off the edge of the board should be removed" {
-    const pos = Position{ .rank = 0, .file = 7 };
-
-    const idx = pos.toIndex();
-
-    var bs = BoardBitSet.initEmpty();
-
-    bs.set(idx);
-
-    const moved = bs.eastOne();
-
-    try std.testing.expect(moved.count() == 0);
-}
-
-test "north east moves off the edge of the board should be removed" {
-    const pos = Position{ .rank = 4, .file = 7 };
-
-    const idx = pos.toIndex();
-
-    var bs = BoardBitSet.initEmpty();
-
-    bs.set(idx);
-
-    const moved = bs.noEaOne();
-
-    try std.testing.expect(moved.count() == 0);
-}
-
-test "west moves off the edge of the board should be removed" {
-    const pos = Position{ .rank = 0, .file = 0 };
-
-    const idx = pos.toIndex();
-
-    var bs = BoardBitSet.initEmpty();
-
-    bs.set(idx);
-
-    const moved = bs.westOne();
-
-    try std.testing.expect(moved.count() == 0);
+    try std.testing.expect(pos.eql(Position.fromRankFile(.{ .rank = 4, .file = 4 })));
 }

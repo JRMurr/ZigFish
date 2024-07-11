@@ -70,14 +70,14 @@ pub fn parse(str: []const u8) BoardState {
 
     const active_color = if (std.mem.eql(u8, active_color_str, "w")) Color.White else Color.Black;
 
+    if (!std.mem.eql(u8, en_passant_str, "-")) {
+        board.enPassantPos = Position.fromStr(en_passant_str);
+    }
+
     // TODO: use these....
     _ = castling_str;
-    _ = en_passant_str;
     _ = half_move_str;
     _ = full_move_str;
 
-    return BoardState{
-        .board = board,
-        .active_color = active_color,
-    };
+    return BoardState{ .board = board, .active_color = active_color };
 }

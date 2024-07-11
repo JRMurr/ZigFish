@@ -5,6 +5,7 @@ const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
 const Move = board_types.Move;
+const MoveType = board_types.MoveType;
 
 const bit_set_types = @import("bitset.zig");
 const BoardBitSet = bit_set_types.BoardBitSet;
@@ -72,6 +73,7 @@ pub const GameManager = struct {
         const start_peice = self.get_pos(move.start).?;
         self.set_cell(move.start, null);
         self.set_cell(move.end, start_peice);
+        // TODO: handle enpassant. Set flag if was a 2 space move, remove correct pawn if taking
         self.flip_active_color();
     }
 
@@ -229,6 +231,7 @@ pub const GameManager = struct {
     }
 
     pub fn get_valid_moves(self: Self, allocator: Allocator, pos: Position) Allocator.Error!MoveList {
+        // TODO: set capture flag on moves that need it...
         const start_idx = pos.toIndex();
 
         const maybe_peice = self.get_pos(pos);
@@ -260,11 +263,24 @@ pub const GameManager = struct {
             }
 
             // TODO: enpassant check
-            const possible_captures = start_bs.pawnAttacks(p.color, enemies).intersectWith(pin_ray);
+            var en_passant_board = BoardBitSet.initEmpty();
+            if (self.board.enPassantPos) |ep| {
+                en_passant_board.set(ep.toIndex());
+            }
+
+            const possible_captures = start_bs.pawnAttacks(p.color, enemies.unionWith(en_passant_board)).intersectWith(pin_ray);
             var captures_iter = possible_captures.iterator();
             while (captures_iter.next()) |to| {
-                const captured_piece = self.board.get_pos(pos).?;
-                try moves.append(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_piece.kind });
+                var move = Move{ .start = pos, .end = to, .kind = p.kind };
+                if (self.board.get_pos(pos)) |captured| {
+                    move.captured_kind = captured.kind;
+                    move.move_type = MoveType.Capture;
+                } else {
+                    move.captured_kind = piece.Kind.Pawn;
+                    move.move_type = MoveType.EnPassant;
+                }
+
+                try moves.append(move);
             }
 
             return moves;
