@@ -10,6 +10,7 @@ const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Cell = board_types.Cell;
 const Position = board_types.Position;
+const PositionRankFile = board_types.PositionRankFile;
 
 const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
     .{ "K", Piece{ .kind = Kind.King, .color = Color.White } },
@@ -46,7 +47,7 @@ pub fn parse(str: []const u8) BoardState {
     var board = Board.init();
 
     // fen starts from the top, board arr has bottom as 0
-    var curr_pos = Position{ .file = 0, .rank = 7 };
+    var curr_pos = PositionRankFile{ .file = 0, .rank = 7 };
 
     while (rank_strs.next()) |rank_str| {
         curr_pos.file = 0;
@@ -54,14 +55,14 @@ pub fn parse(str: []const u8) BoardState {
             const key = [_]u8{char};
             if (piece_lookup.has(&key)) {
                 const piece = piece_lookup.get(&key).?;
-                board.set_pos(curr_pos, piece);
+                board.set_pos(curr_pos.toPosition(), piece);
                 curr_pos.file += 1;
             } else {
                 // TODO: char should just be an ascii digit but if i use it in the for loop below its sad
-                const num_empty = std.fmt.parseInt(usize, &key, 10) catch |err| {
-                    std.debug.panic("erroring parsing {s} as usize {}", .{ key, err });
+                const num_empty = std.fmt.parseInt(u8, &key, 10) catch |err| {
+                    std.debug.panic("erroring parsing {s} as u8 {}", .{ key, err });
                 };
-                curr_pos.file += num_empty;
+                curr_pos.file +%= num_empty;
                 // for (0..(num_empty)) |_| {
                 //     cells[curr_pos.to_index()] = Cell.empty;
                 //     curr_pos.file += 1;

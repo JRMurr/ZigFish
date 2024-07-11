@@ -51,7 +51,7 @@ pub const SpriteManager = struct {
                     cell_color,
                 );
 
-                const pos = Position{ .rank = flipped_rank, .file = file };
+                const pos = Position.fromRankFile(.{ .rank = @intCast(flipped_rank), .file = @intCast(file) });
 
                 switch (self.game_manager.get_cell(pos)) {
                     .piece => |p| self.draw_piece(
@@ -69,10 +69,10 @@ pub const SpriteManager = struct {
         const file = @divFloor(x, self.cell_size);
         const rank = 7 - @divFloor(y, self.cell_size);
 
-        return Position{
-            .rank = rank,
-            .file = file,
-        };
+        return Position.fromRankFile(.{
+            .rank = @intCast(rank),
+            .file = @intCast(file),
+        });
     }
 
     pub fn draw_piece(
@@ -87,8 +87,9 @@ pub const SpriteManager = struct {
     }
 
     pub fn draw_move_marker(self: SpriteManager, pos: Position, color: rl.Color) void {
-        const pos_x = self.cell_size * pos.file;
-        const pos_y = self.cell_size * (7 - pos.rank);
+        const rank_file = pos.toRankFile();
+        const pos_x = self.cell_size * rank_file.file;
+        const pos_y = self.cell_size * (7 - rank_file.rank);
 
         const rect = rl.Rectangle.init(
             @as(f32, @floatFromInt(pos_x)),

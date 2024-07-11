@@ -26,30 +26,34 @@ pub const Cell = union(enum) {
     }
 };
 
-inline fn difference(a: usize, b: usize) usize {
-    var diff = @as(i8, @intCast(a)) - @as(i8, @intCast(b));
+pub const PositionRankFile = packed struct {
+    rank: u8,
+    file: u8,
 
-    if (diff < 0) {
-        diff *= -1;
+    pub inline fn toPosition(self: PositionRankFile) Position {
+        return Position.fromRankFile(self);
+    }
+};
+
+pub const Position = packed struct {
+    index: u8, // only really needs to be a u6....
+
+    pub inline fn fromRankFile(p: PositionRankFile) Position {
+        return Position.from_index(p.rank * 8 + p.file);
     }
 
-    return @as(usize, @intCast(diff));
-}
-
-pub const Position = struct {
-    rank: usize,
-    file: usize,
+    pub inline fn toRankFile(self: Position) PositionRankFile {
+        const file = self.index % 8;
+        const rank = @divFloor(self.index, 8);
+        return .{ .file = file, .rank = rank };
+    }
 
     pub inline fn to_index(self: Position) usize {
-        std.debug.assert(self.rank < 8);
-        std.debug.assert(self.file < 8);
-        return self.rank * 8 + self.file;
+        return self.index;
     }
 
     pub inline fn from_index(idx: usize) Position {
-        const file = idx % 8;
-        const rank = @divFloor(idx, 8);
-        return Position{ .file = file, .rank = rank };
+        return Position{ .index = @intCast(idx) };
     }
 
     pub fn all_positions() [64]Position {
@@ -62,11 +66,6 @@ pub const Position = struct {
         }
 
         return positions;
-    }
-
-    /// taxicab distance btwn positons
-    pub inline fn dist(self: Position, other: Position) usize {
-        return difference(self.rank, other.rank) + difference(self.file, other.file);
     }
 };
 
