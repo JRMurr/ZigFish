@@ -8,7 +8,6 @@ const Kind = piece_types.Kind;
 
 const board_types = @import("board.zig");
 const Board = board_types.Board;
-const Cell = board_types.Cell;
 const Position = board_types.Position;
 const PositionRankFile = board_types.PositionRankFile;
 
@@ -63,10 +62,6 @@ pub fn parse(str: []const u8) BoardState {
                     std.debug.panic("erroring parsing {s} as u8 {}", .{ key, err });
                 };
                 curr_pos.file +%= num_empty;
-                // for (0..(num_empty)) |_| {
-                //     cells[curr_pos.toIndex()] = Cell.empty;
-                //     curr_pos.file += 1;
-                // }
             }
         }
 

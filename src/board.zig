@@ -6,26 +6,6 @@ const utils = @import("utils.zig");
 
 pub const BoardBitSet = @import("bitset.zig").BoardBitSet;
 
-// TODO: yeet
-pub const Cell = union(enum) {
-    empty,
-    piece: piece.Piece,
-
-    pub fn is_freindly(self: Cell, other: piece.Piece) bool {
-        return switch (self) {
-            .piece => |p| p.color == other.color,
-            .empty => false,
-        };
-    }
-
-    pub fn is_enemy(self: Cell, other: piece.Piece) bool {
-        return switch (self) {
-            .piece => |p| p.color != other.color,
-            .empty => false,
-        };
-    }
-};
-
 pub const PositionRankFile = packed struct {
     rank: u8,
     file: u8,
@@ -94,6 +74,8 @@ pub const Board = struct {
     const Self = @This();
     kind_sets: [NUM_KINDS]BoardBitSet,
     color_sets: [NUM_COLOR]BoardBitSet,
+
+    enPassantPos: ?Position = null,
 
     /// redudent set for easy check if a square is occupied
     occupied_set: BoardBitSet,

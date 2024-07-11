@@ -3,7 +3,6 @@ const utils = @import("utils.zig");
 
 const board_types = @import("board.zig");
 const Board = board_types.Board;
-const Cell = board_types.Cell;
 const Position = board_types.Position;
 const Move = board_types.Move;
 
@@ -54,21 +53,11 @@ pub const GameManager = struct {
         };
     }
 
-    pub fn get_cell(self: Self, pos: Position) Cell {
-        const maybe_piece = self.board.get_pos(pos);
-        if (maybe_piece) |p| {
-            return .{ .piece = p };
-        }
-
-        return .empty;
+    pub fn get_pos(self: Self, pos: Position) ?Piece {
+        return self.board.get_pos(pos);
     }
 
-    pub fn set_cell(self: *Self, pos: Position, cell: Cell) void {
-        const maybe_piece = switch (cell) {
-            .piece => |p| p,
-            .empty => null,
-        };
-
+    pub fn set_cell(self: *Self, pos: Position, maybe_piece: ?Piece) void {
         self.board.set_pos(pos, maybe_piece);
     }
 
@@ -80,16 +69,9 @@ pub const GameManager = struct {
     }
 
     pub fn make_move(self: *Self, move: Move) void {
-        const start_cell = self.get_cell(move.start);
-
-        const start_peice = switch (start_cell) {
-            .empty => return,
-            .piece => |p| p,
-        };
-
-        self.set_cell(move.start, .empty);
-
-        self.set_cell(move.end, .{ .piece = start_peice });
+        const start_peice = self.get_pos(move.start).?;
+        self.set_cell(move.start, null);
+        self.set_cell(move.end, start_peice);
         self.flip_active_color();
     }
 
@@ -172,7 +154,7 @@ pub const GameManager = struct {
         return pinned;
     }
 
-    pub fn get_sliding_moves(self: Self, p: piece.Piece, pos: Position) BoardBitSet {
+    fn get_sliding_moves(self: Self, p: piece.Piece, pos: Position) BoardBitSet {
         // TODO: debug assert pos has the piece?
         const start_idx = pos.toIndex();
 
@@ -201,7 +183,7 @@ pub const GameManager = struct {
         return attacks;
     }
 
-    pub fn get_all_attacked_sqaures(self: Self, color: piece.Color) BoardBitSet {
+    fn get_all_attacked_sqaures(self: Self, color: piece.Color) BoardBitSet {
         const pinned_pieces = self.find_pinned_pieces(color);
 
         var attacks = BoardBitSet.initEmpty();
@@ -249,14 +231,11 @@ pub const GameManager = struct {
     pub fn get_valid_moves(self: Self, allocator: Allocator, pos: Position) Allocator.Error!MoveList {
         const start_idx = pos.toIndex();
 
-        const cell = self.get_cell(pos);
+        const maybe_peice = self.get_pos(pos);
 
         var moves = try MoveList.initCapacity(allocator, 27);
 
-        const p = switch (cell) {
-            .piece => |p| p,
-            .empty => return moves,
-        };
+        const p = if (maybe_peice) |p| p else return moves;
 
         const pinned_pieces = self.find_pinned_pieces(p.color);
 
@@ -322,15 +301,3 @@ pub const GameManager = struct {
         return moves;
     }
 };
-
-inline fn compute_target_idx(start_idx: usize, dir: i8, n: usize) ?usize {
-    const mult: i8 = @intCast(n + 1);
-
-    const target_idx = @as(i8, @intCast(start_idx)) + (dir * mult);
-
-    if (target_idx < 0 or target_idx >= 64) {
-        return null;
-    }
-
-    return @as(usize, @intCast(target_idx));
-}

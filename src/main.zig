@@ -10,7 +10,6 @@ const GameManager = game_types.GameManager;
 const board_types = @import("board.zig");
 const BoardBitSet = board_types.BoardBitSet;
 const Position = board_types.Position;
-const Cell = board_types.Cell;
 const Move = board_types.Move;
 
 const MoveList = game_types.MoveList;
@@ -57,13 +56,10 @@ pub fn main() anyerror!void {
 
     const allocator = arena.allocator();
 
-    // var board = GameManager.init();
-    // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
+    var board = GameManager.init();
 
     // pin should be able to capture
-    var board = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
-
-    // var board = Board.from_fen(arena.allocator(), "8/8/8/8/4n3/8/8/8 b - - 99 50");
+    // var board = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
 
     var moving_piece: ?MovingPiece = null;
 
@@ -83,17 +79,13 @@ pub fn main() anyerror!void {
 
         if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
-            const cell = board.get_cell(pos);
-
-            switch (cell) {
-                .piece => |p| {
-                    if (p.color == board.active_color) {
-                        const moves = try board.get_valid_moves(allocator, pos);
-                        moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
-                        board.set_cell(pos, .empty);
-                    }
-                },
-                .empty => {},
+            const maybe_piece = board.get_pos(pos);
+            if (maybe_piece) |p| {
+                if (p.color == board.active_color) {
+                    const moves = try board.get_valid_moves(allocator, pos);
+                    moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
+                    board.set_cell(pos, null);
+                }
             }
         } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
@@ -101,7 +93,7 @@ pub fn main() anyerror!void {
             const mp = moving_piece.?;
 
             // reset the piece so board can do its own moving logic
-            board.set_cell(mp.start, .{ .piece = mp.piece });
+            board.set_cell(mp.start, mp.piece);
 
             for (mp.valid_moves.items) |move| {
                 if (move.end.eql(pos)) {
