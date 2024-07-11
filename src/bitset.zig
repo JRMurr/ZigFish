@@ -187,6 +187,11 @@ pub const BoardBitSet = packed struct {
         return .{ .bit_set = BitSet.initEmpty() };
     }
 
+    /// Creates a bit set with no elements present.
+    pub fn initFull() Self {
+        return .{ .bit_set = BitSet.initFull() };
+    }
+
     pub fn initWithIndex(index: usize) Self {
         var bs = BitSet.initEmpty();
         bs.set(index);

@@ -93,7 +93,48 @@ pub const GameManager = struct {
         self.flip_active_color();
     }
 
-    pub fn find_pinned_pieces(self: Self, color: piece.Color) BoardBitSet {
+    /// given the position of a pinned piece, get the ray of the attack
+    fn get_pin_attacker(self: Self, pin_pos: Position) BoardBitSet {
+        const pin_piece = if (self.board.get_pos(pin_pos)) |p| p else return BoardBitSet.initEmpty();
+
+        const color = pin_piece.color;
+
+        const king_board = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King });
+        const king_square = king_board.bitScanForward();
+
+        const enmey_queens = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
+
+        for (0..NUM_DIRS) |dir_index| {
+            var moves = precompute.RAYS[king_square][dir_index];
+
+            const dir: Dir = @enumFromInt(dir_index);
+
+            var on_ray = moves.intersectWith(self.board.occupied_set);
+            if (on_ray.count() > 1) {
+                const possible_pin = dir.first_hit_on_ray(on_ray);
+
+                if (possible_pin != pin_pos.toIndex()) {
+                    continue;
+                }
+
+                on_ray.unset(possible_pin);
+
+                const possible_attacker = dir.first_hit_on_ray(on_ray);
+
+                const kind = if (dir_index < 4) piece.Kind.Rook else piece.Kind.Bishop;
+                const kind_board = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = kind });
+
+                const all_valid_enemies = kind_board.unionWith(enmey_queens);
+
+                if (all_valid_enemies.intersectWith(on_ray).isSet(possible_attacker)) {
+                    return moves; // return entire ray from king
+                }
+            }
+        }
+        return BoardBitSet.initEmpty();
+    }
+
+    fn find_pinned_pieces(self: Self, color: piece.Color) BoardBitSet {
         const king_board = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King });
         const king_square = king_board.bitScanForward();
 
@@ -174,7 +215,6 @@ pub const GameManager = struct {
 
             switch (kind) {
                 piece.Kind.Pawn => {
-                    // TODO: enpassant check
                     const enemies = self.board.color_sets[@intFromEnum(color.get_enemy())];
                     const pawn_attacks = piece_set.pawnAttacks(color, enemies);
                     // pawn_attacks.debug();
@@ -218,12 +258,11 @@ pub const GameManager = struct {
             .empty => return moves,
         };
 
-        // TODO: pinned pieces can capture the pin...
         const pinned_pieces = self.find_pinned_pieces(p.color);
 
-        if (pinned_pieces.isSet(start_idx)) {
-            return moves;
-        }
+        const is_pinned = pinned_pieces.isSet(start_idx);
+
+        const pin_ray = if (is_pinned) self.get_pin_attacker(pos) else BoardBitSet.initFull();
 
         const freinds = self.board.color_sets[@intFromEnum(p.color)];
         const enemy_color = p.color.get_enemy();
@@ -235,14 +274,15 @@ pub const GameManager = struct {
             const occupied = self.board.occupied_set;
 
             // TODO: handle promotion
-
-            var non_captures_iter = start_bs.pawnMoves(occupied.complement(), p.color).iterator();
+            const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(pin_ray);
+            var non_captures_iter = non_captures.iterator();
             while (non_captures_iter.next()) |to| {
                 try moves.append(.{ .start = pos, .end = to, .kind = p.kind });
             }
 
             // TODO: enpassant check
-            var captures_iter = start_bs.pawnAttacks(p.color, enemies).iterator();
+            const possible_captures = start_bs.pawnAttacks(p.color, enemies).intersectWith(pin_ray);
+            var captures_iter = possible_captures.iterator();
             while (captures_iter.next()) |to| {
                 const captured_piece = self.board.get_pos(pos).?;
                 try moves.append(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_piece.kind });
@@ -254,7 +294,7 @@ pub const GameManager = struct {
         var possible_moves: BoardBitSet = undefined;
 
         if (p.is_knight()) {
-            possible_moves = precompute.KNIGHT_MOVES[start_idx].differenceWith(freinds);
+            possible_moves = precompute.KNIGHT_MOVES[start_idx].intersectWith(pin_ray).differenceWith(freinds);
         } else if (p.is_king()) {
             // TODO: castling
             const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
@@ -262,7 +302,7 @@ pub const GameManager = struct {
             const king_moves = precompute.KING_MOVES[start_idx];
             possible_moves = king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
         } else {
-            possible_moves = self.get_sliding_moves(p, pos);
+            possible_moves = self.get_sliding_moves(p, pos).intersectWith(pin_ray);
         }
 
         possible_moves.remove(freinds);

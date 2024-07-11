@@ -57,8 +57,11 @@ pub fn main() anyerror!void {
 
     const allocator = arena.allocator();
 
-    var board = GameManager.init();
+    // var board = GameManager.init();
     // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
+
+    // pin should be able to capture
+    var board = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
 
     // var board = Board.from_fen(arena.allocator(), "8/8/8/8/4n3/8/8/8 b - - 99 50");
 
