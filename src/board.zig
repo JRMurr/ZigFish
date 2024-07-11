@@ -56,6 +56,10 @@ pub const Position = packed struct {
         return Position{ .index = @intCast(idx) };
     }
 
+    pub inline fn eql(self: Position, other: Position) bool {
+        return self.index == other.index;
+    }
+
     pub fn all_positions() [64]Position {
         var positions: [64]Position = undefined;
         inline for (0..64) |i| {
@@ -79,8 +83,8 @@ pub const Move = struct {
     end: Position,
     kind: piece.Kind,
     move_type: MoveType = MoveType.Normal,
-    captured_piece: ?piece.Kind = null,
-    promotion_piece: ?piece.Kind = null,
+    captured_kind: ?piece.Kind = null,
+    promotion_kind: ?piece.Kind = null,
 };
 
 const NUM_KINDS = utils.enum_len(piece.Kind);

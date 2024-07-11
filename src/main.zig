@@ -13,10 +13,12 @@ const Position = board_types.Position;
 const Cell = board_types.Cell;
 const Move = board_types.Move;
 
+const MoveList = game_types.MoveList;
+
 const MovingPiece = struct {
     start: Position,
     piece: Piece,
-    valid_moves: BoardBitSet,
+    valid_moves: MoveList,
 };
 
 const cell_size: usize = 150;
@@ -50,15 +52,12 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
 
-    var arena_allocator = std.heap.ArenaAllocator.init(allocator); // TODO: should this take in not the gpa for perf?
-    defer arena_allocator.deinit();
+    const allocator = arena.allocator();
 
-    // const arena = arena_allocator.allocator();
-
-    var board = GameManager.init(allocator);
+    var board = GameManager.init();
     // var board = Board.from_fen(arena.allocator(), "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
 
     // var board = Board.from_fen(arena.allocator(), "8/8/8/8/4n3/8/8/8 b - - 99 50");
@@ -86,7 +85,7 @@ pub fn main() anyerror!void {
             switch (cell) {
                 .piece => |p| {
                     if (p.color == board.active_color) {
-                        const moves = board.get_valid_moves(pos);
+                        const moves = try board.get_valid_moves(allocator, pos);
                         moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                         board.set_cell(pos, .empty);
                     }
@@ -101,10 +100,16 @@ pub fn main() anyerror!void {
             // reset the piece so board can do its own moving logic
             board.set_cell(mp.start, .{ .piece = mp.piece });
 
-            if (mp.valid_moves.isSet(pos.toIndex())) {
-                board.make_move(Move{ .start = mp.start, .end = pos, .kind = mp.piece.kind });
-                // attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
+            for (mp.valid_moves.items) |move| {
+                if (move.end.eql(pos)) {
+                    board.make_move(move);
+                }
             }
+
+            // if (mp.valid_moves.isSet(pos.toIndex())) {
+            //     board.make_move(Move{ .start = mp.start, .end = pos, .kind = mp.piece.kind });
+            //     // attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
+            // }
 
             // const move_idx = indexOf(Position, mp.valid_moves.items, pos);
 
@@ -114,7 +119,7 @@ pub fn main() anyerror!void {
 
             moving_piece = null;
             // only reset once we are done using the possible moves
-            defer _ = arena_allocator.reset(.retain_capacity);
+            defer _ = arena.reset(.retain_capacity);
         }
 
         //----------------------------------------------------------------------------------
@@ -133,9 +138,8 @@ pub fn main() anyerror!void {
         // }
 
         if (moving_piece) |p| {
-            var move_iter = p.valid_moves.bit_set.iterator(.{});
-            while (move_iter.next()) |p_idx| {
-                sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.red);
+            for (p.valid_moves.items) |move| {
+                sprite_manager.draw_move_marker(move.end, rl.Color.red);
             }
 
             const offset = cell_size / 2; // make sprite under mouse cursor

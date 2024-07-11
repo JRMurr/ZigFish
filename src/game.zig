@@ -20,6 +20,8 @@ const fen = @import("fen.zig");
 
 const Allocator = std.mem.Allocator;
 
+pub const MoveList = std.ArrayList(Move);
+
 const NUM_DIRS = utils.enum_len(Dir);
 
 const dir_offsets = [8]i8{
@@ -39,19 +41,16 @@ pub const GameManager = struct {
     // TODO: track castling + en passant
     board: Board,
     active_color: piece.Color = piece.Color.White,
-    /// allocator for internal state, returned moves will take in an allocator
-    allocater: Allocator,
 
-    pub fn init(allocater: Allocator) Self {
-        return Self.from_fen(allocater, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
+    pub fn init() Self {
+        return Self.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
     }
 
-    pub fn from_fen(allocater: Allocator, fen_str: []const u8) Self {
+    pub fn from_fen(fen_str: []const u8) Self {
         const state = fen.parse(fen_str);
         return Self{
             .board = state.board,
             .active_color = state.active_color,
-            .allocater = allocater,
         };
     }
 
@@ -207,23 +206,24 @@ pub const GameManager = struct {
         return attacks;
     }
 
-    pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
+    pub fn get_valid_moves(self: Self, allocator: Allocator, pos: Position) Allocator.Error!MoveList {
         const start_idx = pos.toIndex();
 
         const cell = self.get_cell(pos);
 
+        var moves = try MoveList.initCapacity(allocator, 27);
+
         const p = switch (cell) {
             .piece => |p| p,
-            .empty => return BoardBitSet.initEmpty(),
+            .empty => return moves,
         };
 
+        // TODO: pinned pieces can capture the pin...
         const pinned_pieces = self.find_pinned_pieces(p.color);
 
         if (pinned_pieces.isSet(start_idx)) {
-            return BoardBitSet.initEmpty();
+            return moves;
         }
-
-        const start_bs = BoardBitSet.initWithIndex(start_idx);
 
         const freinds = self.board.color_sets[@intFromEnum(p.color)];
         const enemy_color = p.color.get_enemy();
@@ -231,32 +231,55 @@ pub const GameManager = struct {
         const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
 
         if (p.is_pawn()) {
+            const start_bs = BoardBitSet.initWithIndex(start_idx);
             const occupied = self.board.occupied_set;
 
-            const non_captures = start_bs.pawnMoves(occupied.complement(), p.color);
+            // TODO: handle promotion
+
+            var non_captures_iter = start_bs.pawnMoves(occupied.complement(), p.color).iterator();
+            while (non_captures_iter.next()) |to| {
+                try moves.append(.{ .start = pos, .end = to, .kind = p.kind });
+            }
 
             // TODO: enpassant check
-            const possible_attacks = start_bs.pawnAttacks(p.color, enemies);
+            var captures_iter = start_bs.pawnAttacks(p.color, enemies).iterator();
+            while (captures_iter.next()) |to| {
+                const captured_piece = self.board.get_pos(pos).?;
+                try moves.append(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_piece.kind });
+            }
 
-            return non_captures.unionWith(possible_attacks);
+            return moves;
         }
+
+        var possible_moves: BoardBitSet = undefined;
 
         if (p.is_knight()) {
-            const possible_moves = precompute.KNIGHT_MOVES[start_idx];
-
-            return possible_moves.differenceWith(freinds);
-        }
-
-        if (p.is_king()) {
+            possible_moves = precompute.KNIGHT_MOVES[start_idx].differenceWith(freinds);
+        } else if (p.is_king()) {
+            // TODO: castling
             const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
 
-            const possible_moves = precompute.KING_MOVES[start_idx];
-            return possible_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
+            const king_moves = precompute.KING_MOVES[start_idx];
+            possible_moves = king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
+        } else {
+            possible_moves = self.get_sliding_moves(p, pos);
         }
 
-        var possible_moves = self.get_sliding_moves(p, pos);
+        possible_moves.remove(freinds);
 
-        return possible_moves.differenceWith(freinds);
+        var move_iter = possible_moves.iterator();
+
+        while (move_iter.next()) |to| {
+            const maybe_capture = self.board.get_pos(pos);
+            var captured_kind: ?piece.Kind = null;
+            if (maybe_capture) |capture| {
+                captured_kind = capture.kind;
+                // TODO: castling
+                try moves.append(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind });
+            }
+        }
+
+        return moves;
     }
 };
 

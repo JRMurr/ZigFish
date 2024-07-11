@@ -289,6 +289,29 @@ pub const BoardBitSet = packed struct {
         return @bitSizeOf(MaskInt) - 1 - @clz(mask);
     }
 
+    // slight copy from std.bit_set
+    pub fn iterator(self: Self) Iterator() {
+        return .{ .bits_remain = self.bit_set.mask };
+    }
+
+    fn Iterator() type {
+        return struct {
+            const IterSelf = @This();
+            // all bits which have not yet been iterated over
+            bits_remain: MaskInt,
+
+            /// Returns the index of the next unvisited set bit
+            /// in the bit set, in ascending order.
+            pub fn next(self: *IterSelf) ?Position {
+                if (self.bits_remain == 0) return null;
+
+                const next_index = @ctz(self.bits_remain);
+                self.bits_remain &= self.bits_remain - 1;
+                return Position.fromIndex(next_index);
+            }
+        };
+    }
+
     // https://www.chessprogramming.org/General_Setwise_Operations#OneStepOnly
 
     /// shift south one
