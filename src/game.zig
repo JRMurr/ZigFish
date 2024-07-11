@@ -134,7 +134,7 @@ pub const GameManager = struct {
 
     pub fn get_sliding_moves(self: Self, p: piece.Piece, pos: Position) BoardBitSet {
         // TODO: debug assert pos has the piece?
-        const start_idx = pos.to_index();
+        const start_idx = pos.toIndex();
 
         var attacks = BoardBitSet.initEmpty();
 
@@ -195,7 +195,7 @@ pub const GameManager = struct {
                     var slide_attacks = BoardBitSet.initEmpty();
                     var iter = piece_set.bit_set.iterator(.{});
                     while (iter.next()) |sqaure| {
-                        const pos = Position.from_index(sqaure);
+                        const pos = Position.fromIndex(sqaure);
                         slide_attacks.setUnion(self.get_sliding_moves(p, pos));
                     }
                     // slide_attacks.debug();
@@ -208,7 +208,7 @@ pub const GameManager = struct {
     }
 
     pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
-        const start_idx = pos.to_index();
+        const start_idx = pos.toIndex();
 
         const cell = self.get_cell(pos);
 

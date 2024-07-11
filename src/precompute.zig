@@ -20,7 +20,7 @@ fn computeNumCellsToEdge() [64][8]u8 {
         const num_west = pos.file;
         const num_east = 7 - pos.file;
 
-        dist_to_edge[pos.to_index()] = .{
+        dist_to_edge[pos.toIndex()] = .{
             num_north,
             num_south,
             num_west,

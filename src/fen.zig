@@ -64,7 +64,7 @@ pub fn parse(str: []const u8) BoardState {
                 };
                 curr_pos.file +%= num_empty;
                 // for (0..(num_empty)) |_| {
-                //     cells[curr_pos.to_index()] = Cell.empty;
+                //     cells[curr_pos.toIndex()] = Cell.empty;
                 //     curr_pos.file += 1;
                 // }
             }

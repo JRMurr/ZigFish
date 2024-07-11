@@ -204,7 +204,7 @@ pub const BoardBitSet = packed struct {
     pub fn debug(self: Self) void {
         var iter = self.bit_set.iterator(.{});
         while (iter.next()) |sqaure| {
-            const attacked_pos = Position.from_index(sqaure);
+            const attacked_pos = Position.fromIndex(sqaure);
             std.debug.print("{?}\n", .{attacked_pos});
         }
     }

@@ -39,7 +39,7 @@ pub const Position = packed struct {
     index: u8, // only really needs to be a u6....
 
     pub inline fn fromRankFile(p: PositionRankFile) Position {
-        return Position.from_index(p.rank * 8 + p.file);
+        return Position.fromIndex(p.rank * 8 + p.file);
     }
 
     pub inline fn toRankFile(self: Position) PositionRankFile {
@@ -48,21 +48,18 @@ pub const Position = packed struct {
         return .{ .file = file, .rank = rank };
     }
 
-    pub inline fn to_index(self: Position) usize {
+    pub inline fn toIndex(self: Position) usize {
         return self.index;
     }
 
-    pub inline fn from_index(idx: usize) Position {
+    pub inline fn fromIndex(idx: usize) Position {
         return Position{ .index = @intCast(idx) };
     }
 
     pub fn all_positions() [64]Position {
         var positions: [64]Position = undefined;
-        inline for (0..8) |rank| {
-            inline for (0..8) |file| {
-                const pos = Position{ .rank = rank, .file = file };
-                positions[pos.to_index()] = pos;
-            }
+        inline for (0..64) |i| {
+            positions[i] = Position.fromIndex(i);
         }
 
         return positions;
@@ -111,7 +108,7 @@ pub const Board = struct {
     }
 
     pub fn get_pos(self: Self, pos: Position) ?Piece {
-        const pos_idx = pos.to_index();
+        const pos_idx = pos.toIndex();
 
         if (!self.occupied_set.isSet(pos_idx)) {
             return null;
@@ -137,7 +134,7 @@ pub const Board = struct {
     }
 
     pub fn set_pos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
-        const pos_idx = pos.to_index();
+        const pos_idx = pos.toIndex();
 
         // unset the position first to remove any piece that might be there
         for (&self.color_sets) |*bs| {
@@ -159,7 +156,7 @@ pub const Board = struct {
 test "north moves off the edge of the board should be removed" {
     const pos = Position{ .rank = 7, .file = 1 };
 
-    const idx = pos.to_index();
+    const idx = pos.toIndex();
 
     var bs = BoardBitSet.initEmpty();
 
@@ -173,7 +170,7 @@ test "north moves off the edge of the board should be removed" {
 test "east moves off the edge of the board should be removed" {
     const pos = Position{ .rank = 0, .file = 7 };
 
-    const idx = pos.to_index();
+    const idx = pos.toIndex();
 
     var bs = BoardBitSet.initEmpty();
 
@@ -187,7 +184,7 @@ test "east moves off the edge of the board should be removed" {
 test "north east moves off the edge of the board should be removed" {
     const pos = Position{ .rank = 4, .file = 7 };
 
-    const idx = pos.to_index();
+    const idx = pos.toIndex();
 
     var bs = BoardBitSet.initEmpty();
 
@@ -201,7 +198,7 @@ test "north east moves off the edge of the board should be removed" {
 test "west moves off the edge of the board should be removed" {
     const pos = Position{ .rank = 0, .file = 0 };
 
-    const idx = pos.to_index();
+    const idx = pos.toIndex();
 
     var bs = BoardBitSet.initEmpty();
 

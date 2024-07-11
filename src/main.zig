@@ -101,7 +101,7 @@ pub fn main() anyerror!void {
             // reset the piece so board can do its own moving logic
             board.set_cell(mp.start, .{ .piece = mp.piece });
 
-            if (mp.valid_moves.isSet(pos.to_index())) {
+            if (mp.valid_moves.isSet(pos.toIndex())) {
                 board.make_move(Move{ .start = mp.start, .end = pos });
                 // attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
             }
@@ -129,13 +129,13 @@ pub fn main() anyerror!void {
 
         // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
         // while (attacked_iter.next()) |p_idx| {
-        //     sprite_manager.draw_move_marker(Position.from_index(p_idx), rl.Color.blue);
+        //     sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
         // }
 
         if (moving_piece) |p| {
             var move_iter = p.valid_moves.bit_set.iterator(.{});
             while (move_iter.next()) |p_idx| {
-                sprite_manager.draw_move_marker(Position.from_index(p_idx), rl.Color.red);
+                sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.red);
             }
 
             const offset = cell_size / 2; // make sprite under mouse cursor
