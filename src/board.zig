@@ -108,7 +108,7 @@ pub const Board = struct {
         const color = self.color_sets[@intFromEnum(p.color)];
         const kind = self.kind_sets[@intFromEnum(p.kind)];
 
-        return color.unionWith(kind);
+        return color.intersectWith(kind);
     }
 
     pub fn get_pos(self: Self, pos: Position) ?Piece {

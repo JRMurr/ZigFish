@@ -111,7 +111,7 @@ pub const GameManager = struct {
             if (on_ray.count() > 1) {
                 const possible_pin = dir.first_hit_on_ray(on_ray);
 
-                if (!self.board.color_sets[color].isSet(possible_pin)) {
+                if (!self.board.color_sets[@intFromEnum(color)].isSet(possible_pin)) {
                     continue;
                 }
 
@@ -132,51 +132,12 @@ pub const GameManager = struct {
         return pinned;
     }
 
-    pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
-        // TODO: need to see if a move would make the king be in check and remove it
-
+    pub fn get_sliding_moves(self: Self, p: piece.Piece, pos: Position) BoardBitSet {
+        // TODO: debug assert pos has the piece?
         const start_idx = pos.to_index();
 
-        const cell = self.get_cell(pos);
+        var attacks = BoardBitSet.initEmpty();
 
-        const p = switch (cell) {
-            .piece => |p| p,
-            .empty => return BoardBitSet.initEmpty(),
-        };
-
-        const start_bs = BoardBitSet.initWithIndex(start_idx);
-
-        const freinds = self.board.color_sets[@intFromEnum(p.color)];
-
-        if (p.is_pawn()) {
-            const occupied = self.board.occupied_set;
-
-            const non_captures = start_bs.pawnMoves(occupied.complement(), p.color);
-
-            const enemy_color = p.color.get_enemy();
-
-            // TODO: enpassant check
-            const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
-
-            const possible_attacks = start_bs.pawnAttacks(p.color, enemies);
-
-            return non_captures.unionWith(possible_attacks);
-        }
-
-        if (p.is_knight()) {
-            const possible_moves = precompute.KNIGHT_MOVES[start_idx];
-
-            return possible_moves.differenceWith(freinds);
-        }
-
-        if (p.is_king()) {
-            const possible_moves = precompute.KING_MOVES[start_idx];
-
-            return possible_moves.differenceWith(freinds);
-        }
-
-        var possible_moves = BoardBitSet.initEmpty();
-        // moves for bishops, rooks, and queens
         // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
@@ -194,8 +155,108 @@ pub const GameManager = struct {
 
                 moves.toggleSet(precompute.RAYS[sqaure][dirIndex]);
             }
-            possible_moves.setUnion(moves);
+            attacks.setUnion(moves);
         }
+
+        return attacks;
+    }
+
+    pub fn get_all_attacked_sqaures(self: Self, color: piece.Color) BoardBitSet {
+        const pinned_pieces = self.find_pinned_pieces(color);
+
+        var attacks = BoardBitSet.initEmpty();
+
+        const freinds = self.board.color_sets[@intFromEnum(color)];
+
+        for (0..utils.enum_len(piece.Kind)) |kind_idx| {
+            const kind: piece.Kind = @enumFromInt(kind_idx);
+            const p = Piece{ .color = color, .kind = kind };
+            const piece_set = self.board.get_piece_set(p).differenceWith(pinned_pieces);
+
+            switch (kind) {
+                piece.Kind.Pawn => {
+                    // TODO: enpassant check
+                    const enemies = self.board.color_sets[@intFromEnum(color.get_enemy())];
+                    const pawn_attacks = piece_set.pawnAttacks(color, enemies);
+                    // pawn_attacks.debug();
+                    attacks.setUnion(pawn_attacks);
+                },
+                piece.Kind.Knight => {
+                    const knight_attacks = piece_set.knightMoves();
+                    // knight_attacks.debug();
+                    attacks.setUnion(knight_attacks);
+                },
+                piece.Kind.King => {
+                    const king_attacks = piece_set.kingMoves();
+                    // king_attacks.debug();
+                    attacks.setUnion(king_attacks);
+                },
+                piece.Kind.Bishop, piece.Kind.Queen, piece.Kind.Rook => {
+                    var slide_attacks = BoardBitSet.initEmpty();
+                    var iter = piece_set.bit_set.iterator(.{});
+                    while (iter.next()) |sqaure| {
+                        const pos = Position.from_index(sqaure);
+                        slide_attacks.setUnion(self.get_sliding_moves(p, pos));
+                    }
+                    // slide_attacks.debug();
+                    attacks.setUnion(slide_attacks);
+                },
+            }
+        }
+        attacks.remove(freinds);
+        return attacks;
+    }
+
+    pub fn get_valid_moves(self: Self, pos: Position) BoardBitSet {
+        // TODO: need to see if a move would make the king be in check and remove it
+
+        const start_idx = pos.to_index();
+
+        const cell = self.get_cell(pos);
+
+        const p = switch (cell) {
+            .piece => |p| p,
+            .empty => return BoardBitSet.initEmpty(),
+        };
+
+        const pinned_pieces = self.find_pinned_pieces(p.color);
+
+        if (pinned_pieces.isSet(start_idx)) {
+            return BoardBitSet.initEmpty();
+        }
+
+        const start_bs = BoardBitSet.initWithIndex(start_idx);
+
+        const freinds = self.board.color_sets[@intFromEnum(p.color)];
+        const enemy_color = p.color.get_enemy();
+
+        const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
+
+        if (p.is_pawn()) {
+            const occupied = self.board.occupied_set;
+
+            const non_captures = start_bs.pawnMoves(occupied.complement(), p.color);
+
+            // TODO: enpassant check
+            const possible_attacks = start_bs.pawnAttacks(p.color, enemies);
+
+            return non_captures.unionWith(possible_attacks);
+        }
+
+        if (p.is_knight()) {
+            const possible_moves = precompute.KNIGHT_MOVES[start_idx];
+
+            return possible_moves.differenceWith(freinds);
+        }
+
+        if (p.is_king()) {
+            const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
+
+            const possible_moves = precompute.KING_MOVES[start_idx];
+            return possible_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
+        }
+
+        var possible_moves = self.get_sliding_moves(p, pos);
 
         return possible_moves.differenceWith(freinds);
     }

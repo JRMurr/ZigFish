@@ -65,6 +65,8 @@ pub fn main() anyerror!void {
 
     var moving_piece: ?MovingPiece = null;
 
+    // var attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
+
     const sprite_manager = sprite.SpriteManager.init(texture, &board, cell_size);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -101,6 +103,7 @@ pub fn main() anyerror!void {
 
             if (mp.valid_moves.isSet(pos.to_index())) {
                 board.make_move(Move{ .start = mp.start, .end = pos });
+                // attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
             }
 
             // const move_idx = indexOf(Position, mp.valid_moves.items, pos);
@@ -124,10 +127,15 @@ pub fn main() anyerror!void {
         rl.clearBackground(rl.Color.ray_white);
         sprite_manager.draw_board();
 
+        // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
+        // while (attacked_iter.next()) |p_idx| {
+        //     sprite_manager.draw_move_marker(Position.from_index(p_idx), rl.Color.blue);
+        // }
+
         if (moving_piece) |p| {
             var move_iter = p.valid_moves.bit_set.iterator(.{});
             while (move_iter.next()) |p_idx| {
-                sprite_manager.draw_move_marker(Position.from_index(p_idx));
+                sprite_manager.draw_move_marker(Position.from_index(p_idx), rl.Color.red);
             }
 
             const offset = cell_size / 2; // make sprite under mouse cursor

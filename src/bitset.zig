@@ -6,7 +6,10 @@ const Color = piece_types.Color;
 
 const precompute = @import("precompute.zig");
 
+const Position = @import("board.zig").Position;
+
 pub const BitSet = std.bit_set.IntegerBitSet(64);
+
 pub const MaskInt = BitSet.MaskInt;
 pub const ShiftInt = BitSet.ShiftInt;
 
@@ -198,6 +201,14 @@ pub const BoardBitSet = packed struct {
         return .{ .bit_set = bit_set };
     }
 
+    pub fn debug(self: Self) void {
+        var iter = self.bit_set.iterator(.{});
+        while (iter.next()) |sqaure| {
+            const attacked_pos = Position.from_index(sqaure);
+            std.debug.print("{?}\n", .{attacked_pos});
+        }
+    }
+
     /// Returns true if the bit at the specified index
     /// is present in the set, false otherwise.
     pub fn isSet(self: Self, index: usize) bool {
@@ -236,6 +247,10 @@ pub const BoardBitSet = packed struct {
         var result = self;
         result.bit_set.setIntersection(other.bit_set.complement());
         return result;
+    }
+
+    pub fn remove(self: *Self, other: Self) void {
+        self.bit_set.setIntersection(other.bit_set.complement());
     }
 
     pub fn intersectWith(self: Self, other: Self) Self {
