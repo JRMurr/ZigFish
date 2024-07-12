@@ -4,6 +4,10 @@ const Piece = piece.Piece;
 const fen = @import("fen.zig");
 const utils = @import("utils.zig");
 
+const bitset = @import("bitset.zig");
+
+const Dir = bitset.Dir;
+
 pub const BoardBitSet = @import("bitset.zig").BoardBitSet;
 
 pub const PositionRankFile = packed struct {
@@ -23,11 +27,11 @@ pub const Position = packed struct {
     }
 
     pub fn fromStr(str: []const u8) Position {
-        const rank_str = std.ascii.toLower(str[0]);
-        const rank = rank_str - 97;
+        const file_str = std.ascii.toLower(str[0]);
+        const file = file_str - 97;
 
-        const file_str = str[1];
-        const file = file_str - 48;
+        const rank_str = str[1];
+        const rank = rank_str - 49; // 48 is where 0 is, need an extra -1 since we are 0 indexed
 
         return Position.fromRankFile(.{ .rank = rank, .file = file });
     }
@@ -48,6 +52,11 @@ pub const Position = packed struct {
 
     pub inline fn eql(self: Position, other: Position) bool {
         return self.index == other.index;
+    }
+
+    pub fn move_dir(self: Position, dir: Dir) Position {
+        const new_idx = @as(i8, @intCast(self.index)) + dir.to_offset();
+        return Position.fromIndex(@intCast(new_idx));
     }
 
     pub fn all_positions() [64]Position {
@@ -164,5 +173,5 @@ pub const Board = struct {
 test "parse pos str" {
     const pos = Position.fromStr("e4");
 
-    try std.testing.expect(pos.eql(Position.fromRankFile(.{ .rank = 4, .file = 4 })));
+    try std.testing.expect(pos.eql(Position.fromRankFile(.{ .rank = 3, .file = 4 })));
 }

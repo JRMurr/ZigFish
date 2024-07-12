@@ -24,17 +24,6 @@ pub const MoveList = std.ArrayList(Move);
 
 const NUM_DIRS = utils.enum_len(Dir);
 
-const dir_offsets = [8]i8{
-    8, //  MoveOffset.North,
-    -8, // MoveOffset.South,
-    -1, // MoveOffset.West,
-    1, //  MoveOffset.East,
-    7, //  MoveOffset.NorthWest,
-    9, //  MoveOffset.NorthEast,
-    -9, // MoveOffset.SouthWest,
-    -7, // MoveOffset.SouthEast,
-};
-
 pub const GameManager = struct {
     const Self = @This();
 
@@ -71,9 +60,39 @@ pub const GameManager = struct {
 
     pub fn make_move(self: *Self, move: Move) void {
         const start_peice = self.get_pos(move.start).?;
+
+        const color = self.active_color;
+        // TODO: assert move.king is promotion if promotion_kind is set?
+        const kind = move.promotion_kind orelse start_peice.kind;
+        const move_piece = Piece{ .color = color, .kind = kind };
+
         self.set_cell(move.start, null);
-        self.set_cell(move.end, start_peice);
-        // TODO: handle enpassant. Set flag if was a 2 space move, remove correct pawn if taking
+        self.set_cell(move.end, move_piece);
+        if (move.kind == piece.Kind.Pawn) {
+            // TODO: handle enpassant. Set flag if was a 2 space move, remove correct pawn if taking
+            const start_rank = move.start.toRankFile().rank;
+            const end_rank = move.end.toRankFile().rank;
+
+            var dir: Dir = undefined;
+            var rank_diff: u8 = undefined;
+            if (start_rank > end_rank) {
+                dir = Dir.South;
+                rank_diff = start_rank - end_rank;
+            } else {
+                dir = Dir.North;
+                rank_diff = end_rank - start_rank;
+            }
+
+            if (rank_diff == 2) {
+                self.board.enPassantPos = move.start.move_dir(dir);
+            }
+
+            if (move.move_type == MoveType.EnPassant) {
+                const captured_pos = move.end.move_dir(dir.opposite());
+                self.set_cell(captured_pos, null);
+            }
+        }
+
         self.flip_active_color();
     }
 
@@ -162,7 +181,7 @@ pub const GameManager = struct {
 
         var attacks = BoardBitSet.initEmpty();
 
-        // bishops should only look at the first 4 dir_offsets, rooks the last 4, queens all of it
+        // bishops should only look at the first 4 dirs, rooks the last 4, queens all of it
         const dir_start: u8 = if (p.is_bishop()) 4 else 0;
         const dir_end: u8 = if (p.is_rook()) 4 else 8;
         for (dir_start..dir_end) |dirIndex| {
@@ -272,7 +291,7 @@ pub const GameManager = struct {
             var captures_iter = possible_captures.iterator();
             while (captures_iter.next()) |to| {
                 var move = Move{ .start = pos, .end = to, .kind = p.kind };
-                if (self.board.get_pos(pos)) |captured| {
+                if (self.board.get_pos(to)) |captured| {
                     move.captured_kind = captured.kind;
                     move.move_type = MoveType.Capture;
                 } else {

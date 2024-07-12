@@ -148,6 +148,32 @@ pub const Dir = enum(u3) {
         }
     }
 
+    pub fn to_offset(self: Dir) i8 {
+        return switch (self) {
+            .North => 8,
+            .South => -8,
+            .West => -1,
+            .East => 1,
+            .NorthWest => 7,
+            .NorthEast => 9,
+            .SouthWest => -9,
+            .SouthEast => -7,
+        };
+    }
+
+    pub fn opposite(self: Dir) Dir {
+        return switch (self) {
+            .North => Dir.South,
+            .South => Dir.North,
+            .West => Dir.East,
+            .East => Dir.West,
+            .NorthWest => Dir.SouthEast,
+            .NorthEast => Dir.SouthWest,
+            .SouthWest => Dir.NorthEast,
+            .SouthEast => Dir.NorthWest,
+        };
+    }
+
     pub fn is_positive(self: Dir) bool {
         return switch (self) {
             .North => true,
