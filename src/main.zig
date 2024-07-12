@@ -56,10 +56,13 @@ pub fn main() anyerror!void {
 
     const allocator = arena.allocator();
 
-    var board = GameManager.init();
+    // var board = GameManager.init();
 
     // pin should be able to capture
     // var board = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
+
+    // about to promote
+    var board = GameManager.from_fen("8/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
 
     var moving_piece: ?MovingPiece = null;
 
@@ -96,7 +99,7 @@ pub fn main() anyerror!void {
             board.set_cell(mp.start, mp.piece);
 
             for (mp.valid_moves.items) |move| {
-                // TODO: select promotion if possible
+                // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
                     board.make_move(move);
                     break;
