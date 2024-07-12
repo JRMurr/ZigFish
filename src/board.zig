@@ -86,6 +86,15 @@ pub const Move = struct {
     promotion_kind: ?piece.Kind = null,
 };
 
+pub const CastlingRights = struct {
+    queen_side: bool,
+    king_side: bool,
+
+    pub fn initNone() CastlingRights {
+        return .{ .queen_side = false, .king_side = false };
+    }
+};
+
 const NUM_KINDS = utils.enum_len(piece.Kind);
 const NUM_COLOR = utils.enum_len(piece.Color);
 
@@ -93,6 +102,8 @@ pub const Board = struct {
     const Self = @This();
     kind_sets: [NUM_KINDS]BoardBitSet,
     color_sets: [NUM_COLOR]BoardBitSet,
+
+    castling_rights: [NUM_COLOR]CastlingRights,
 
     enPassantPos: ?Position = null,
 
@@ -108,13 +119,21 @@ pub const Board = struct {
 
         var color_sets: [NUM_COLOR]BoardBitSet = undefined;
 
+        var castling_rights: [NUM_COLOR]CastlingRights = undefined;
+
         for (0..NUM_COLOR) |i| {
             color_sets[i] = BoardBitSet.initEmpty();
+            castling_rights[i] = CastlingRights.initNone();
         }
 
         const occupied_set = BoardBitSet.initEmpty();
 
-        return Self{ .kind_sets = kind_sets, .color_sets = color_sets, .occupied_set = occupied_set };
+        return Self{
+            .kind_sets = kind_sets,
+            .color_sets = color_sets,
+            .occupied_set = occupied_set,
+            .castling_rights = castling_rights,
+        };
     }
 
     pub fn get_piece_set(self: Self, p: Piece) BoardBitSet {

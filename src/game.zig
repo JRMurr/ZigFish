@@ -34,7 +34,7 @@ pub const GameManager = struct {
     active_color: piece.Color = piece.Color.White,
 
     pub fn init() Self {
-        return Self.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
+        return Self.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
 
     pub fn from_fen(fen_str: []const u8) Self {

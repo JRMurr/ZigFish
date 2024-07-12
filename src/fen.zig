@@ -36,7 +36,7 @@ pub fn parse(str: []const u8) BoardState {
 
     const pieces_str = splits.next().?;
     const active_color_str = splits.next() orelse "w";
-    const castling_str = splits.next() orelse "-";
+    const castling_str = splits.next() orelse "KQkq";
     const en_passant_str = splits.next() orelse "-";
     const half_move_str = splits.next() orelse "0";
     const full_move_str = splits.next() orelse "0";
@@ -74,8 +74,26 @@ pub fn parse(str: []const u8) BoardState {
         board.enPassantPos = Position.fromStr(en_passant_str);
     }
 
+    for (castling_str) |c| {
+        if (c == '-') {
+            break;
+        }
+
+        const color = if (std.ascii.isUpper(c)) Color.White else Color.Black;
+        const color_idx = @intFromEnum(color);
+
+        switch (std.ascii.toLower(c)) {
+            'k' => {
+                board.castling_rights[color_idx].king_side = true;
+            },
+            'q' => {
+                board.castling_rights[color_idx].queen_side = true;
+            },
+            else => {},
+        }
+    }
+
     // TODO: use these....
-    _ = castling_str;
     _ = half_move_str;
     _ = full_move_str;
 
