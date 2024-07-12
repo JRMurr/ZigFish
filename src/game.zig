@@ -24,6 +24,8 @@ pub const MoveList = std.ArrayList(Move);
 
 const NUM_DIRS = utils.enum_len(Dir);
 
+const PROMOTION_KINDS = [4]piece.Kind{ piece.Kind.Queen, piece.Kind.Knight, piece.Kind.Bishop, piece.Kind.Rook };
+
 pub const GameManager = struct {
     const Self = @This();
 
@@ -278,10 +280,22 @@ pub const GameManager = struct {
             const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(pin_ray);
             var non_captures_iter = non_captures.iterator();
             while (non_captures_iter.next()) |to| {
-                try moves.append(.{ .start = pos, .end = to, .kind = p.kind });
+                const end_rank = to.toRankFile().rank;
+                if (end_rank == 0 or end_rank == 7) {
+                    for (PROMOTION_KINDS) |promotion_kind| {
+                        moves.appendAssumeCapacity(.{
+                            .start = pos,
+                            .end = to,
+                            .kind = p.kind,
+                            .move_type = MoveType.Promotion,
+                            .promotion_kind = promotion_kind,
+                        });
+                    }
+                } else {
+                    moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind });
+                }
             }
 
-            // TODO: enpassant check
             var en_passant_board = BoardBitSet.initEmpty();
             if (self.board.enPassantPos) |ep| {
                 en_passant_board.set(ep.toIndex());
@@ -290,16 +304,29 @@ pub const GameManager = struct {
             const possible_captures = start_bs.pawnAttacks(p.color, enemies.unionWith(en_passant_board)).intersectWith(pin_ray);
             var captures_iter = possible_captures.iterator();
             while (captures_iter.next()) |to| {
-                var move = Move{ .start = pos, .end = to, .kind = p.kind };
-                if (self.board.get_pos(to)) |captured| {
-                    move.captured_kind = captured.kind;
-                    move.move_type = MoveType.Capture;
+                const end_rank = to.toRankFile().rank;
+                if (end_rank == 0 or end_rank == 7) {
+                    for (PROMOTION_KINDS) |promotion_kind| {
+                        moves.appendAssumeCapacity(.{
+                            .start = pos,
+                            .end = to,
+                            .kind = p.kind,
+                            .move_type = MoveType.Promotion,
+                            .promotion_kind = promotion_kind,
+                        });
+                    }
                 } else {
-                    move.captured_kind = piece.Kind.Pawn;
-                    move.move_type = MoveType.EnPassant;
-                }
+                    var move = Move{ .start = pos, .end = to, .kind = p.kind };
+                    if (self.board.get_pos(to)) |captured| {
+                        move.captured_kind = captured.kind;
+                        move.move_type = MoveType.Capture;
+                    } else {
+                        move.captured_kind = piece.Kind.Pawn;
+                        move.move_type = MoveType.EnPassant;
+                    }
 
-                try moves.append(move);
+                    moves.appendAssumeCapacity(move);
+                }
             }
 
             return moves;
@@ -329,7 +356,7 @@ pub const GameManager = struct {
             if (maybe_capture) |capture| {
                 captured_kind = capture.kind;
                 // TODO: castling
-                try moves.append(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind });
+                moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind });
             }
         }
 
