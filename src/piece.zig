@@ -23,6 +23,10 @@ pub const Piece = struct {
     color: Color,
     kind: Kind,
 
+    pub inline fn eql(self: Piece, other: Piece) bool {
+        return self.color == other.color and self.kind == other.kind;
+    }
+
     pub inline fn is_knight(self: Piece) bool {
         return self.kind == Kind.Knight;
     }

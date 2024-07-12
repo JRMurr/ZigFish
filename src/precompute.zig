@@ -4,6 +4,9 @@ const utils = @import("utils.zig");
 const board_types = @import("board.zig");
 const Position = board_types.Position;
 
+const piece = @import("piece.zig");
+const Color = piece.Color;
+
 const bitset = @import("bitset.zig");
 const BoardBitSet = bitset.BoardBitSet;
 const Dir = bitset.Dir;
@@ -101,3 +104,76 @@ pub fn computeRays() Rays {
 }
 
 pub const RAYS = computeRays();
+
+/// Helper info for checking castling
+pub const SideCastlingInfo = struct {
+    rook_start: Position,
+    king_end: Position,
+    rook_end: Position,
+
+    sqaures_moving_through: BoardBitSet,
+
+    pub fn init(
+        king_end_str: []const u8,
+        rook_start_str: []const u8,
+        rook_end_str: []const u8,
+        extra_check_str: []const u8,
+    ) SideCastlingInfo {
+        const king_end = Position.fromStr(king_end_str);
+        const rook_end = Position.fromStr(rook_end_str);
+        const extra_check = Position.fromStr(extra_check_str);
+
+        var sqaures_moving_through = BoardBitSet.initWithPos(king_end);
+        sqaures_moving_through.setPos(rook_end);
+        sqaures_moving_through.setPos(extra_check);
+
+        const rook_start = Position.fromStr(rook_start_str);
+
+        return SideCastlingInfo{
+            .king_end = king_end,
+            .rook_start = rook_start,
+            .rook_end = rook_end,
+            .sqaures_moving_through = sqaures_moving_through,
+        };
+    }
+};
+
+pub const CastlingInfo = struct {
+    queen_side: SideCastlingInfo,
+    king_side: SideCastlingInfo,
+
+    pub fn from_king_end(self: CastlingInfo, king_end: Position) ?SideCastlingInfo {
+        if (self.queen_side.king_end.eql(king_end)) {
+            return self.queen_side;
+        }
+
+        if (self.king_side.king_end.eql(king_end)) {
+            return self.king_side;
+        }
+
+        return null;
+    }
+};
+
+fn compute_castling_info() [2]CastlingInfo {
+    const white_king_castle = SideCastlingInfo.init("g1", "h1", "f1", "e1");
+    const black_king_castle = SideCastlingInfo.init("g8", "h8", "f8", "e8");
+
+    const white_queen_castle = SideCastlingInfo.init("c1", "a1", "d1", "e1");
+    const black_queen_castle = SideCastlingInfo.init("c8", "a8", "d8", "e8");
+
+    var castle_info: [2]CastlingInfo = undefined;
+
+    castle_info[@intFromEnum(Color.White)] = CastlingInfo{
+        .queen_side = white_queen_castle,
+        .king_side = white_king_castle,
+    };
+    castle_info[@intFromEnum(Color.Black)] = CastlingInfo{
+        .queen_side = black_queen_castle,
+        .king_side = black_king_castle,
+    };
+
+    return castle_info;
+}
+
+pub const CASTLING_INFO = compute_castling_info();

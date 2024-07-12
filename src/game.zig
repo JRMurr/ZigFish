@@ -64,37 +64,62 @@ pub const GameManager = struct {
         const start_peice = self.get_pos(move.start).?;
 
         const color = self.active_color;
-        // TODO: assert move.king is promotion if promotion_kind is set?
+        const color_idx = @intFromEnum(color);
+        // TODO: assert move.kind is promotion if promotion_kind is set?
         const kind = move.promotion_kind orelse start_peice.kind;
         const move_piece = Piece{ .color = color, .kind = kind };
 
         self.set_cell(move.start, null);
         self.set_cell(move.end, move_piece);
-        if (move.kind == piece.Kind.Pawn) {
-            // TODO: handle enpassant. Set flag if was a 2 space move, remove correct pawn if taking
-            const start_rank = move.start.toRankFile().rank;
-            const end_rank = move.end.toRankFile().rank;
 
-            var dir: Dir = undefined;
-            var rank_diff: u8 = undefined;
-            if (start_rank > end_rank) {
-                dir = Dir.South;
-                rank_diff = start_rank - end_rank;
-            } else {
-                dir = Dir.North;
-                rank_diff = end_rank - start_rank;
-            }
+        switch (move.kind) {
+            piece.Kind.Pawn => {
+                const start_rank = move.start.toRankFile().rank;
+                const end_rank = move.end.toRankFile().rank;
 
-            if (rank_diff == 2) {
-                self.board.enPassantPos = move.start.move_dir(dir);
-            }
+                var dir: Dir = undefined;
+                var rank_diff: u8 = undefined;
+                if (start_rank > end_rank) {
+                    dir = Dir.South;
+                    rank_diff = start_rank - end_rank;
+                } else {
+                    dir = Dir.North;
+                    rank_diff = end_rank - start_rank;
+                }
 
-            if (move.move_type == MoveType.EnPassant) {
-                const captured_pos = move.end.move_dir(dir.opposite());
-                self.set_cell(captured_pos, null);
-            }
+                if (rank_diff == 2) {
+                    self.board.enPassantPos = move.start.move_dir(dir);
+                }
+
+                if (move.move_type == MoveType.EnPassant) {
+                    const captured_pos = move.end.move_dir(dir.opposite());
+                    self.set_cell(captured_pos, null);
+                }
+            },
+            piece.Kind.King => {
+                self.board.castling_rights[color_idx].king_side = false;
+                self.board.castling_rights[color_idx].queen_side = false;
+                if (move.move_type == MoveType.Castling) {
+                    const all_castling_info = precompute.CASTLING_INFO[color_idx];
+                    const castling_info = all_castling_info.from_king_end(move.end).?;
+
+                    self.set_cell(castling_info.rook_start, null);
+                    self.set_cell(castling_info.rook_end, .{
+                        .color = color,
+                        .kind = piece.Kind.Rook,
+                    });
+                }
+            },
+            piece.Kind.Rook => {
+                const start_file = move.start.toRankFile().file;
+                if (start_file == 0) {
+                    self.board.castling_rights[color_idx].queen_side = false;
+                } else if (start_file == 7) {
+                    self.board.castling_rights[color_idx].king_side = false;
+                }
+            },
+            else => {},
         }
-
         self.flip_active_color();
     }
 
@@ -204,6 +229,41 @@ pub const GameManager = struct {
         }
 
         return attacks;
+    }
+
+    fn castle_allowed(self: Self, color: piece.Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
+        const castle_rights = self.board.castling_rights[@intFromEnum(color)];
+        if (king_side and castle_rights.king_side == false) {
+            return false;
+        }
+        if (!king_side and castle_rights.queen_side == false) {
+            return false;
+        }
+
+        const all_castle_info = precompute.CASTLING_INFO[@intFromEnum(color)];
+
+        const castle_info = if (king_side) all_castle_info.king_side else all_castle_info.queen_side;
+
+        const king_idx = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King }).bitScanForward();
+        const dir = if (king_side) Dir.East else Dir.West;
+        const ray = precompute.RAYS[king_idx][@intFromEnum(dir)];
+
+        const moving_through = castle_info.sqaures_moving_through;
+
+        if (moving_through.intersectWith(attacked_sqaures).bit_set.mask != 0) {
+            return false;
+        }
+
+        const occupied_ray = ray.intersectWith(self.board.occupied_set);
+        if (occupied_ray.bit_set.mask == 0) {
+            return false;
+        }
+
+        const maybe_rook_idx = dir.first_hit_on_ray(occupied_ray);
+
+        const rooks = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.Rook });
+
+        return rooks.isSet(maybe_rook_idx);
     }
 
     fn get_all_attacked_sqaures(self: Self, color: piece.Color) BoardBitSet {
@@ -337,11 +397,23 @@ pub const GameManager = struct {
         if (p.is_knight()) {
             possible_moves = precompute.KNIGHT_MOVES[start_idx].intersectWith(pin_ray).differenceWith(freinds);
         } else if (p.is_king()) {
-            // TODO: castling
             const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
 
             const king_moves = precompute.KING_MOVES[start_idx];
             possible_moves = king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
+
+            if (self.castle_allowed(p.color, enemy_attacked_sqaures, true)) {
+                // king side castle
+                const end = Position.fromIndex(pos.index + 2);
+                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_type = MoveType.Castling };
+                moves.appendAssumeCapacity(move);
+            }
+            if (self.castle_allowed(p.color, enemy_attacked_sqaures, false)) {
+                // queen side castle
+                const end = Position.fromIndex(pos.index - 2);
+                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_type = MoveType.Castling };
+                moves.appendAssumeCapacity(move);
+            }
         } else {
             possible_moves = self.get_sliding_moves(p, pos).intersectWith(pin_ray);
         }

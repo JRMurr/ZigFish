@@ -27,13 +27,21 @@ pub const Position = packed struct {
     }
 
     pub fn fromStr(str: []const u8) Position {
-        const file_str = std.ascii.toLower(str[0]);
-        const file = file_str - 97;
+        const file_char = std.ascii.toLower(str[0]);
+        const file = file_char - 97;
 
-        const rank_str = str[1];
-        const rank = rank_str - 49; // 48 is where 0 is, need an extra -1 since we are 0 indexed
+        const rank_char = str[1];
+        const rank = rank_char - 49; // 48 is where 0 is, need an extra -1 since we are 0 indexed
 
         return Position.fromRankFile(.{ .rank = rank, .file = file });
+    }
+
+    pub inline fn toStr(self: Position) [2]u8 {
+        const rankFile = self.toRankFile();
+        const file_char = rankFile.file + 97;
+        const rank_char = rankFile.rank + 49;
+
+        return .{ file_char, rank_char };
     }
 
     pub inline fn toRankFile(self: Position) PositionRankFile {
@@ -193,4 +201,16 @@ test "parse pos str" {
     const pos = Position.fromStr("e4");
 
     try std.testing.expect(pos.eql(Position.fromRankFile(.{ .rank = 3, .file = 4 })));
+
+    // std.debug.print("{s}\n", .{pos.toStr()});
+
+    try std.testing.expect(std.mem.eql(u8, &pos.toStr(), "e4"));
+}
+
+test "pos to str" {
+    const pos = Position.fromRankFile(.{ .rank = 0, .file = 0 });
+
+    // std.debug.print("{s}\n", .{pos.toStr()});
+
+    try std.testing.expect(std.mem.eql(u8, &pos.toStr(), "a1"));
 }

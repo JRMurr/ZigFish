@@ -224,6 +224,12 @@ pub const BoardBitSet = packed struct {
         return .{ .bit_set = bs };
     }
 
+    pub fn initWithPos(pos: Position) Self {
+        var bs = BitSet.initEmpty();
+        bs.set(pos.toIndex());
+        return .{ .bit_set = bs };
+    }
+
     pub fn fromMask(mask: MaskInt) Self {
         return .{ .bit_set = BitSet{ .mask = mask } };
     }
@@ -234,10 +240,12 @@ pub const BoardBitSet = packed struct {
 
     pub fn debug(self: Self) void {
         var iter = self.bit_set.iterator(.{});
+        std.debug.print("-------------\n", .{});
         while (iter.next()) |sqaure| {
             const attacked_pos = Position.fromIndex(sqaure);
-            std.debug.print("{?}\n", .{attacked_pos});
+            std.debug.print("{s}\n", .{attacked_pos.toStr()});
         }
+        std.debug.print("-------------\n", .{});
     }
 
     /// Returns true if the bit at the specified index
@@ -249,6 +257,10 @@ pub const BoardBitSet = packed struct {
     /// Adds a specific bit to the bit set
     pub fn set(self: *Self, index: usize) void {
         self.bit_set.set(index);
+    }
+
+    pub fn setPos(self: *Self, pos: Position) void {
+        self.bit_set.set(pos.toIndex());
     }
 
     /// Removes a specific bit from the bit set
