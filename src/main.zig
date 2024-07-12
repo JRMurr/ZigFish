@@ -96,8 +96,10 @@ pub fn main() anyerror!void {
             board.set_cell(mp.start, mp.piece);
 
             for (mp.valid_moves.items) |move| {
+                // TODO: select promotion if possible
                 if (move.end.eql(pos)) {
                     board.make_move(move);
+                    break;
                 }
             }
 
