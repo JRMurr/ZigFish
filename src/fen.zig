@@ -60,7 +60,7 @@ pub fn parse(str: []const u8) BoardState {
             const key = [_]u8{char};
             if (piece_lookup.has(&key)) {
                 const piece = piece_lookup.get(&key).?;
-                board.set_pos(curr_pos.toPosition(), piece);
+                board.setPos(curr_pos.toPosition(), piece);
                 curr_pos.file += 1;
             } else {
                 const num_empty = parseInt(u8, &key);

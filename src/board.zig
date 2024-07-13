@@ -165,6 +165,23 @@ pub const BoardMeta = struct {
     }
 };
 
+fn get_diff_dir(move: Move) std.meta.Tuple(&.{ u8, Dir }) {
+    const start_rank = move.start.toRankFile().rank;
+    const end_rank = move.end.toRankFile().rank;
+
+    var dir: Dir = undefined;
+    var rank_diff: u8 = undefined;
+    if (start_rank > end_rank) {
+        dir = Dir.South;
+        rank_diff = start_rank - end_rank;
+    } else {
+        dir = Dir.North;
+        rank_diff = end_rank - start_rank;
+    }
+
+    return .{ rank_diff, dir };
+}
+
 pub const Board = struct {
     const Self = @This();
     kind_sets: [NUM_KINDS]BoardBitSet,
@@ -199,40 +216,31 @@ pub const Board = struct {
         };
     }
 
-    pub fn get_piece_set(self: Self, p: Piece) BoardBitSet {
+    pub fn getPieceSet(self: Self, p: Piece) BoardBitSet {
         const color = self.color_sets[@intFromEnum(p.color)];
         const kind = self.kind_sets[@intFromEnum(p.kind)];
 
         return color.intersectWith(kind);
     }
 
-    pub fn make_move(self: *Self, move: Move) void {
-        const start_peice = self.get_pos(move.start).?;
+    pub fn makeMove(self: *Self, move: Move) void {
+        const start_peice = self.getPos(move.start).?;
 
         const color = self.active_color;
         const color_idx = @intFromEnum(color);
         const kind = move.promotion_kind orelse start_peice.kind;
         const move_piece = Piece{ .color = color, .kind = kind };
 
-        self.set_pos(move.start, null);
-        self.set_pos(move.end, move_piece);
+        self.setPos(move.start, null);
+        self.setPos(move.end, move_piece);
 
         self.meta.en_passant_pos = null;
 
         switch (move.kind) {
             piece.Kind.Pawn => {
-                const start_rank = move.start.toRankFile().rank;
-                const end_rank = move.end.toRankFile().rank;
-
-                var dir: Dir = undefined;
-                var rank_diff: u8 = undefined;
-                if (start_rank > end_rank) {
-                    dir = Dir.South;
-                    rank_diff = start_rank - end_rank;
-                } else {
-                    dir = Dir.North;
-                    rank_diff = end_rank - start_rank;
-                }
+                const diff_dir = get_diff_dir(move);
+                const rank_diff = diff_dir[0];
+                const dir = diff_dir[1];
 
                 if (rank_diff == 2) {
                     self.meta.en_passant_pos = move.start.move_dir(dir);
@@ -240,7 +248,7 @@ pub const Board = struct {
 
                 if (move.move_flags.contains(MoveType.EnPassant)) {
                     const captured_pos = move.end.move_dir(dir.opposite());
-                    self.set_pos(captured_pos, null);
+                    self.setPos(captured_pos, null);
                 }
             },
             piece.Kind.King => {
@@ -250,8 +258,8 @@ pub const Board = struct {
                     const all_castling_info = precompute.CASTLING_INFO[color_idx];
                     const castling_info = all_castling_info.from_king_end(move.end).?;
 
-                    self.set_pos(castling_info.rook_start, null);
-                    self.set_pos(castling_info.rook_end, .{
+                    self.setPos(castling_info.rook_start, null);
+                    self.setPos(castling_info.rook_end, .{
                         .color = color,
                         .kind = piece.Kind.Rook,
                     });
@@ -274,16 +282,27 @@ pub const Board = struct {
         self.active_color = self.active_color.get_enemy();
     }
 
-    pub fn un_make_move(self: *Self, move: Move, meta: BoardMeta) void {
+    pub fn unMakeMove(self: *Self, move: Move, meta: BoardMeta) void {
         self.meta = meta;
 
-        // TODO: could probably do some set logic to make this better...
-        if (!move.move_flags.contains(MoveType.EnPassant) and move.move_flags.contains(MoveType.Capture)) {
-            //
-        }
+        const start_piece = Piece{ .color = self.active_color.get_enemy(), .kind = move.kind };
+        self.setPos(move.start, start_piece);
+
+        const maybe_captured_piece = if (move.captured_kind) |k| Piece{
+            .color = self.active_color,
+            .kind = k,
+        } else null;
+
+        const end_pos = if (move.move_flags.contains(MoveType.EnPassant)) blk: {
+            const diff_dir = get_diff_dir(move);
+            const dir = diff_dir[1];
+            break :blk move.end.move_dir(dir.opposite());
+        } else move.end;
+
+        self.setPos(end_pos, maybe_captured_piece);
     }
 
-    pub fn get_pos(self: Self, pos: Position) ?Piece {
+    pub fn getPos(self: Self, pos: Position) ?Piece {
         const pos_idx = pos.toIndex();
 
         if (!self.occupied_set.isSet(pos_idx)) {
@@ -309,7 +328,7 @@ pub const Board = struct {
         return Piece{ .color = color, .kind = kind };
     }
 
-    pub fn set_pos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
+    pub fn setPos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
         const pos_idx = pos.toIndex();
 
         // unset the position first to remove any piece that might be there

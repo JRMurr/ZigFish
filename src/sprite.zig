@@ -53,7 +53,7 @@ pub const SpriteManager = struct {
 
                 const pos = Position.fromRankFile(.{ .rank = @intCast(flipped_rank), .file = @intCast(file) });
 
-                if (self.game_manager.get_pos(pos)) |p| {
+                if (self.game_manager.getPos(pos)) |p| {
                     self.draw_piece(
                         p,
                         @as(f32, @floatFromInt(pos_x)),

@@ -55,34 +55,34 @@ pub const GameManager = struct {
         return Self{ .board = state.board, .history = history };
     }
 
-    pub fn get_pos(self: Self, pos: Position) ?Piece {
-        return self.board.get_pos(pos);
+    pub fn getPos(self: Self, pos: Position) ?Piece {
+        return self.board.getPos(pos);
     }
 
-    pub fn set_pos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
-        self.board.set_pos(pos, maybe_piece);
+    pub fn setPos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
+        self.board.setPos(pos, maybe_piece);
     }
 
-    pub fn make_move(self: *Self, move: Move) Allocator.Error!void {
+    pub fn makeMove(self: *Self, move: Move) Allocator.Error!void {
         try self.history.append(self.board.meta);
-        self.board.make_move(move);
+        self.board.makeMove(move);
     }
 
-    pub fn un_make_move(self: *Self, move: Move) void {
+    pub fn unMakeMove(self: *Self, move: Move) void {
         const meta = self.history.pop();
-        self.board.make_move(move, meta);
+        self.board.makeMove(move, meta);
     }
 
     /// given the position of a pinned piece, get the ray of the attack
     fn get_pin_attacker(self: Self, pin_pos: Position) BoardBitSet {
-        const pin_piece = if (self.board.get_pos(pin_pos)) |p| p else return BoardBitSet.initEmpty();
+        const pin_piece = if (self.board.getPos(pin_pos)) |p| p else return BoardBitSet.initEmpty();
 
         const color = pin_piece.color;
 
-        const king_board = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King });
+        const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.King });
         const king_square = king_board.bitScanForward();
 
-        const enmey_queens = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
+        const enmey_queens = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
 
         for (0..NUM_DIRS) |dir_index| {
             var moves = precompute.RAYS[king_square][dir_index];
@@ -102,7 +102,7 @@ pub const GameManager = struct {
                 const possible_attacker = dir.first_hit_on_ray(on_ray);
 
                 const kind = if (dir_index < 4) piece.Kind.Rook else piece.Kind.Bishop;
-                const kind_board = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = kind });
+                const kind_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = kind });
 
                 const all_valid_enemies = kind_board.unionWith(enmey_queens);
 
@@ -115,10 +115,10 @@ pub const GameManager = struct {
     }
 
     fn find_pinned_pieces(self: Self, color: piece.Color) BoardBitSet {
-        const king_board = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King });
+        const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.King });
         const king_square = king_board.bitScanForward();
 
-        const enmey_queens = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
+        const enmey_queens = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
 
         var pinned = BoardBitSet.initEmpty();
 
@@ -140,7 +140,7 @@ pub const GameManager = struct {
                 const possible_attacker = dir.first_hit_on_ray(on_ray);
 
                 const kind = if (dir_index < 4) piece.Kind.Rook else piece.Kind.Bishop;
-                const kind_board = self.board.get_piece_set(Piece{ .color = color.get_enemy(), .kind = kind });
+                const kind_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = kind });
 
                 const all_valid_enemies = kind_board.unionWith(enmey_queens);
 
@@ -194,7 +194,7 @@ pub const GameManager = struct {
 
         const castle_info = if (king_side) all_castle_info.king_side else all_castle_info.queen_side;
 
-        const king_idx = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.King }).bitScanForward();
+        const king_idx = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.King }).bitScanForward();
         const dir = if (king_side) Dir.East else Dir.West;
         const ray = precompute.RAYS[king_idx][@intFromEnum(dir)];
 
@@ -211,7 +211,7 @@ pub const GameManager = struct {
 
         const maybe_rook_idx = dir.first_hit_on_ray(occupied_ray);
 
-        const rooks = self.board.get_piece_set(Piece{ .color = color, .kind = piece.Kind.Rook });
+        const rooks = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.Rook });
 
         return rooks.isSet(maybe_rook_idx);
     }
@@ -226,7 +226,7 @@ pub const GameManager = struct {
         for (0..utils.enum_len(piece.Kind)) |kind_idx| {
             const kind: piece.Kind = @enumFromInt(kind_idx);
             const p = Piece{ .color = color, .kind = kind };
-            const piece_set = self.board.get_piece_set(p).differenceWith(pinned_pieces);
+            const piece_set = self.board.getPieceSet(p).differenceWith(pinned_pieces);
 
             switch (kind) {
                 piece.Kind.Pawn => {
@@ -265,7 +265,7 @@ pub const GameManager = struct {
         // TODO: set capture flag on moves that need it...
         const start_idx = pos.toIndex();
 
-        const maybe_peice = self.get_pos(pos);
+        const maybe_peice = self.getPos(pos);
 
         var moves = try MoveList.initCapacity(move_allocator, 27);
 
@@ -320,7 +320,7 @@ pub const GameManager = struct {
                     if (end_rank == 0 or end_rank == 7) {
                         for (PROMOTION_KINDS) |promotion_kind| {
                             const move_flags = MoveFlags.initMany(&[_]MoveType{ MoveType.Promotion, MoveType.Capture });
-                            const captured_kind = self.board.get_pos(to).?.kind;
+                            const captured_kind = self.board.getPos(to).?.kind;
                             moves.appendAssumeCapacity(.{
                                 .start = pos,
                                 .end = to,
@@ -334,7 +334,7 @@ pub const GameManager = struct {
                         const move_flags = MoveFlags.initOne(MoveType.Capture);
 
                         var move = Move{ .start = pos, .end = to, .kind = p.kind, .move_flags = move_flags };
-                        if (self.board.get_pos(to)) |captured| {
+                        if (self.board.getPos(to)) |captured| {
                             move.captured_kind = captured.kind;
                         } else {
                             move.captured_kind = piece.Kind.Pawn;
@@ -381,7 +381,7 @@ pub const GameManager = struct {
         var move_iter = possible_moves.iterator();
 
         while (move_iter.next()) |to| {
-            const maybe_capture = self.board.get_pos(to);
+            const maybe_capture = self.board.getPos(to);
             var captured_kind: ?piece.Kind = null;
             var flags = MoveFlags.initEmpty();
             if (maybe_capture) |capture| {
