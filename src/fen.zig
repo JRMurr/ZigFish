@@ -31,6 +31,12 @@ pub const BoardState = struct {
     active_color: Color,
 };
 
+fn parseInt(comptime T: type, buf: []const u8) T {
+    return std.fmt.parseInt(T, buf, 10) catch |err| {
+        std.debug.panic("erroring parsing {s} as {s}. Err: {}", .{ buf, @typeName(T), err });
+    };
+}
+
 pub fn parse(str: []const u8) BoardState {
     var splits = std.mem.tokenizeScalar(u8, str, ' ');
 
@@ -57,10 +63,7 @@ pub fn parse(str: []const u8) BoardState {
                 board.set_pos(curr_pos.toPosition(), piece);
                 curr_pos.file += 1;
             } else {
-                // TODO: char should just be an ascii digit but if i use it in the for loop below its sad
-                const num_empty = std.fmt.parseInt(u8, &key, 10) catch |err| {
-                    std.debug.panic("erroring parsing {s} as u8 {}", .{ key, err });
-                };
+                const num_empty = parseInt(u8, &key);
                 curr_pos.file +%= num_empty;
             }
         }
@@ -71,7 +74,7 @@ pub fn parse(str: []const u8) BoardState {
     const active_color = if (std.mem.eql(u8, active_color_str, "w")) Color.White else Color.Black;
 
     if (!std.mem.eql(u8, en_passant_str, "-")) {
-        board.en_passant_pos = Position.fromStr(en_passant_str);
+        board.meta.en_passant_pos = Position.fromStr(en_passant_str);
     }
 
     for (castling_str) |c| {
@@ -84,17 +87,17 @@ pub fn parse(str: []const u8) BoardState {
 
         switch (std.ascii.toLower(c)) {
             'k' => {
-                board.castling_rights[color_idx].king_side = true;
+                board.meta.castling_rights[color_idx].king_side = true;
             },
             'q' => {
-                board.castling_rights[color_idx].queen_side = true;
+                board.meta.castling_rights[color_idx].queen_side = true;
             },
             else => {},
         }
     }
 
-    // TODO: use these....
-    _ = half_move_str;
+    board.meta.half_moves = parseInt(usize, half_move_str);
+
     _ = full_move_str;
 
     return BoardState{ .board = board, .active_color = active_color };

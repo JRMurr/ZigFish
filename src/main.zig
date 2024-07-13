@@ -51,12 +51,16 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const gpa_allocator = gpa.allocator();
+
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
-    const allocator = arena.allocator();
+    // Used for move generation so we can reset after each move taken
+    const move_allocator = arena.allocator();
 
-    var game = GameManager.init();
+    var game = GameManager.init(gpa_allocator);
 
     // pin should be able to capture
     // var game = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
@@ -88,7 +92,7 @@ pub fn main() anyerror!void {
             const maybe_piece = game.get_pos(pos);
             if (maybe_piece) |p| {
                 if (p.color == game.board.active_color) {
-                    const moves = try game.get_valid_moves(allocator, pos);
+                    const moves = try game.get_valid_moves(move_allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     game.set_pos(pos, null);
                 }

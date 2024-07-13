@@ -180,19 +180,39 @@ pub const CastlingRights = struct {
 const NUM_KINDS = utils.enum_len(piece.Kind);
 const NUM_COLOR = utils.enum_len(piece.Color);
 
+/// Metadata about the board that is irreversible
+/// Need to store copies of this for move unmaking
+pub const BoardMeta = struct {
+    castling_rights: [NUM_COLOR]CastlingRights,
+    half_moves: usize,
+    en_passant_pos: ?Position,
+
+    pub fn init() BoardMeta {
+        var castling_rights: [NUM_COLOR]CastlingRights = undefined;
+
+        for (0..NUM_COLOR) |i| {
+            castling_rights[i] = CastlingRights.initNone();
+        }
+
+        return BoardMeta{
+            .castling_rights = castling_rights,
+            .half_moves = 0,
+            .en_passant_pos = null,
+        };
+    }
+};
+
 pub const Board = struct {
     const Self = @This();
     kind_sets: [NUM_KINDS]BoardBitSet,
     color_sets: [NUM_COLOR]BoardBitSet,
-
-    castling_rights: [NUM_COLOR]CastlingRights,
-
-    active_color: piece.Color = piece.Color.White,
-
-    en_passant_pos: ?Position = null,
-
     /// redudent set for easy check if a square is occupied
     occupied_set: BoardBitSet,
+
+    active_color: piece.Color = piece.Color.White,
+    full_moves: usize = 0,
+
+    meta: BoardMeta,
 
     pub fn init() Self {
         var kind_sets: [NUM_KINDS]BoardBitSet = undefined;
@@ -202,12 +222,8 @@ pub const Board = struct {
         }
 
         var color_sets: [NUM_COLOR]BoardBitSet = undefined;
-
-        var castling_rights: [NUM_COLOR]CastlingRights = undefined;
-
         for (0..NUM_COLOR) |i| {
             color_sets[i] = BoardBitSet.initEmpty();
-            castling_rights[i] = CastlingRights.initNone();
         }
 
         const occupied_set = BoardBitSet.initEmpty();
@@ -216,7 +232,7 @@ pub const Board = struct {
             .kind_sets = kind_sets,
             .color_sets = color_sets,
             .occupied_set = occupied_set,
-            .castling_rights = castling_rights,
+            .meta = BoardMeta.init(),
         };
     }
 
@@ -238,6 +254,8 @@ pub const Board = struct {
         self.set_pos(move.start, null);
         self.set_pos(move.end, move_piece);
 
+        self.meta.en_passant_pos = null;
+
         switch (move.kind) {
             piece.Kind.Pawn => {
                 const start_rank = move.start.toRankFile().rank;
@@ -254,7 +272,7 @@ pub const Board = struct {
                 }
 
                 if (rank_diff == 2) {
-                    self.en_passant_pos = move.start.move_dir(dir);
+                    self.meta.en_passant_pos = move.start.move_dir(dir);
                 }
 
                 if (move.move_flags.isSet(MoveType.EnPassant)) {
@@ -263,8 +281,8 @@ pub const Board = struct {
                 }
             },
             piece.Kind.King => {
-                self.castling_rights[color_idx].king_side = false;
-                self.castling_rights[color_idx].queen_side = false;
+                self.meta.castling_rights[color_idx].king_side = false;
+                self.meta.castling_rights[color_idx].queen_side = false;
                 if (move.move_flags.isSet(MoveType.Castling)) {
                     const all_castling_info = precompute.CASTLING_INFO[color_idx];
                     const castling_info = all_castling_info.from_king_end(move.end).?;
@@ -279,9 +297,9 @@ pub const Board = struct {
             piece.Kind.Rook => {
                 const start_file = move.start.toRankFile().file;
                 if (start_file == 0) {
-                    self.castling_rights[color_idx].queen_side = false;
+                    self.meta.castling_rights[color_idx].queen_side = false;
                 } else if (start_file == 7) {
-                    self.castling_rights[color_idx].king_side = false;
+                    self.meta.castling_rights[color_idx].king_side = false;
                 }
             },
             else => {},

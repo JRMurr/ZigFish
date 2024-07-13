@@ -31,16 +31,15 @@ pub const GameManager = struct {
     const Self = @This();
 
     board: Board,
+    allocator: Allocator,
 
-    pub fn init() Self {
-        return Self.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    pub fn init(allocator: Allocator) Self {
+        return Self.from_fen(allocator, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
 
-    pub fn from_fen(fen_str: []const u8) Self {
+    pub fn from_fen(allocator: Allocator, fen_str: []const u8) Self {
         const state = fen.parse(fen_str);
-        return Self{
-            .board = state.board,
-        };
+        return Self{ .board = state.board, .allocator = allocator };
     }
 
     pub fn get_pos(self: Self, pos: Position) ?Piece {
@@ -164,7 +163,7 @@ pub const GameManager = struct {
     }
 
     fn castle_allowed(self: Self, color: piece.Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
-        const castle_rights = self.board.castling_rights[@intFromEnum(color)];
+        const castle_rights = self.board.meta.castling_rights[@intFromEnum(color)];
         if (king_side and castle_rights.king_side == false) {
             return false;
         }
@@ -291,7 +290,7 @@ pub const GameManager = struct {
                 }
 
                 var en_passant_board = BoardBitSet.initEmpty();
-                if (self.board.en_passant_pos) |ep| {
+                if (self.board.meta.en_passant_pos) |ep| {
                     en_passant_board.set(ep.toIndex());
                 }
 
