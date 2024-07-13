@@ -6,6 +6,7 @@ const Board = board_types.Board;
 const Position = board_types.Position;
 const Move = board_types.Move;
 const MoveType = board_types.MoveType;
+const MoveFlags = board_types.MoveFlags;
 
 const bit_set_types = @import("bitset.zig");
 const BoardBitSet = bit_set_types.BoardBitSet;
@@ -91,7 +92,7 @@ pub const GameManager = struct {
                     self.board.enPassantPos = move.start.move_dir(dir);
                 }
 
-                if (move.move_type == MoveType.EnPassant) {
+                if (move.move_flags.isSet(MoveType.EnPassant)) {
                     const captured_pos = move.end.move_dir(dir.opposite());
                     self.set_cell(captured_pos, null);
                 }
@@ -99,7 +100,7 @@ pub const GameManager = struct {
             piece.Kind.King => {
                 self.board.castling_rights[color_idx].king_side = false;
                 self.board.castling_rights[color_idx].queen_side = false;
-                if (move.move_type == MoveType.Castling) {
+                if (move.move_flags.isSet(MoveType.Castling)) {
                     const all_castling_info = precompute.CASTLING_INFO[color_idx];
                     const castling_info = all_castling_info.from_king_end(move.end).?;
 
@@ -343,16 +344,17 @@ pub const GameManager = struct {
                 const end_rank = to.toRankFile().rank;
                 if (end_rank == 0 or end_rank == 7) {
                     for (PROMOTION_KINDS) |promotion_kind| {
+                        const move_flags = MoveFlags.initWith(MoveType.Promotion);
                         moves.appendAssumeCapacity(.{
                             .start = pos,
                             .end = to,
                             .kind = p.kind,
-                            .move_type = MoveType.Promotion,
+                            .move_flags = move_flags,
                             .promotion_kind = promotion_kind,
                         });
                     }
                 } else {
-                    moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind });
+                    moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.init() });
                 }
             }
 
@@ -367,22 +369,25 @@ pub const GameManager = struct {
                 const end_rank = to.toRankFile().rank;
                 if (end_rank == 0 or end_rank == 7) {
                     for (PROMOTION_KINDS) |promotion_kind| {
+                        const move_types = [2]MoveType{ MoveType.Promotion, MoveType.Capture };
+                        const move_flags = MoveFlags.initWithSlice(&move_types);
                         moves.appendAssumeCapacity(.{
                             .start = pos,
                             .end = to,
                             .kind = p.kind,
-                            .move_type = MoveType.Promotion,
+                            .move_flags = move_flags,
                             .promotion_kind = promotion_kind,
                         });
                     }
                 } else {
-                    var move = Move{ .start = pos, .end = to, .kind = p.kind };
+                    const move_flags = MoveFlags.initWith(MoveType.Capture);
+
+                    var move = Move{ .start = pos, .end = to, .kind = p.kind, .move_flags = move_flags };
                     if (self.board.get_pos(to)) |captured| {
                         move.captured_kind = captured.kind;
-                        move.move_type = MoveType.Capture;
                     } else {
                         move.captured_kind = piece.Kind.Pawn;
-                        move.move_type = MoveType.EnPassant;
+                        move.move_flags.set(MoveType.EnPassant);
                     }
 
                     moves.appendAssumeCapacity(move);
@@ -405,13 +410,15 @@ pub const GameManager = struct {
             if (self.castle_allowed(p.color, enemy_attacked_sqaures, true)) {
                 // king side castle
                 const end = Position.fromIndex(pos.index + 2);
-                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_type = MoveType.Castling };
+                const flags = MoveFlags.initWith(MoveType.Castling);
+                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
                 moves.appendAssumeCapacity(move);
             }
             if (self.castle_allowed(p.color, enemy_attacked_sqaures, false)) {
                 // queen side castle
                 const end = Position.fromIndex(pos.index - 2);
-                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_type = MoveType.Castling };
+                const flags = MoveFlags.initWith(MoveType.Castling);
+                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
                 moves.appendAssumeCapacity(move);
             }
         } else {
@@ -425,11 +432,12 @@ pub const GameManager = struct {
         while (move_iter.next()) |to| {
             const maybe_capture = self.board.get_pos(pos);
             var captured_kind: ?piece.Kind = null;
+            var flags = MoveFlags.init();
             if (maybe_capture) |capture| {
                 captured_kind = capture.kind;
-                // TODO: castling
-                moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind });
+                flags.set(MoveType.Capture);
             }
+            moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
         }
 
         return moves;

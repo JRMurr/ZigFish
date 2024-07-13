@@ -78,18 +78,56 @@ pub const Position = packed struct {
 };
 
 pub const MoveType = enum {
-    Normal,
     Capture,
     Promotion,
     EnPassant,
     Castling,
 };
 
+pub const MoveFlags = struct {
+    const FlagSet = std.bit_set.IntegerBitSet(utils.enum_len(MoveType));
+
+    flags: FlagSet,
+
+    pub fn init() MoveFlags {
+        const flags = FlagSet.initEmpty();
+        return .{ .flags = flags };
+    }
+
+    pub fn initWith(move_type: MoveType) MoveFlags {
+        var result = MoveFlags.init();
+        result.set(move_type);
+        return result;
+    }
+
+    pub fn initWithSlice(move_types: []const MoveType) MoveFlags {
+        var result = MoveFlags.init();
+        for (move_types) |mt| {
+            result.set(mt);
+        }
+        return result;
+    }
+
+    pub fn set(self: *MoveFlags, move_type: MoveType) void {
+        self.flags.set(@intFromEnum(move_type));
+    }
+
+    pub fn setWith(self: MoveFlags, move_type: MoveType) MoveFlags {
+        var result = self;
+        result.set(move_type);
+        return result;
+    }
+
+    pub fn isSet(self: MoveFlags, move_type: MoveType) bool {
+        return self.flags.isSet(@intFromEnum(move_type));
+    }
+};
+
 pub const Move = struct {
     start: Position,
     end: Position,
     kind: piece.Kind,
-    move_type: MoveType = MoveType.Normal,
+    move_flags: MoveFlags,
     captured_kind: ?piece.Kind = null,
     promotion_kind: ?piece.Kind = null,
 };
