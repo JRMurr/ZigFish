@@ -30,7 +30,6 @@ const PROMOTION_KINDS = [4]piece.Kind{ piece.Kind.Queen, piece.Kind.Knight, piec
 pub const GameManager = struct {
     const Self = @This();
 
-    // TODO: track castling + en passant
     board: Board,
 
     pub fn init() Self {
@@ -52,71 +51,8 @@ pub const GameManager = struct {
         self.board.set_pos(pos, maybe_piece);
     }
 
-    pub fn flip_active_color(self: *Self) void {
-        self.board.active_color = self.board.active_color.get_enemy();
-    }
-
     pub fn make_move(self: *Self, move: Move) void {
-        const start_peice = self.get_pos(move.start).?;
-
-        const color = self.board.active_color;
-        const color_idx = @intFromEnum(color);
-        // TODO: assert move.kind is promotion if promotion_kind is set?
-        const kind = move.promotion_kind orelse start_peice.kind;
-        const move_piece = Piece{ .color = color, .kind = kind };
-
-        self.set_cell(move.start, null);
-        self.set_cell(move.end, move_piece);
-
-        switch (move.kind) {
-            piece.Kind.Pawn => {
-                const start_rank = move.start.toRankFile().rank;
-                const end_rank = move.end.toRankFile().rank;
-
-                var dir: Dir = undefined;
-                var rank_diff: u8 = undefined;
-                if (start_rank > end_rank) {
-                    dir = Dir.South;
-                    rank_diff = start_rank - end_rank;
-                } else {
-                    dir = Dir.North;
-                    rank_diff = end_rank - start_rank;
-                }
-
-                if (rank_diff == 2) {
-                    self.board.en_passant_pos = move.start.move_dir(dir);
-                }
-
-                if (move.move_flags.isSet(MoveType.EnPassant)) {
-                    const captured_pos = move.end.move_dir(dir.opposite());
-                    self.set_cell(captured_pos, null);
-                }
-            },
-            piece.Kind.King => {
-                self.board.castling_rights[color_idx].king_side = false;
-                self.board.castling_rights[color_idx].queen_side = false;
-                if (move.move_flags.isSet(MoveType.Castling)) {
-                    const all_castling_info = precompute.CASTLING_INFO[color_idx];
-                    const castling_info = all_castling_info.from_king_end(move.end).?;
-
-                    self.set_cell(castling_info.rook_start, null);
-                    self.set_cell(castling_info.rook_end, .{
-                        .color = color,
-                        .kind = piece.Kind.Rook,
-                    });
-                }
-            },
-            piece.Kind.Rook => {
-                const start_file = move.start.toRankFile().file;
-                if (start_file == 0) {
-                    self.board.castling_rights[color_idx].queen_side = false;
-                } else if (start_file == 7) {
-                    self.board.castling_rights[color_idx].king_side = false;
-                }
-            },
-            else => {},
-        }
-        self.flip_active_color();
+        self.board.make_move(move);
     }
 
     /// given the position of a pinned piece, get the ray of the attack
