@@ -266,14 +266,31 @@ pub const GameManager = struct {
         return attacks;
     }
 
-    // pub fn get_all_valid_moves(self: Self, move_allocator: Allocator) Allocator.Error!MoveList {
+    pub fn getAllValidMoves(self: Self, move_allocator: Allocator) Allocator.Error!MoveList {
+        const color = self.board.active_color;
 
-    // }
+        const gen_info = MoveGenInfo{
+            .pinned_pieces = self.find_pinned_pieces(color),
+            .enemy_attacked_sqaures = self.get_all_attacked_sqaures(color.get_enemy()),
+        };
 
-    fn get_valid_moves(self: Self, out_moves: *MoveList, pos: Position, p: Piece) Allocator.Error!void {
+        var moves = MoveList.init(move_allocator);
+
+        const color_set = self.board.color_sets[@intFromEnum(color)];
+        var color_iter = color_set.iterator();
+        while (color_iter.next()) |pos| {
+            const p = self.getPos(pos).?;
+
+            try self.get_valid_moves(&moves, &gen_info, pos, p);
+        }
+
+        return moves;
+    }
+
+    fn get_valid_moves(self: Self, out_moves: *MoveList, gen_info: *const MoveGenInfo, pos: Position, p: Piece) Allocator.Error!void {
         try out_moves.ensureUnusedCapacity(27); // TODO: better number based on piece type...
         const start_idx = pos.toIndex();
-        const pinned_pieces = self.find_pinned_pieces(p.color);
+        const pinned_pieces = gen_info.pinned_pieces;
         const is_pinned = pinned_pieces.isSet(start_idx);
         const pin_ray = if (is_pinned) self.get_pin_attacker(pos) else BoardBitSet.initFull();
 
@@ -348,7 +365,7 @@ pub const GameManager = struct {
             },
             piece.Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(pin_ray).differenceWith(freinds),
             piece.Kind.King => blk: {
-                const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
+                const enemy_attacked_sqaures = gen_info.enemy_attacked_sqaures;
 
                 const king_moves = precompute.KING_MOVES[start_idx];
 
@@ -398,8 +415,32 @@ pub const GameManager = struct {
 
         const p = if (maybe_peice) |p| p else return moves;
 
-        try self.get_valid_moves(&moves, pos, p);
+        const gen_info = MoveGenInfo{
+            .pinned_pieces = self.find_pinned_pieces(p.color),
+            .enemy_attacked_sqaures = self.get_all_attacked_sqaures(p.color.get_enemy()),
+        };
+
+        try self.get_valid_moves(&moves, &gen_info, pos, p);
 
         return moves;
+    }
+
+    // https://www.chessprogramming.org/Perft
+    pub fn perft(self: *Self, depth: usize, move_allocator: Allocator) Allocator.Error!usize {
+        var nodes: usize = 0;
+        if (depth == 0) {
+            return 1;
+        }
+
+        const moves = try self.getAllValidMoves(move_allocator);
+        defer moves.deinit();
+
+        for (moves.items) |move| {
+            try self.makeMove(move);
+            nodes += try self.perft(depth - 1, move_allocator);
+            self.unMakeMove(move);
+        }
+
+        return nodes;
     }
 };

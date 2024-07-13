@@ -62,13 +62,19 @@ pub fn main() anyerror!void {
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    // var game = try GameManager.init(gpa_allocator);
+    var game = try GameManager.init(gpa_allocator);
+
+    const perf = try game.perft(2, move_allocator);
+
+    std.debug.print("perf: {}\n", .{perf});
+
+    // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
     // pin should be able to capture
     // var game = try GameManager.from_fen(gpa_allocator, "8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
 
     // about to promote
-    var game = try GameManager.from_fen(gpa_allocator, "3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
+    // var game = try GameManager.from_fen(gpa_allocator, "3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
 
     // castling
     // var game = try GameManager.from_fen(gpa_allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
