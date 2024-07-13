@@ -433,7 +433,7 @@ pub const GameManager = struct {
         var move_iter = possible_moves.iterator();
 
         while (move_iter.next()) |to| {
-            const maybe_capture = self.board.get_pos(pos);
+            const maybe_capture = self.board.get_pos(to);
             var captured_kind: ?piece.Kind = null;
             var flags = MoveFlags.init();
             if (maybe_capture) |capture| {
