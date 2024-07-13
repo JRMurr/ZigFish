@@ -32,7 +32,6 @@ pub const GameManager = struct {
 
     // TODO: track castling + en passant
     board: Board,
-    active_color: piece.Color = piece.Color.White,
 
     pub fn init() Self {
         return Self.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -42,7 +41,6 @@ pub const GameManager = struct {
         const state = fen.parse(fen_str);
         return Self{
             .board = state.board,
-            .active_color = state.active_color,
         };
     }
 
@@ -55,16 +53,13 @@ pub const GameManager = struct {
     }
 
     pub fn flip_active_color(self: *Self) void {
-        self.active_color = switch (self.active_color) {
-            piece.Color.White => piece.Color.Black,
-            piece.Color.Black => piece.Color.White,
-        };
+        self.board.active_color = self.board.active_color.get_enemy();
     }
 
     pub fn make_move(self: *Self, move: Move) void {
         const start_peice = self.get_pos(move.start).?;
 
-        const color = self.active_color;
+        const color = self.board.active_color;
         const color_idx = @intFromEnum(color);
         // TODO: assert move.kind is promotion if promotion_kind is set?
         const kind = move.promotion_kind orelse start_peice.kind;

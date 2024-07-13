@@ -56,22 +56,22 @@ pub fn main() anyerror!void {
 
     const allocator = arena.allocator();
 
-    var board = GameManager.init();
+    var game = GameManager.init();
 
     // pin should be able to capture
-    // var board = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
+    // var game = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
 
     // about to promote
-    // var board = GameManager.from_fen("3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
+    // var game = GameManager.from_fen("3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
 
     // castling
-    // var board = GameManager.from_fen("r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
+    // var game = GameManager.from_fen("r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
 
     var moving_piece: ?MovingPiece = null;
 
-    // var attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
+    // var attacked_sqaures = game.get_all_attacked_sqaures(board.active_color.get_enemy());
 
-    const sprite_manager = sprite.SpriteManager.init(texture, &board, cell_size);
+    const sprite_manager = sprite.SpriteManager.init(texture, &game, cell_size);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -85,12 +85,12 @@ pub fn main() anyerror!void {
 
         if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
-            const maybe_piece = board.get_pos(pos);
+            const maybe_piece = game.get_pos(pos);
             if (maybe_piece) |p| {
-                if (p.color == board.active_color) {
-                    const moves = try board.get_valid_moves(allocator, pos);
+                if (p.color == game.board.active_color) {
+                    const moves = try game.get_valid_moves(allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
-                    board.set_cell(pos, null);
+                    game.set_cell(pos, null);
                 }
             }
         } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
@@ -99,13 +99,13 @@ pub fn main() anyerror!void {
             const mp = moving_piece.?;
 
             // reset the piece so board can do its own moving logic
-            board.set_cell(mp.start, mp.piece);
+            game.set_cell(mp.start, mp.piece);
 
             for (mp.valid_moves.items) |move| {
                 // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
                     std.debug.print("{s}\n", .{move.toSan()});
-                    board.make_move(move);
+                    game.make_move(move);
                     break;
                 }
             }

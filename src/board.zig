@@ -185,6 +185,8 @@ pub const Board = struct {
 
     castling_rights: [NUM_COLOR]CastlingRights,
 
+    active_color: piece.Color = piece.Color.White,
+
     enPassantPos: ?Position = null,
 
     /// redudent set for easy check if a square is occupied
