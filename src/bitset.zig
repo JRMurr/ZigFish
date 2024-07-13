@@ -29,11 +29,11 @@ pub const NOT_FILE_H = 0x7f7f7f7f7f7f7f7f;
 pub const NOT_FILE_GH: u64 = 0x3f3f3f3f3f3f3f3f;
 pub const NOT_FILE_AB: u64 = 0xfcfcfcfcfcfcfcfc;
 
-pub inline fn toMaskInt(x: anytype) MaskInt {
+pub fn toMaskInt(x: anytype) MaskInt {
     return @as(MaskInt, @intCast(x));
 }
 
-pub inline fn toShiftInt(x: anytype) ShiftInt {
+pub fn toShiftInt(x: anytype) ShiftInt {
     return @as(ShiftInt, @intCast(x));
 }
 

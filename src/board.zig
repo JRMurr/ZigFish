@@ -14,7 +14,7 @@ pub const PositionRankFile = packed struct {
     rank: u8,
     file: u8,
 
-    pub inline fn toPosition(self: PositionRankFile) Position {
+    pub fn toPosition(self: PositionRankFile) Position {
         return Position.fromRankFile(self);
     }
 };
@@ -22,7 +22,7 @@ pub const PositionRankFile = packed struct {
 pub const Position = packed struct {
     index: u8, // only really needs to be a u6....
 
-    pub inline fn fromRankFile(p: PositionRankFile) Position {
+    pub fn fromRankFile(p: PositionRankFile) Position {
         return Position.fromIndex(p.rank * 8 + p.file);
     }
 
@@ -36,7 +36,7 @@ pub const Position = packed struct {
         return Position.fromRankFile(.{ .rank = rank, .file = file });
     }
 
-    pub inline fn toStr(self: Position) [2]u8 {
+    pub fn toStr(self: Position) [2]u8 {
         const rankFile = self.toRankFile();
         const file_char = rankFile.file + 97;
         const rank_char = rankFile.rank + 49;
@@ -44,21 +44,21 @@ pub const Position = packed struct {
         return .{ file_char, rank_char };
     }
 
-    pub inline fn toRankFile(self: Position) PositionRankFile {
+    pub fn toRankFile(self: Position) PositionRankFile {
         const file = self.index % 8;
         const rank = @divFloor(self.index, 8);
         return .{ .file = file, .rank = rank };
     }
 
-    pub inline fn toIndex(self: Position) usize {
+    pub fn toIndex(self: Position) usize {
         return self.index;
     }
 
-    pub inline fn fromIndex(idx: usize) Position {
+    pub fn fromIndex(idx: usize) Position {
         return Position{ .index = @intCast(idx) };
     }
 
-    pub inline fn eql(self: Position, other: Position) bool {
+    pub fn eql(self: Position, other: Position) bool {
         return self.index == other.index;
     }
 
