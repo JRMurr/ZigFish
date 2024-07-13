@@ -35,6 +35,11 @@ const PROMOTION_KINDS = [4]piece.Kind{ piece.Kind.Queen, piece.Kind.Knight, piec
 
 const HistoryStack = std.ArrayList(BoardMeta);
 
+const MoveGenInfo = struct {
+    pinned_pieces: BoardBitSet,
+    enemy_attacked_sqaures: BoardBitSet,
+};
+
 pub const GameManager = struct {
     const Self = @This();
 
@@ -261,20 +266,15 @@ pub const GameManager = struct {
         return attacks;
     }
 
-    pub fn get_valid_moves(self: Self, move_allocator: Allocator, pos: Position) Allocator.Error!MoveList {
-        // TODO: set capture flag on moves that need it...
+    // pub fn get_all_valid_moves(self: Self, move_allocator: Allocator) Allocator.Error!MoveList {
+
+    // }
+
+    fn get_valid_moves(self: Self, out_moves: *MoveList, pos: Position, p: Piece) Allocator.Error!void {
+        try out_moves.ensureUnusedCapacity(27); // TODO: better number based on piece type...
         const start_idx = pos.toIndex();
-
-        const maybe_peice = self.getPos(pos);
-
-        var moves = try MoveList.initCapacity(move_allocator, 27);
-
-        const p = if (maybe_peice) |p| p else return moves;
-
         const pinned_pieces = self.find_pinned_pieces(p.color);
-
         const is_pinned = pinned_pieces.isSet(start_idx);
-
         const pin_ray = if (is_pinned) self.get_pin_attacker(pos) else BoardBitSet.initFull();
 
         const freinds = self.board.color_sets[@intFromEnum(p.color)];
@@ -287,7 +287,6 @@ pub const GameManager = struct {
                 const start_bs = BoardBitSet.initWithIndex(start_idx);
                 const occupied = self.board.occupied_set;
 
-                // TODO: handle promotion
                 const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(pin_ray);
                 var non_captures_iter = non_captures.iterator();
                 while (non_captures_iter.next()) |to| {
@@ -295,7 +294,7 @@ pub const GameManager = struct {
                     if (end_rank == 0 or end_rank == 7) {
                         for (PROMOTION_KINDS) |promotion_kind| {
                             const move_flags = MoveFlags.initOne(MoveType.Promotion);
-                            moves.appendAssumeCapacity(.{
+                            out_moves.appendAssumeCapacity(.{
                                 .start = pos,
                                 .end = to,
                                 .kind = p.kind,
@@ -304,7 +303,7 @@ pub const GameManager = struct {
                             });
                         }
                     } else {
-                        moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.initEmpty() });
+                        out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.initEmpty() });
                     }
                 }
 
@@ -321,7 +320,7 @@ pub const GameManager = struct {
                         for (PROMOTION_KINDS) |promotion_kind| {
                             const move_flags = MoveFlags.initMany(&[_]MoveType{ MoveType.Promotion, MoveType.Capture });
                             const captured_kind = self.board.getPos(to).?.kind;
-                            moves.appendAssumeCapacity(.{
+                            out_moves.appendAssumeCapacity(.{
                                 .start = pos,
                                 .end = to,
                                 .kind = p.kind,
@@ -341,11 +340,11 @@ pub const GameManager = struct {
                             move.move_flags.setPresent(MoveType.EnPassant, true);
                         }
 
-                        moves.appendAssumeCapacity(move);
+                        out_moves.appendAssumeCapacity(move);
                     }
                 }
 
-                return moves;
+                return;
             },
             piece.Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(pin_ray).differenceWith(freinds),
             piece.Kind.King => blk: {
@@ -358,14 +357,14 @@ pub const GameManager = struct {
                     const end = Position.fromIndex(pos.index + 2);
                     const flags = MoveFlags.initOne(MoveType.Castling);
                     const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
-                    moves.appendAssumeCapacity(move);
+                    out_moves.appendAssumeCapacity(move);
                 }
                 if (self.castle_allowed(p.color, enemy_attacked_sqaures, false)) {
                     // queen side castle
                     const end = Position.fromIndex(pos.index - 2);
                     const flags = MoveFlags.initOne(MoveType.Castling);
                     const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
-                    moves.appendAssumeCapacity(move);
+                    out_moves.appendAssumeCapacity(move);
                 }
 
                 break :blk king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
@@ -388,8 +387,18 @@ pub const GameManager = struct {
                 captured_kind = capture.kind;
                 flags.setPresent(MoveType.Capture, true);
             }
-            moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
+            out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
         }
+    }
+
+    pub fn get_valid_moves_at_pos(self: Self, move_allocator: Allocator, pos: Position) Allocator.Error!MoveList {
+        const maybe_peice = self.getPos(pos);
+
+        var moves = MoveList.init(move_allocator);
+
+        const p = if (maybe_peice) |p| p else return moves;
+
+        try self.get_valid_moves(&moves, pos, p);
 
         return moves;
     }

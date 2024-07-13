@@ -94,7 +94,7 @@ pub fn main() anyerror!void {
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
                 if (p.color == game.board.active_color) {
-                    const moves = try game.get_valid_moves(move_allocator, pos);
+                    const moves = try game.get_valid_moves_at_pos(move_allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     game.setPos(pos, null);
                 }
