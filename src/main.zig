@@ -90,7 +90,7 @@ pub fn main() anyerror!void {
                 if (p.color == game.board.active_color) {
                     const moves = try game.get_valid_moves(allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
-                    game.set_cell(pos, null);
+                    game.set_pos(pos, null);
                 }
             }
         } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
@@ -99,7 +99,7 @@ pub fn main() anyerror!void {
             const mp = moving_piece.?;
 
             // reset the piece so board can do its own moving logic
-            game.set_cell(mp.start, mp.piece);
+            game.set_pos(mp.start, mp.piece);
 
             for (mp.valid_moves.items) |move| {
                 // TODO: select promotion if possible, should always be queen right now

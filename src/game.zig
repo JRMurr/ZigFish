@@ -47,7 +47,7 @@ pub const GameManager = struct {
         return self.board.get_pos(pos);
     }
 
-    pub fn set_cell(self: *Self, pos: Position, maybe_piece: ?Piece) void {
+    pub fn set_pos(self: *Self, pos: Position, maybe_piece: ?Piece) void {
         self.board.set_pos(pos, maybe_piece);
     }
 
