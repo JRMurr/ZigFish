@@ -70,7 +70,7 @@ pub const GameManager = struct {
 
     pub fn unMakeMove(self: *Self, move: Move) void {
         const meta = self.history.pop();
-        self.board.makeMove(move, meta);
+        self.board.unMakeMove(move, meta);
     }
 
     /// given the position of a pinned piece, get the ray of the attack

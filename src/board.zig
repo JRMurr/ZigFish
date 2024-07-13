@@ -236,6 +236,12 @@ pub const Board = struct {
 
         self.meta.en_passant_pos = null;
 
+        if (move.move_flags.contains(MoveType.Capture) or move.kind == piece.Kind.Pawn) {
+            self.meta.half_moves = 0;
+        } else {
+            self.meta.half_moves += 1;
+        }
+
         switch (move.kind) {
             piece.Kind.Pawn => {
                 const diff_dir = get_diff_dir(move);
@@ -285,7 +291,9 @@ pub const Board = struct {
     pub fn unMakeMove(self: *Self, move: Move, meta: BoardMeta) void {
         self.meta = meta;
 
-        const start_piece = Piece{ .color = self.active_color.get_enemy(), .kind = move.kind };
+        const piece_color = self.active_color.get_enemy();
+
+        const start_piece = Piece{ .color = piece_color, .kind = move.kind };
         self.setPos(move.start, start_piece);
 
         const maybe_captured_piece = if (move.captured_kind) |k| Piece{
@@ -294,12 +302,34 @@ pub const Board = struct {
         } else null;
 
         const end_pos = if (move.move_flags.contains(MoveType.EnPassant)) blk: {
+            // clear the pawn that took
+            self.setPos(move.end, null);
+
+            // get pos of the peice taken
             const diff_dir = get_diff_dir(move);
             const dir = diff_dir[1];
             break :blk move.end.move_dir(dir.opposite());
         } else move.end;
 
+        if (move.move_flags.contains(MoveType.Castling)) {
+            const color_idx = @intFromEnum(piece_color);
+            const all_castling_info = precompute.CASTLING_INFO[color_idx];
+            const castling_info = all_castling_info.from_king_end(move.end).?;
+
+            self.setPos(castling_info.rook_end, null);
+            self.setPos(castling_info.rook_start, .{
+                .color = piece_color,
+                .kind = piece.Kind.Rook,
+            });
+        }
+
         self.setPos(end_pos, maybe_captured_piece);
+
+        if (self.active_color == piece.Color.White) {
+            self.full_moves -= 1;
+        }
+
+        self.active_color = self.active_color.get_enemy();
     }
 
     pub fn getPos(self: Self, pos: Position) ?Piece {

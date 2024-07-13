@@ -60,16 +60,18 @@ pub fn main() anyerror!void {
     // Used for move generation so we can reset after each move taken
     const move_allocator = arena.allocator();
 
-    var game = try GameManager.init(gpa_allocator);
+    var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
+
+    // var game = try GameManager.init(gpa_allocator);
 
     // pin should be able to capture
-    // var game = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
+    // var game = try GameManager.from_fen(gpa_allocator, "8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
 
     // about to promote
-    // var game = GameManager.from_fen("3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
+    var game = try GameManager.from_fen(gpa_allocator, "3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
 
     // castling
-    // var game = GameManager.from_fen("r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
+    // var game = try GameManager.from_fen(gpa_allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
 
     var moving_piece: ?MovingPiece = null;
 
@@ -110,24 +112,20 @@ pub fn main() anyerror!void {
                 if (move.end.eql(pos)) {
                     std.debug.print("{s}\n", .{move.toSan()});
                     try game.makeMove(move);
+                    try move_history.append(move);
                     break;
                 }
             }
 
-            // if (mp.valid_moves.isSet(pos.toIndex())) {
-            //     board.make_move(Move{ .start = mp.start, .end = pos, .kind = mp.piece.kind });
-            //     // attacked_sqaures = board.get_all_attacked_sqaures(board.active_color.get_enemy());
-            // }
-
-            // const move_idx = indexOf(Position, mp.valid_moves.items, pos);
-
-            // if (move_idx != null) {
-            //     board.make_move(Move{ .start = mp.start, .end = pos });
-            // }
-
             moving_piece = null;
             // only reset once we are done using the possible moves
             defer _ = arena.reset(.retain_capacity);
+        } else if (moving_piece == null and rl.isKeyPressed(rl.KeyboardKey.key_left)) {
+            // undo move
+            const maybe_move = move_history.popOrNull();
+            if (maybe_move) |move| {
+                game.unMakeMove(move);
+            }
         }
 
         //----------------------------------------------------------------------------------
