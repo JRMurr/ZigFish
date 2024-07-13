@@ -60,7 +60,7 @@ pub fn main() anyerror!void {
     // Used for move generation so we can reset after each move taken
     const move_allocator = arena.allocator();
 
-    var game = GameManager.init(gpa_allocator);
+    var game = try GameManager.init(gpa_allocator);
 
     // pin should be able to capture
     // var game = GameManager.from_fen("8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
@@ -109,7 +109,7 @@ pub fn main() anyerror!void {
                 // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
                     std.debug.print("{s}\n", .{move.toSan()});
-                    game.make_move(move);
+                    try game.make_move(move);
                     break;
                 }
             }

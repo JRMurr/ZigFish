@@ -2,8 +2,7 @@
 
 
 ## TODO
-- refactor code to make it more obvious when a bitset is used to reference a single square vs multiple
-
+- Use https://ziglang.org/documentation/master/std/#std.enums.EnumArray in spots where enum lookup is needed
 
 ## References
 - https://github.com/Not-Nik/raylib-zig for rendering

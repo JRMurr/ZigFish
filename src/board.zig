@@ -86,44 +86,7 @@ pub const MoveType = enum {
     Castling,
 };
 
-pub const MoveFlags = struct {
-    const FlagSet = std.bit_set.IntegerBitSet(utils.enum_len(MoveType));
-
-    flags: FlagSet,
-
-    pub fn init() MoveFlags {
-        const flags = FlagSet.initEmpty();
-        return .{ .flags = flags };
-    }
-
-    pub fn initWith(move_type: MoveType) MoveFlags {
-        var result = MoveFlags.init();
-        result.set(move_type);
-        return result;
-    }
-
-    pub fn initWithSlice(move_types: []const MoveType) MoveFlags {
-        var result = MoveFlags.init();
-        for (move_types) |mt| {
-            result.set(mt);
-        }
-        return result;
-    }
-
-    pub fn set(self: *MoveFlags, move_type: MoveType) void {
-        self.flags.set(@intFromEnum(move_type));
-    }
-
-    pub fn setWith(self: MoveFlags, move_type: MoveType) MoveFlags {
-        var result = self;
-        result.set(move_type);
-        return result;
-    }
-
-    pub fn isSet(self: MoveFlags, move_type: MoveType) bool {
-        return self.flags.isSet(@intFromEnum(move_type));
-    }
-};
+pub const MoveFlags = std.enums.EnumSet(MoveType);
 
 const SAN_LEN = 8;
 
@@ -153,7 +116,7 @@ pub const Move = struct {
         const from_str = self.start.toStr();
         const to_str = self.end.toStr();
 
-        const capture_str = if (self.move_flags.isSet(MoveType.Capture)) "x" else "";
+        const capture_str = if (self.move_flags.contains(MoveType.Capture)) "x" else "";
 
         const piece_symbol = self.kind.to_symbol();
 
@@ -275,7 +238,7 @@ pub const Board = struct {
                     self.meta.en_passant_pos = move.start.move_dir(dir);
                 }
 
-                if (move.move_flags.isSet(MoveType.EnPassant)) {
+                if (move.move_flags.contains(MoveType.EnPassant)) {
                     const captured_pos = move.end.move_dir(dir.opposite());
                     self.set_pos(captured_pos, null);
                 }
@@ -283,7 +246,7 @@ pub const Board = struct {
             piece.Kind.King => {
                 self.meta.castling_rights[color_idx].king_side = false;
                 self.meta.castling_rights[color_idx].queen_side = false;
-                if (move.move_flags.isSet(MoveType.Castling)) {
+                if (move.move_flags.contains(MoveType.Castling)) {
                     const all_castling_info = precompute.CASTLING_INFO[color_idx];
                     const castling_info = all_castling_info.from_king_end(move.end).?;
 
@@ -304,7 +267,20 @@ pub const Board = struct {
             },
             else => {},
         }
+        if (self.active_color == piece.Color.Black) {
+            self.full_moves += 1;
+        }
+
         self.active_color = self.active_color.get_enemy();
+    }
+
+    pub fn un_make_move(self: *Self, move: Move, meta: BoardMeta) void {
+        self.meta = meta;
+
+        // TODO: could probably do some set logic to make this better...
+        if (!move.move_flags.contains(MoveType.EnPassant) and move.move_flags.contains(MoveType.Capture)) {
+            //
+        }
     }
 
     pub fn get_pos(self: Self, pos: Position) ?Piece {

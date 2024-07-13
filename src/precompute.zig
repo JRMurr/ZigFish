@@ -142,6 +142,8 @@ pub const CastlingInfo = struct {
     queen_side: SideCastlingInfo,
     king_side: SideCastlingInfo,
 
+    king_start: Position,
+
     pub fn from_king_end(self: CastlingInfo, king_end: Position) ?SideCastlingInfo {
         if (self.queen_side.king_end.eql(king_end)) {
             return self.queen_side;
@@ -167,10 +169,12 @@ fn compute_castling_info() [2]CastlingInfo {
     castle_info[@intFromEnum(Color.White)] = CastlingInfo{
         .queen_side = white_queen_castle,
         .king_side = white_king_castle,
+        .king_start = Position.fromStr("e1"),
     };
     castle_info[@intFromEnum(Color.Black)] = CastlingInfo{
         .queen_side = black_queen_castle,
         .king_side = black_king_castle,
+        .king_start = Position.fromStr("e8"),
     };
 
     return castle_info;
