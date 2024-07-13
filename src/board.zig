@@ -123,6 +123,8 @@ pub const MoveFlags = struct {
     }
 };
 
+const SAN_LEN = 8;
+
 pub const Move = struct {
     start: Position,
     end: Position,
@@ -130,6 +132,29 @@ pub const Move = struct {
     move_flags: MoveFlags,
     captured_kind: ?piece.Kind = null,
     promotion_kind: ?piece.Kind = null,
+
+    pub fn toSan(self: Move) [SAN_LEN]u8 {
+        // https://www.chessprogramming.org/Algebraic_Chess_Notation#SAN
+        // TODO: san can omit info depening on if the move is unambiguous.
+        // for now duing "full"
+
+        const from_str = self.start.toStr();
+        const to_str = self.end.toStr();
+
+        const capture_str = if (self.move_flags.isSet(MoveType.Capture)) "x" else "";
+
+        const piece_symbol = self.kind.to_symbol();
+
+        const promotion_symbol = if (self.promotion_kind) |k| k.to_symbol() else "";
+
+        // theres probably a better way to pad but it works....
+        var str: [SAN_LEN]u8 = .{ ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' };
+        _ = std.fmt.bufPrint(&str, "{s}{s}{s}{s}{s}", .{ piece_symbol, from_str, capture_str, to_str, promotion_symbol }) catch {
+            std.debug.panic("Bad san format for {any}", .{self});
+        };
+
+        return str;
+    }
 };
 
 pub const CastlingRights = struct {

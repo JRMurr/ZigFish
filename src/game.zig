@@ -333,97 +333,100 @@ pub const GameManager = struct {
 
         const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
 
-        if (p.is_pawn()) {
-            const start_bs = BoardBitSet.initWithIndex(start_idx);
-            const occupied = self.board.occupied_set;
+        var possible_moves = switch (p.kind) {
+            piece.Kind.Pawn => {
+                const start_bs = BoardBitSet.initWithIndex(start_idx);
+                const occupied = self.board.occupied_set;
 
-            // TODO: handle promotion
-            const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(pin_ray);
-            var non_captures_iter = non_captures.iterator();
-            while (non_captures_iter.next()) |to| {
-                const end_rank = to.toRankFile().rank;
-                if (end_rank == 0 or end_rank == 7) {
-                    for (PROMOTION_KINDS) |promotion_kind| {
-                        const move_flags = MoveFlags.initWith(MoveType.Promotion);
-                        moves.appendAssumeCapacity(.{
-                            .start = pos,
-                            .end = to,
-                            .kind = p.kind,
-                            .move_flags = move_flags,
-                            .promotion_kind = promotion_kind,
-                        });
-                    }
-                } else {
-                    moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.init() });
-                }
-            }
-
-            var en_passant_board = BoardBitSet.initEmpty();
-            if (self.board.enPassantPos) |ep| {
-                en_passant_board.set(ep.toIndex());
-            }
-
-            const possible_captures = start_bs.pawnAttacks(p.color, enemies.unionWith(en_passant_board)).intersectWith(pin_ray);
-            var captures_iter = possible_captures.iterator();
-            while (captures_iter.next()) |to| {
-                const end_rank = to.toRankFile().rank;
-                if (end_rank == 0 or end_rank == 7) {
-                    for (PROMOTION_KINDS) |promotion_kind| {
-                        const move_types = [2]MoveType{ MoveType.Promotion, MoveType.Capture };
-                        const move_flags = MoveFlags.initWithSlice(&move_types);
-                        moves.appendAssumeCapacity(.{
-                            .start = pos,
-                            .end = to,
-                            .kind = p.kind,
-                            .move_flags = move_flags,
-                            .promotion_kind = promotion_kind,
-                        });
-                    }
-                } else {
-                    const move_flags = MoveFlags.initWith(MoveType.Capture);
-
-                    var move = Move{ .start = pos, .end = to, .kind = p.kind, .move_flags = move_flags };
-                    if (self.board.get_pos(to)) |captured| {
-                        move.captured_kind = captured.kind;
+                // TODO: handle promotion
+                const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(pin_ray);
+                var non_captures_iter = non_captures.iterator();
+                while (non_captures_iter.next()) |to| {
+                    const end_rank = to.toRankFile().rank;
+                    if (end_rank == 0 or end_rank == 7) {
+                        for (PROMOTION_KINDS) |promotion_kind| {
+                            const move_flags = MoveFlags.initWith(MoveType.Promotion);
+                            moves.appendAssumeCapacity(.{
+                                .start = pos,
+                                .end = to,
+                                .kind = p.kind,
+                                .move_flags = move_flags,
+                                .promotion_kind = promotion_kind,
+                            });
+                        }
                     } else {
-                        move.captured_kind = piece.Kind.Pawn;
-                        move.move_flags.set(MoveType.EnPassant);
+                        moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.init() });
                     }
+                }
 
+                var en_passant_board = BoardBitSet.initEmpty();
+                if (self.board.enPassantPos) |ep| {
+                    en_passant_board.set(ep.toIndex());
+                }
+
+                const possible_captures = start_bs.pawnAttacks(p.color, enemies.unionWith(en_passant_board)).intersectWith(pin_ray);
+                var captures_iter = possible_captures.iterator();
+                while (captures_iter.next()) |to| {
+                    const end_rank = to.toRankFile().rank;
+                    if (end_rank == 0 or end_rank == 7) {
+                        for (PROMOTION_KINDS) |promotion_kind| {
+                            const move_types = [2]MoveType{ MoveType.Promotion, MoveType.Capture };
+                            const move_flags = MoveFlags.initWithSlice(&move_types);
+                            const captured_kind = self.board.get_pos(to).?.kind;
+                            moves.appendAssumeCapacity(.{
+                                .start = pos,
+                                .end = to,
+                                .kind = p.kind,
+                                .move_flags = move_flags,
+                                .promotion_kind = promotion_kind,
+                                .captured_kind = captured_kind,
+                            });
+                        }
+                    } else {
+                        const move_flags = MoveFlags.initWith(MoveType.Capture);
+
+                        var move = Move{ .start = pos, .end = to, .kind = p.kind, .move_flags = move_flags };
+                        if (self.board.get_pos(to)) |captured| {
+                            move.captured_kind = captured.kind;
+                        } else {
+                            move.captured_kind = piece.Kind.Pawn;
+                            move.move_flags.set(MoveType.EnPassant);
+                        }
+
+                        moves.appendAssumeCapacity(move);
+                    }
+                }
+
+                return moves;
+            },
+            piece.Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(pin_ray).differenceWith(freinds),
+            piece.Kind.King => blk: {
+                const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
+
+                const king_moves = precompute.KING_MOVES[start_idx];
+
+                if (self.castle_allowed(p.color, enemy_attacked_sqaures, true)) {
+                    // king side castle
+                    const end = Position.fromIndex(pos.index + 2);
+                    const flags = MoveFlags.initWith(MoveType.Castling);
+                    const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
                     moves.appendAssumeCapacity(move);
                 }
-            }
+                if (self.castle_allowed(p.color, enemy_attacked_sqaures, false)) {
+                    // queen side castle
+                    const end = Position.fromIndex(pos.index - 2);
+                    const flags = MoveFlags.initWith(MoveType.Castling);
+                    const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
+                    moves.appendAssumeCapacity(move);
+                }
 
-            return moves;
-        }
-
-        var possible_moves: BoardBitSet = undefined;
-
-        if (p.is_knight()) {
-            possible_moves = precompute.KNIGHT_MOVES[start_idx].intersectWith(pin_ray).differenceWith(freinds);
-        } else if (p.is_king()) {
-            const enemy_attacked_sqaures = self.get_all_attacked_sqaures(enemy_color);
-
-            const king_moves = precompute.KING_MOVES[start_idx];
-            possible_moves = king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
-
-            if (self.castle_allowed(p.color, enemy_attacked_sqaures, true)) {
-                // king side castle
-                const end = Position.fromIndex(pos.index + 2);
-                const flags = MoveFlags.initWith(MoveType.Castling);
-                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
-                moves.appendAssumeCapacity(move);
-            }
-            if (self.castle_allowed(p.color, enemy_attacked_sqaures, false)) {
-                // queen side castle
-                const end = Position.fromIndex(pos.index - 2);
-                const flags = MoveFlags.initWith(MoveType.Castling);
-                const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
-                moves.appendAssumeCapacity(move);
-            }
-        } else {
-            possible_moves = self.get_sliding_moves(p, pos).intersectWith(pin_ray);
-        }
+                break :blk king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
+            },
+            piece.Kind.Bishop,
+            piece.Kind.Queen,
+            piece.Kind.Rook,
+            => self.get_sliding_moves(p, pos).intersectWith(pin_ray),
+        };
 
         possible_moves.remove(freinds);
 

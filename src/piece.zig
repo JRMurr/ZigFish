@@ -17,6 +17,17 @@ pub const Kind = enum(u3) {
     Knight = 3,
     Rook = 4,
     Pawn = 5,
+
+    pub fn to_symbol(self: Kind) []const u8 {
+        return switch (self) {
+            .King => "K",
+            .Queen => "Q",
+            .Bishop => "B",
+            .Knight => "N",
+            .Rook => "R",
+            .Pawn => "",
+        };
+    }
 };
 
 pub const Piece = struct {
