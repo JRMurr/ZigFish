@@ -84,7 +84,7 @@ pub const GameManager = struct {
                 }
 
                 if (rank_diff == 2) {
-                    self.board.enPassantPos = move.start.move_dir(dir);
+                    self.board.en_passant_pos = move.start.move_dir(dir);
                 }
 
                 if (move.move_flags.isSet(MoveType.EnPassant)) {
@@ -355,7 +355,7 @@ pub const GameManager = struct {
                 }
 
                 var en_passant_board = BoardBitSet.initEmpty();
-                if (self.board.enPassantPos) |ep| {
+                if (self.board.en_passant_pos) |ep| {
                     en_passant_board.set(ep.toIndex());
                 }
 

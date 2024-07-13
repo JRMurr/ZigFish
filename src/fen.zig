@@ -71,7 +71,7 @@ pub fn parse(str: []const u8) BoardState {
     const active_color = if (std.mem.eql(u8, active_color_str, "w")) Color.White else Color.Black;
 
     if (!std.mem.eql(u8, en_passant_str, "-")) {
-        board.enPassantPos = Position.fromStr(en_passant_str);
+        board.en_passant_pos = Position.fromStr(en_passant_str);
     }
 
     for (castling_str) |c| {

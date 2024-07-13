@@ -187,7 +187,7 @@ pub const Board = struct {
 
     active_color: piece.Color = piece.Color.White,
 
-    enPassantPos: ?Position = null,
+    en_passant_pos: ?Position = null,
 
     /// redudent set for easy check if a square is occupied
     occupied_set: BoardBitSet,
