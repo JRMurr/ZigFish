@@ -81,11 +81,11 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPPKNnPP/RNBQ3R b - - 2 8");
 
     // test positon for debugging
-    var game = try GameManager.from_fen(gpa_allocator, "rnb2k1r/pp1Pbppp/2p5/q7/2B5/P7/1PP1NnPP/RNBQK2R w KQ - 1 9");
+    var game = try GameManager.from_fen(gpa_allocator, "3k4/8/8/8/8/pp3ppp/PP4P1/3K4 w - - 0 1");
 
     var moving_piece: ?MovingPiece = null;
 
-    var attacked_sqaures = game.get_all_attacked_sqaures(game.board.active_color.get_enemy());
+    // var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
 
     const sprite_manager = sprite.SpriteManager.init(texture, &game, cell_size);
 
@@ -123,7 +123,7 @@ pub fn main() anyerror!void {
                     std.debug.print("{s}\n", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move);
-                    attacked_sqaures = game.get_all_attacked_sqaures(game.board.active_color.get_enemy());
+                    // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;
                 }
             }
@@ -149,10 +149,10 @@ pub fn main() anyerror!void {
         rl.clearBackground(rl.Color.ray_white);
         sprite_manager.draw_board();
 
-        var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
-        while (attacked_iter.next()) |p_idx| {
-            sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
-        }
+        // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
+        // while (attacked_iter.next()) |p_idx| {
+        //     sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
+        // }
 
         if (moving_piece) |p| {
             for (p.valid_moves.items) |move| {
