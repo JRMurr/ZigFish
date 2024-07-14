@@ -62,7 +62,7 @@ pub fn main() anyerror!void {
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    // var game = try GameManager.init(gpa_allocator);
+    var game = try GameManager.init(gpa_allocator);
 
     // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
@@ -81,9 +81,9 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPPKNnPP/RNBQ3R b - - 2 8");
 
     // test positon for debugging
-    var game = try GameManager.from_fen(gpa_allocator, "rnB2k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBqK2R w KQ - 0 9");
+    // var game = try GameManager.from_fen(gpa_allocator, "4k3/8/8/8/p7/8/1P5P/4K3 b - - 0 1");
 
-    // const perf = try game.perft(6, move_allocator, false);
+    // const perf = try game.perft(6, move_allocator, true);
     // std.debug.print("nodes: {}\n", .{perf});
 
     var moving_piece: ?MovingPiece = null;

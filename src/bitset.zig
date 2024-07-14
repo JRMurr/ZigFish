@@ -422,8 +422,11 @@ pub const BoardBitSet = packed struct {
     pub fn pawnAttacks(self: Self, color: Color, maybe_enemy_sqaures: ?BoardBitSet) Self {
         const mask = self.bit_set.mask;
 
-        const left_attacks = shift_color(color, mask & NOT_FILE_A, 7);
-        const right_attacks = shift_color(color, mask & NOT_FILE_H, 9);
+        const left_amt: BitSet.ShiftInt = if (color == Color.White) 7 else 9;
+        const right_amt: BitSet.ShiftInt = if (color == Color.White) 9 else 7;
+
+        const left_attacks = shift_color(color, mask, left_amt) & NOT_FILE_H;
+        const right_attacks = shift_color(color, mask, right_amt) & NOT_FILE_A;
 
         var possible_attacks = left_attacks | right_attacks;
 
