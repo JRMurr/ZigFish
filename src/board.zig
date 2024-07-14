@@ -4,6 +4,8 @@ const Piece = piece.Piece;
 const fen = @import("fen.zig");
 const utils = @import("utils.zig");
 
+const ZHashing = @import("zhash.zig").ZHashing;
+
 const precompute = @import("precompute.zig");
 
 const bitset = @import("bitset.zig");
@@ -207,6 +209,10 @@ pub const Board = struct {
 
     meta: BoardMeta,
 
+    hasher: ZHashing,
+
+    zhash: u64 = 0,
+
     pub fn init() Self {
         var kind_sets: [NUM_KINDS]BoardBitSet = undefined;
 
@@ -226,7 +232,40 @@ pub const Board = struct {
             .color_sets = color_sets,
             .occupied_set = occupied_set,
             .meta = BoardMeta.init(),
+            .hasher = ZHashing.init(),
         };
+    }
+
+    pub fn initHash(self: *Self) void {
+        var occupied_iter = self.occupied_set.iterator();
+
+        var zhash: u64 = 0;
+        while (occupied_iter.next()) |pos| {
+            const p = self.getPos(pos).?;
+            zhash ^= self.hasher.getPieceNum(p, pos);
+        }
+
+        for (0..NUM_COLOR) |color_idx| {
+            const color: piece.Color = @enumFromInt(color_idx);
+
+            if (self.meta.castling_rights[color_idx].king_side) {
+                zhash ^= self.hasher.getCastleRights(color, true);
+            }
+
+            if (self.meta.castling_rights[color_idx].queen_side) {
+                zhash ^= self.hasher.getCastleRights(color, false);
+            }
+        }
+
+        if (self.meta.en_passant_pos) |ep| {
+            zhash ^= self.hasher.getEnPassant(ep);
+        }
+
+        if (self.active_color == piece.Color.Black) {
+            zhash ^= self.hasher.black_to_move;
+        }
+
+        self.zhash = zhash;
     }
 
     pub fn getPieceSet(self: Self, p: Piece) BoardBitSet {

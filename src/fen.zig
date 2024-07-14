@@ -95,5 +95,7 @@ pub fn parse(str: []const u8) Board {
 
     _ = full_move_str;
 
+    board.initHash();
+
     return board;
 }

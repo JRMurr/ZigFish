@@ -6,6 +6,9 @@ const Position = board_types.Position;
 
 const piece = @import("piece.zig");
 const Color = piece.Color;
+const Kind = piece.Kind;
+const NUM_KINDS = utils.enum_len(piece.Kind);
+const NUM_COLOR = utils.enum_len(piece.Color);
 
 const bitset = @import("bitset.zig");
 const BoardBitSet = bitset.BoardBitSet;

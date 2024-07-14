@@ -16,6 +16,8 @@ const Move = board_types.Move;
 
 const MoveList = game_types.MoveList;
 
+const ZHashing = @import("zhash.zig").ZHashing;
+
 const MovingPiece = struct {
     start: Position,
     piece: Piece,
@@ -63,6 +65,8 @@ pub fn main() anyerror!void {
     const move_allocator = arena.allocator();
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
+
+    const hasher = ZHashing.init();
 
     var game = try GameManager.init(gpa_allocator);
 
@@ -122,6 +126,7 @@ pub fn main() anyerror!void {
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
                 if (p.color == game.board.active_color) {
+                    std.debug.print("hash: {d}\n", .{hasher.getPieceNum(p, pos)});
                     const moves = try game.getValidMovesAt(move_allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     game.setPos(pos, null);
