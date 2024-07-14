@@ -182,7 +182,9 @@ fn compute_castling_info() [2]CastlingInfo {
 
 pub const CASTLING_INFO = compute_castling_info();
 
-pub const PIECE_SCORES = std.EnumArray(piece.Kind, f64).init(.{
+pub const Score = i64;
+
+pub const PIECE_SCORES = std.EnumArray(piece.Kind, Score).init(.{
     .King = 0,
     .Queen = 1000,
     .Bishop = 350,

@@ -19,6 +19,7 @@ const Kind = piece.Kind;
 const Piece = piece.Piece;
 
 const precompute = @import("precompute.zig");
+const Score = precompute.Score;
 
 const fen = @import("fen.zig");
 
@@ -58,7 +59,17 @@ const MoveGenInfo = struct {
 
 const GeneratedMoves = struct { moves: MoveList, gen_info: MoveGenInfo };
 
-const NEGATIVE_INF = -std.math.inf(f64);
+// const NEGATIVE_INF = -std.math.inf(f64);
+const MIN_SCORE = std.math.minInt(Score);
+const MAX_SCORE = std.math.maxInt(Score);
+
+fn negate_score(x: Score) Score {
+    return switch (x) {
+        MIN_SCORE => MAX_SCORE,
+        MAX_SCORE => MIN_SCORE,
+        else => -%x,
+    };
+}
 
 pub const GameManager = struct {
     const Self = @This();
@@ -513,18 +524,18 @@ pub const GameManager = struct {
         return moves;
     }
 
-    pub fn evaluate(self: Self) f64 {
+    pub fn evaluate(self: Self) i64 {
         const white_eval = self.getMaterialScore(Color.White);
         const black_eval = self.getMaterialScore(Color.Black);
         const score = white_eval - black_eval;
 
-        const perspective: f64 = if (self.board.active_color == Color.White) 1 else -1;
+        const perspective: i64 = if (self.board.active_color == Color.White) 1 else -1;
 
         return score * perspective;
     }
 
-    fn getMaterialScore(self: Self, color: Color) f64 {
-        var score: f64 = 0;
+    fn getMaterialScore(self: Self, color: Color) i64 {
+        var score: Score = 0;
         inline for (utils.enum_fields(Kind)) |f| {
             const kind_idx = f.value;
             const kind: Kind = @enumFromInt(kind_idx);
@@ -535,13 +546,13 @@ pub const GameManager = struct {
             const pieces = self.board.getPieceSet(.{ .kind = kind, .color = color });
             const piece_count = pieces.count();
 
-            score += @as(f64, @floatFromInt(piece_count)) * precompute.PIECE_SCORES.get(kind);
+            score += @as(Score, @intCast(piece_count)) * precompute.PIECE_SCORES.get(kind);
         }
 
         return score;
     }
 
-    pub fn search(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!f64 {
+    pub fn search(self: *Self, move_allocator: Allocator, depth: usize, alpha: Score, beta: Score) Allocator.Error!Score {
         if (depth == 0) {
             return self.evaluate();
         }
@@ -555,22 +566,51 @@ pub const GameManager = struct {
         if (moves.items.len == 0) {
             if (gen_info.king_attackers.count() > 0) {
                 // checkmate
-                return NEGATIVE_INF;
+                return MIN_SCORE;
             }
             // draw
             return 0;
         }
 
-        var best_eval = NEGATIVE_INF;
+        var best_eval = alpha;
 
         for (moves.items) |move| {
             try self.makeMove(move);
-            const eval = -1 * try self.search(move_allocator, depth - 1);
-            best_eval = @max(best_eval, eval);
+            const eval = -%try self.search(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
             self.unMakeMove(move);
+
+            if (eval >= beta) {
+                //  fail hard beta-cutoff
+                return beta;
+            }
+            best_eval = @max(best_eval, eval);
         }
 
         return best_eval;
+    }
+
+    pub fn findBestMove(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!?Move {
+        var alpha: Score = MIN_SCORE;
+
+        const generated_moves = try self.getAllValidMoves(move_allocator);
+        const moves = generated_moves.moves;
+        defer moves.deinit();
+
+        var bestMove: ?Move = null;
+
+        for (moves.items) |move| {
+            try self.makeMove(move);
+            const enemy_score = try self.search(move_allocator, depth - 1, MIN_SCORE, negate_score(alpha));
+            const eval = negate_score(enemy_score);
+            self.unMakeMove(move);
+
+            if (eval > alpha) {
+                bestMove = move;
+                alpha = eval;
+            }
+        }
+
+        return bestMove;
     }
 
     // https://www.chessprogramming.org/Perft

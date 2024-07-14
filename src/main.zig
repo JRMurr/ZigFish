@@ -86,8 +86,8 @@ pub fn main() anyerror!void {
     // const perf = try game.perft(6, move_allocator, true);
     // std.debug.print("nodes: {}\n", .{perf});
 
-    const search_res = try game.search(move_allocator, 6);
-    std.debug.print("search_res: {}\n", .{search_res});
+    // const best_move = (try game.findBestMove(move_allocator, 6)).?;
+    // std.debug.print("search_res: {}\n", .{best_move});
 
     // std.debug.print("score: {}\n", .{game.evaluate()});
 
