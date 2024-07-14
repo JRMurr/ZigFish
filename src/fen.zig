@@ -26,18 +26,13 @@ const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
     .{ "p", Piece{ .kind = Kind.Pawn, .color = Color.Black } },
 });
 
-pub const BoardState = struct {
-    board: board_types.Board,
-    active_color: Color,
-};
-
 fn parseInt(comptime T: type, buf: []const u8) T {
     return std.fmt.parseInt(T, buf, 10) catch |err| {
         std.debug.panic("erroring parsing {s} as {s}. Err: {}", .{ buf, @typeName(T), err });
     };
 }
 
-pub fn parse(str: []const u8) BoardState {
+pub fn parse(str: []const u8) Board {
     var splits = std.mem.tokenizeScalar(u8, str, ' ');
 
     const pieces_str = splits.next().?;
@@ -71,7 +66,7 @@ pub fn parse(str: []const u8) BoardState {
         if (curr_pos.rank > 0) curr_pos.rank -= 1;
     }
 
-    const active_color = if (std.mem.eql(u8, active_color_str, "w")) Color.White else Color.Black;
+    board.active_color = if (std.mem.eql(u8, active_color_str, "w")) Color.White else Color.Black;
 
     if (!std.mem.eql(u8, en_passant_str, "-")) {
         board.meta.en_passant_pos = Position.fromStr(en_passant_str);
@@ -100,5 +95,5 @@ pub fn parse(str: []const u8) BoardState {
 
     _ = full_move_str;
 
-    return BoardState{ .board = board, .active_color = active_color };
+    return board;
 }

@@ -55,9 +55,9 @@ pub const GameManager = struct {
     }
 
     pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
-        const state = fen.parse(fen_str);
+        const board = fen.parse(fen_str);
         const history = try HistoryStack.initCapacity(allocator, 30);
-        return Self{ .board = state.board, .history = history };
+        return Self{ .board = board, .history = history };
     }
 
     pub fn getPos(self: Self, pos: Position) ?Piece {
@@ -221,8 +221,8 @@ pub const GameManager = struct {
         return rooks.isSet(maybe_rook_idx);
     }
 
-    fn get_all_attacked_sqaures(self: Self, color: piece.Color) BoardBitSet {
-        const pinned_pieces = self.find_pinned_pieces(color);
+    pub fn get_all_attacked_sqaures(self: Self, color: piece.Color) BoardBitSet {
+        // const pinned_pieces = self.find_pinned_pieces(color);
 
         var attacks = BoardBitSet.initEmpty();
 
@@ -231,12 +231,12 @@ pub const GameManager = struct {
         for (0..utils.enum_len(piece.Kind)) |kind_idx| {
             const kind: piece.Kind = @enumFromInt(kind_idx);
             const p = Piece{ .color = color, .kind = kind };
-            const piece_set = self.board.getPieceSet(p).differenceWith(pinned_pieces);
+            const piece_set = self.board.getPieceSet(p); //.differenceWith(pinned_pieces);
 
             switch (kind) {
                 piece.Kind.Pawn => {
-                    const enemies = self.board.color_sets[@intFromEnum(color.get_enemy())];
-                    const pawn_attacks = piece_set.pawnAttacks(color, enemies);
+                    // const enemies = self.board.color_sets[@intFromEnum(color.get_enemy())];
+                    const pawn_attacks = piece_set.pawnAttacks(color, null);
                     // pawn_attacks.debug();
                     attacks.setUnion(pawn_attacks);
                 },
@@ -426,7 +426,7 @@ pub const GameManager = struct {
     }
 
     // https://www.chessprogramming.org/Perft
-    pub fn perft(self: *Self, depth: usize, move_allocator: Allocator) Allocator.Error!usize {
+    pub fn perft(self: *Self, depth: usize, move_allocator: Allocator, print_count_per_move: bool) Allocator.Error!usize {
         var nodes: usize = 0;
         if (depth == 0) {
             return 1;
@@ -437,10 +437,41 @@ pub const GameManager = struct {
 
         for (moves.items) |move| {
             try self.makeMove(move);
-            nodes += try self.perft(depth - 1, move_allocator);
+            const num_leafs = try self.perft(depth - 1, move_allocator, false);
+            if (print_count_per_move) {
+                std.debug.print("{s}: {d}\n", .{ move.toStrSimple(), num_leafs });
+            }
+            nodes += num_leafs;
             self.unMakeMove(move);
         }
 
         return nodes;
     }
 };
+
+// test "perft base" {
+//     var game = try GameManager.init(std.testing.allocator);
+//     defer game.deinit();
+
+//     const perf = try game.perft(3, std.testing.allocator);
+
+//     try std.testing.expectEqual(8_902, perf);
+// }
+
+// test "perft pos 5 base" {
+//     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+//     defer game.deinit();
+
+//     // try std.testing.expectEqual(44, try game.perft(1, std.testing.allocator, false));
+//     // try std.testing.expectEqual(1_486, try game.perft(2, std.testing.allocator, true));
+//     try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, true));
+// }
+
+test "tmp123" {
+    var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/P7/1PP1NnPP/RNBQK2R b KQ - 0 8");
+    defer game.deinit();
+
+    // try std.testing.expectEqual(44, try game.perft(1, std.testing.allocator, false));
+    // try std.testing.expectEqual(1_486, try game.perft(2, std.testing.allocator, true));
+    try std.testing.expectEqual(1373, try game.perft(2, std.testing.allocator, true));
+}

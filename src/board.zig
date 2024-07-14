@@ -129,6 +129,19 @@ pub const Move = struct {
 
         return str;
     }
+
+    pub fn toStrSimple(self: Move) [5]u8 {
+        const from_str = self.start.toStr();
+        const to_str = self.end.toStr();
+        const promotion_symbol = if (self.promotion_kind) |k| k.to_symbol() else "";
+
+        var str = comptime initStr(' ', 5);
+        _ = std.fmt.bufPrint(&str, "{s}{s}{s}", .{ from_str, to_str, promotion_symbol }) catch {
+            std.debug.panic("Bad move format for {any}", .{self});
+        };
+
+        return str;
+    }
 };
 
 pub const CastlingRights = struct {
