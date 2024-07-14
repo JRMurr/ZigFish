@@ -81,7 +81,7 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPPKNnPP/RNBQ3R b - - 2 8");
 
     // test positon for debugging
-    var game = try GameManager.from_fen(gpa_allocator, "3k4/8/8/8/8/pp3ppp/PP4P1/3K4 w - - 0 1");
+    var game = try GameManager.from_fen(gpa_allocator, "rnB2k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBqK2R w KQ - 0 9");
 
     var moving_piece: ?MovingPiece = null;
 
