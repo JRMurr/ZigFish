@@ -93,7 +93,7 @@ pub const GameManager = struct {
     }
 
     /// given the position of a pinned piece, get the ray of the attack
-    fn get_pin_attacker(self: Self, pin_pos: Position) BoardBitSet {
+    fn get_pin_attacker(self: Self, pin_pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
         const pin_piece = if (self.board.getPos(pin_pos)) |p| p else return BoardBitSet.initEmpty();
 
         const color = pin_piece.color;
@@ -108,7 +108,7 @@ pub const GameManager = struct {
 
             const dir: Dir = @enumFromInt(dir_index);
 
-            var on_ray = moves.intersectWith(self.board.occupied_set);
+            var on_ray = moves.intersectWith(self.board.occupied_set.differenceWith(ignore_sqaures));
             if (on_ray.count() > 1) {
                 const possible_pin = dir.first_hit_on_ray(on_ray);
 
@@ -247,8 +247,6 @@ pub const GameManager = struct {
     }
 
     pub fn allAttackedSqaures(self: Self, color: piece.Color) AttackedSqaureInfo {
-        // const pinned_pieces = self.find_pinned_pieces(color);
-
         var attacks = BoardBitSet.initEmpty();
 
         const king_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = piece.Kind.King });
@@ -259,7 +257,7 @@ pub const GameManager = struct {
         for (0..utils.enum_len(piece.Kind)) |kind_idx| {
             const kind: piece.Kind = @enumFromInt(kind_idx);
             const p = Piece{ .color = color, .kind = kind };
-            const piece_set = self.board.getPieceSet(p); //.differenceWith(pinned_pieces);
+            const piece_set = self.board.getPieceSet(p);
 
             switch (kind) {
                 piece.Kind.Pawn => {
@@ -347,7 +345,7 @@ pub const GameManager = struct {
         const start_idx = pos.toIndex();
         const pinned_pieces = gen_info.pinned_pieces;
         const is_pinned = pinned_pieces.isSet(start_idx);
-        const pin_ray = if (is_pinned) self.get_pin_attacker(pos) else BoardBitSet.initFull();
+        const pin_ray = if (is_pinned) self.get_pin_attacker(pos, BoardBitSet.initEmpty()) else BoardBitSet.initFull();
         const remove_check_sqaures = if (gen_info.king_attack_ray) |attack_ray|
             attack_ray.unionWith(gen_info.king_attackers)
         else blk: {
@@ -393,6 +391,7 @@ pub const GameManager = struct {
 
                 const possible_captures = start_bs.pawnAttacks(p.color, enemies.unionWith(en_passant_board)).intersectWith(allowed_sqaures);
                 var captures_iter = possible_captures.iterator();
+
                 while (captures_iter.next()) |to| {
                     const end_rank = to.toRankFile().rank;
                     if (end_rank == 0 or end_rank == 7) {
@@ -415,6 +414,16 @@ pub const GameManager = struct {
                         if (self.board.getPos(to)) |captured| {
                             move.captured_kind = captured.kind;
                         } else {
+                            const ep_pos = self.board.meta.en_passant_pos.?;
+
+                            const to_capture = if (enemy_color == piece.Color.Black) ep_pos.move_dir(Dir.South) else ep_pos.move_dir(Dir.North);
+
+                            const is_pinned_ignoring_capture = self.get_pin_attacker(pos, BoardBitSet.initWithPos(to_capture));
+                            if (is_pinned_ignoring_capture.count() > 0) {
+                                // if we took the ep pawn there would be no defender of the king
+                                continue;
+                            }
+
                             move.captured_kind = piece.Kind.Pawn;
                             move.move_flags.setPresent(MoveType.EnPassant, true);
                         }
@@ -537,9 +546,16 @@ test "perft pos 4" {
     try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, false));
 }
 
-test "perft pos 5" {
+test "perft pos 5 depth 3" {
     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
     defer game.deinit();
 
     try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, false));
+}
+
+test "perft pos 5 depth 5" {
+    var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+    defer game.deinit();
+
+    try std.testing.expectEqual(89_941_194, try game.perft(5, std.testing.allocator, false));
 }
