@@ -14,6 +14,8 @@ const BoardBitSet = bit_set_types.BoardBitSet;
 const Dir = bit_set_types.Dir;
 
 const piece = @import("piece.zig");
+const Color = piece.Color;
+const Kind = piece.Kind;
 const Piece = piece.Piece;
 
 const precompute = @import("precompute.zig");
@@ -26,7 +28,7 @@ pub const MoveList = std.ArrayList(Move);
 
 const NUM_DIRS = utils.enum_len(Dir);
 
-const PROMOTION_KINDS = [4]piece.Kind{ piece.Kind.Queen, piece.Kind.Knight, piece.Kind.Bishop, piece.Kind.Rook };
+const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook };
 
 // pub const MoveHistory = struct {
 //     move: Move,
@@ -93,15 +95,15 @@ pub const GameManager = struct {
     }
 
     /// given the position of a pinned piece, get the ray of the attack
-    fn get_pin_attacker(self: Self, pin_pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
+    fn pinAttacker(self: Self, pin_pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
         const pin_piece = if (self.board.getPos(pin_pos)) |p| p else return BoardBitSet.initEmpty();
 
         const color = pin_piece.color;
 
-        const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.King });
+        const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = Kind.King });
         const king_square = king_board.bitScanForward();
 
-        const enmey_queens = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
+        const enmey_queens = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = Kind.Queen });
 
         for (0..NUM_DIRS) |dir_index| {
             var moves = precompute.RAYS[king_square][dir_index];
@@ -120,7 +122,7 @@ pub const GameManager = struct {
 
                 const possible_attacker = dir.first_hit_on_ray(on_ray);
 
-                const kind = if (dir_index < 4) piece.Kind.Rook else piece.Kind.Bishop;
+                const kind = if (dir_index < 4) Kind.Rook else Kind.Bishop;
                 const kind_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = kind });
 
                 const all_valid_enemies = kind_board.unionWith(enmey_queens);
@@ -133,11 +135,11 @@ pub const GameManager = struct {
         return BoardBitSet.initEmpty();
     }
 
-    fn find_pinned_pieces(self: Self, color: piece.Color) PinInfo {
-        const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.King });
+    fn findPinnedPieces(self: Self, color: Color) PinInfo {
+        const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = Kind.King });
         const king_square = king_board.bitScanForward();
 
-        const enmey_queens = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = piece.Kind.Queen });
+        const enmey_queens = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = Kind.Queen });
 
         var pinned = BoardBitSet.initEmpty();
 
@@ -150,7 +152,7 @@ pub const GameManager = struct {
 
             var on_ray = moves.intersectWith(self.board.occupied_set);
             if (on_ray.count() >= 1) {
-                const kind = if (dir_index < 4) piece.Kind.Rook else piece.Kind.Bishop;
+                const kind = if (dir_index < 4) Kind.Rook else Kind.Bishop;
                 const kind_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = kind });
 
                 const all_valid_enemies = kind_board.unionWith(enmey_queens);
@@ -211,7 +213,7 @@ pub const GameManager = struct {
         return attacks;
     }
 
-    fn castle_allowed(self: Self, color: piece.Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
+    fn castleAllowed(self: Self, color: Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
         const castle_rights = self.board.meta.castling_rights[@intFromEnum(color)];
         if (king_side and castle_rights.king_side == false) {
             return false;
@@ -224,7 +226,7 @@ pub const GameManager = struct {
 
         const castle_info = if (king_side) all_castle_info.king_side else all_castle_info.queen_side;
 
-        const king_idx = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.King }).bitScanForward();
+        const king_idx = self.board.getPieceSet(Piece{ .color = color, .kind = Kind.King }).bitScanForward();
         const dir = if (king_side) Dir.East else Dir.West;
         const ray = precompute.RAYS[king_idx][@intFromEnum(dir)];
 
@@ -241,26 +243,26 @@ pub const GameManager = struct {
 
         const maybe_rook_idx = dir.first_hit_on_ray(occupied_ray);
 
-        const rooks = self.board.getPieceSet(Piece{ .color = color, .kind = piece.Kind.Rook });
+        const rooks = self.board.getPieceSet(Piece{ .color = color, .kind = Kind.Rook });
 
         return rooks.isSet(maybe_rook_idx);
     }
 
-    pub fn allAttackedSqaures(self: Self, color: piece.Color) AttackedSqaureInfo {
+    pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
         var attacks = BoardBitSet.initEmpty();
 
-        const king_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = piece.Kind.King });
+        const king_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = Kind.King });
         const king_square = king_board.bitScanForward();
 
         var king_attackers = BoardBitSet.initEmpty();
 
-        for (0..utils.enum_len(piece.Kind)) |kind_idx| {
-            const kind: piece.Kind = @enumFromInt(kind_idx);
+        for (0..utils.enum_len(Kind)) |kind_idx| {
+            const kind: Kind = @enumFromInt(kind_idx);
             const p = Piece{ .color = color, .kind = kind };
             const piece_set = self.board.getPieceSet(p);
 
             switch (kind) {
-                piece.Kind.Pawn => {
+                Kind.Pawn => {
                     // const enemies = self.board.color_sets[@intFromEnum(color.get_enemy())];
                     const pawn_attacks = piece_set.pawnAttacks(color, null);
                     if (pawn_attacks.isSet(king_square)) {
@@ -272,7 +274,7 @@ pub const GameManager = struct {
                     // pawn_attacks.debug();
                     attacks.setUnion(pawn_attacks);
                 },
-                piece.Kind.Knight => {
+                Kind.Knight => {
                     const knight_attacks = piece_set.knightMoves();
                     if (knight_attacks.isSet(king_square)) {
                         const attacking_knights = precompute.KNIGHT_MOVES[king_square].intersectWith(piece_set);
@@ -281,12 +283,12 @@ pub const GameManager = struct {
                     // knight_attacks.debug();
                     attacks.setUnion(knight_attacks);
                 },
-                piece.Kind.King => {
+                Kind.King => {
                     const king_attacks = piece_set.kingMoves();
                     // king_attacks.debug();
                     attacks.setUnion(king_attacks);
                 },
-                piece.Kind.Bishop, piece.Kind.Queen, piece.Kind.Rook => {
+                Kind.Bishop, Kind.Queen, Kind.Rook => {
                     var slide_attacks = BoardBitSet.initEmpty();
                     var iter = piece_set.iterator();
                     while (iter.next()) |pos| {
@@ -312,7 +314,7 @@ pub const GameManager = struct {
     pub fn getAllValidMoves(self: Self, move_allocator: Allocator) Allocator.Error!MoveList {
         const color = self.board.active_color;
 
-        const pin_info = self.find_pinned_pieces(color);
+        const pin_info = self.findPinnedPieces(color);
         const attack_info = self.allAttackedSqaures(color.get_enemy());
 
         const gen_info = MoveGenInfo{
@@ -345,7 +347,7 @@ pub const GameManager = struct {
         const start_idx = pos.toIndex();
         const pinned_pieces = gen_info.pinned_pieces;
         const is_pinned = pinned_pieces.isSet(start_idx);
-        const pin_ray = if (is_pinned) self.get_pin_attacker(pos, BoardBitSet.initEmpty()) else BoardBitSet.initFull();
+        const pin_ray = if (is_pinned) self.pinAttacker(pos, BoardBitSet.initEmpty()) else BoardBitSet.initFull();
         const remove_check_sqaures = if (gen_info.king_attack_ray) |attack_ray|
             attack_ray.unionWith(gen_info.king_attackers)
         else blk: {
@@ -360,7 +362,7 @@ pub const GameManager = struct {
         const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
 
         var possible_moves = switch (p.kind) {
-            piece.Kind.Pawn => {
+            Kind.Pawn => {
                 const start_bs = BoardBitSet.initWithIndex(start_idx);
                 const occupied = self.board.occupied_set;
 
@@ -416,15 +418,15 @@ pub const GameManager = struct {
                         } else {
                             const ep_pos = self.board.meta.en_passant_pos.?;
 
-                            const to_capture = if (enemy_color == piece.Color.Black) ep_pos.move_dir(Dir.South) else ep_pos.move_dir(Dir.North);
+                            const to_capture = if (enemy_color == Color.Black) ep_pos.move_dir(Dir.South) else ep_pos.move_dir(Dir.North);
 
-                            const is_pinned_ignoring_capture = self.get_pin_attacker(pos, BoardBitSet.initWithPos(to_capture));
+                            const is_pinned_ignoring_capture = self.pinAttacker(pos, BoardBitSet.initWithPos(to_capture));
                             if (is_pinned_ignoring_capture.count() > 0) {
                                 // if we took the ep pawn there would be no defender of the king
                                 continue;
                             }
 
-                            move.captured_kind = piece.Kind.Pawn;
+                            move.captured_kind = Kind.Pawn;
                             move.move_flags.setPresent(MoveType.EnPassant, true);
                         }
 
@@ -434,32 +436,32 @@ pub const GameManager = struct {
 
                 return;
             },
-            piece.Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(allowed_sqaures).differenceWith(freinds),
-            piece.Kind.King => blk: {
+            Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(allowed_sqaures).differenceWith(freinds),
+            Kind.King => blk: {
                 const enemy_attacked_sqaures = gen_info.enemy_attacked_sqaures;
 
                 const king_moves = precompute.KING_MOVES[start_idx];
 
-                if (self.castle_allowed(p.color, enemy_attacked_sqaures, true)) {
+                if (self.castleAllowed(p.color, enemy_attacked_sqaures, true)) {
                     // king side castle
                     const end = Position.fromIndex(pos.index + 2);
                     const flags = MoveFlags.initOne(MoveType.Castling);
-                    const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
+                    const move = Move{ .start = pos, .end = end, .kind = Kind.King, .move_flags = flags };
                     out_moves.appendAssumeCapacity(move);
                 }
-                if (self.castle_allowed(p.color, enemy_attacked_sqaures, false)) {
+                if (self.castleAllowed(p.color, enemy_attacked_sqaures, false)) {
                     // queen side castle
                     const end = Position.fromIndex(pos.index - 2);
                     const flags = MoveFlags.initOne(MoveType.Castling);
-                    const move = Move{ .start = pos, .end = end, .kind = piece.Kind.King, .move_flags = flags };
+                    const move = Move{ .start = pos, .end = end, .kind = Kind.King, .move_flags = flags };
                     out_moves.appendAssumeCapacity(move);
                 }
 
                 break :blk king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
             },
-            piece.Kind.Bishop,
-            piece.Kind.Queen,
-            piece.Kind.Rook,
+            Kind.Bishop,
+            Kind.Queen,
+            Kind.Rook,
             => self.slidingMoves(p, pos, BoardBitSet.initEmpty()).intersectWith(allowed_sqaures),
         };
 
@@ -469,7 +471,7 @@ pub const GameManager = struct {
 
         while (move_iter.next()) |to| {
             const maybe_capture = self.board.getPos(to);
-            var captured_kind: ?piece.Kind = null;
+            var captured_kind: ?Kind = null;
             var flags = MoveFlags.initEmpty();
             if (maybe_capture) |capture| {
                 captured_kind = capture.kind;
@@ -486,7 +488,7 @@ pub const GameManager = struct {
 
         const p = if (maybe_peice) |p| p else return moves;
 
-        const pin_info = self.find_pinned_pieces(p.color);
+        const pin_info = self.findPinnedPieces(p.color);
         const attack_info = self.allAttackedSqaures(p.color.get_enemy());
 
         const gen_info = MoveGenInfo{
@@ -499,6 +501,34 @@ pub const GameManager = struct {
         try self.get_valid_moves(&moves, &gen_info, pos, p);
 
         return moves;
+    }
+
+    pub fn evaluate(self: Self) f64 {
+        const white_eval = self.getMaterialScore(Color.White);
+        const black_eval = self.getMaterialScore(Color.Black);
+        const score = white_eval - black_eval;
+
+        const perspective: f64 = if (self.board.active_color == Color.White) 1 else -1;
+
+        return score * perspective;
+    }
+
+    fn getMaterialScore(self: Self, color: Color) f64 {
+        var score: f64 = 0;
+        inline for (utils.enum_fields(Kind)) |f| {
+            const kind_idx = f.value;
+            const kind: Kind = @enumFromInt(kind_idx);
+            if (kind == Kind.King) {
+                continue;
+            }
+
+            const pieces = self.board.getPieceSet(.{ .kind = kind, .color = color });
+            const piece_count = pieces.count();
+
+            score += @as(f64, @floatFromInt(piece_count)) * precompute.PIECE_SCORES.get(kind);
+        }
+
+        return score;
     }
 
     // https://www.chessprogramming.org/Perft

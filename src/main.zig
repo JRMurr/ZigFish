@@ -86,6 +86,8 @@ pub fn main() anyerror!void {
     // const perf = try game.perft(6, move_allocator, true);
     // std.debug.print("nodes: {}\n", .{perf});
 
+    // std.debug.print("score: {}\n", .{game.evaluate()});
+
     var moving_piece: ?MovingPiece = null;
 
     // var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
