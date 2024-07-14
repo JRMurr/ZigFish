@@ -2,7 +2,9 @@ const std = @import("std");
 const rl = @import("raylib");
 
 const sprite = @import("sprite.zig");
-const Piece = @import("piece.zig").Piece;
+
+const piece_types = @import("piece.zig");
+const Piece = piece_types.Piece;
 
 const game_types = @import("game.zig");
 const GameManager = game_types.GameManager;
@@ -62,7 +64,7 @@ pub fn main() anyerror!void {
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    // var game = try GameManager.init(gpa_allocator);
+    var game = try GameManager.init(gpa_allocator);
 
     // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
@@ -81,7 +83,7 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPPKNnPP/RNBQ3R b - - 2 8");
 
     // test positon for debugging
-    var game = try GameManager.from_fen(gpa_allocator, "8/2p5/3p4/KP5r/6pk/8/4P1P1/8 w - - 1 1");
+    // var game = try GameManager.from_fen(gpa_allocator, "8/2p5/3p4/KP5r/6pk/8/4P1P1/8 w - - 1 1");
 
     // const perf = try game.perft(6, move_allocator, true);
     // std.debug.print("nodes: {}\n", .{perf});
@@ -107,7 +109,15 @@ pub fn main() anyerror!void {
         const mouse_x: usize = clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
-        if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
+        const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
+            try game.findBestMove(move_allocator, 3)
+        else
+            null;
+
+        if (maybe_best_black_moves) |m| {
+            try game.makeMove(m);
+            try move_history.append(m);
+        } else if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
