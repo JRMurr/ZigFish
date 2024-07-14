@@ -56,6 +56,10 @@ const MoveGenInfo = struct {
     enemy_attacked_sqaures: BoardBitSet,
 };
 
+const GeneratedMoves = struct { moves: MoveList, gen_info: MoveGenInfo };
+
+const NEGATIVE_INF = -std.math.inf(f64);
+
 pub const GameManager = struct {
     const Self = @This();
 
@@ -311,7 +315,7 @@ pub const GameManager = struct {
         };
     }
 
-    pub fn getAllValidMoves(self: Self, move_allocator: Allocator) Allocator.Error!MoveList {
+    pub fn getAllValidMoves(self: Self, move_allocator: Allocator) Allocator.Error!GeneratedMoves {
         const color = self.board.active_color;
 
         const pin_info = self.findPinnedPieces(color);
@@ -331,13 +335,19 @@ pub const GameManager = struct {
         while (color_iter.next()) |pos| {
             const p = self.getPos(pos).?;
 
-            try self.get_valid_moves(&moves, &gen_info, pos, p);
+            try self.getValidMoves(&moves, &gen_info, pos, p);
         }
 
-        return moves;
+        return .{ .moves = moves, .gen_info = gen_info };
     }
 
-    fn get_valid_moves(self: Self, out_moves: *MoveList, gen_info: *const MoveGenInfo, pos: Position, p: Piece) Allocator.Error!void {
+    fn getValidMoves(
+        self: Self,
+        out_moves: *MoveList,
+        gen_info: *const MoveGenInfo,
+        pos: Position,
+        p: Piece,
+    ) Allocator.Error!void {
         if (gen_info.king_attackers.count() >= 2 and !p.is_king()) {
             // if there are 2 or more direct attacks on the king, only it can move
             return;
@@ -481,7 +491,7 @@ pub const GameManager = struct {
         }
     }
 
-    pub fn get_valid_moves_at_pos(self: Self, move_allocator: Allocator, pos: Position) Allocator.Error!MoveList {
+    pub fn getValidMovesAt(self: Self, move_allocator: Allocator, pos: Position) Allocator.Error!MoveList {
         const maybe_peice = self.getPos(pos);
 
         var moves = MoveList.init(move_allocator);
@@ -498,7 +508,7 @@ pub const GameManager = struct {
             .king_attackers = attack_info.king_attackers,
         };
 
-        try self.get_valid_moves(&moves, &gen_info, pos, p);
+        try self.getValidMoves(&moves, &gen_info, pos, p);
 
         return moves;
     }
@@ -531,6 +541,38 @@ pub const GameManager = struct {
         return score;
     }
 
+    pub fn search(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!f64 {
+        if (depth == 0) {
+            return self.evaluate();
+        }
+
+        const generated_moves = try self.getAllValidMoves(move_allocator);
+        const moves = generated_moves.moves;
+        defer moves.deinit();
+
+        const gen_info = generated_moves.gen_info;
+
+        if (moves.items.len == 0) {
+            if (gen_info.king_attackers.count() > 0) {
+                // checkmate
+                return NEGATIVE_INF;
+            }
+            // draw
+            return 0;
+        }
+
+        var best_eval = NEGATIVE_INF;
+
+        for (moves.items) |move| {
+            try self.makeMove(move);
+            const eval = -1 * try self.search(move_allocator, depth - 1);
+            best_eval = @max(best_eval, eval);
+            self.unMakeMove(move);
+        }
+
+        return best_eval;
+    }
+
     // https://www.chessprogramming.org/Perft
     pub fn perft(self: *Self, depth: usize, move_allocator: Allocator, print_count_per_move: bool) Allocator.Error!usize {
         var nodes: usize = 0;
@@ -538,7 +580,7 @@ pub const GameManager = struct {
             return 1;
         }
 
-        const moves = try self.getAllValidMoves(move_allocator);
+        const moves = (try self.getAllValidMoves(move_allocator)).moves;
         defer moves.deinit();
 
         if (depth == 1 and !print_count_per_move) {

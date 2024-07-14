@@ -81,10 +81,13 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPPKNnPP/RNBQ3R b - - 2 8");
 
     // test positon for debugging
-    var game = try GameManager.from_fen(gpa_allocator, "8/2p5/3p4/KP5r/6pk/4P3/6P1/8 b - - 1 1");
+    var game = try GameManager.from_fen(gpa_allocator, "8/2p5/3p4/KP5r/6pk/8/4P1P1/8 w - - 1 1");
 
     // const perf = try game.perft(6, move_allocator, true);
     // std.debug.print("nodes: {}\n", .{perf});
+
+    const search_res = try game.search(move_allocator, 6);
+    std.debug.print("search_res: {}\n", .{search_res});
 
     // std.debug.print("score: {}\n", .{game.evaluate()});
 
@@ -109,7 +112,7 @@ pub fn main() anyerror!void {
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
                 if (p.color == game.board.active_color) {
-                    const moves = try game.get_valid_moves_at_pos(move_allocator, pos);
+                    const moves = try game.getValidMovesAt(move_allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     game.setPos(pos, null);
                 }
