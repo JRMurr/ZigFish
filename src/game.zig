@@ -502,6 +502,11 @@ pub const GameManager = struct {
         const moves = try self.getAllValidMoves(move_allocator);
         defer moves.deinit();
 
+        if (depth == 1 and !print_count_per_move) {
+            // dont need to actually make these last ones
+            return moves.items.len;
+        }
+
         for (moves.items) |move| {
             try self.makeMove(move);
             const num_leafs = try self.perft(depth - 1, move_allocator, false);
@@ -525,29 +530,16 @@ test "perft base" {
     try std.testing.expectEqual(8_902, perf);
 }
 
-test "perft pos 5 base" {
+test "perft pos 4" {
     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
     defer game.deinit();
 
-    // try std.testing.expectEqual(44, try game.perft(1, std.testing.allocator, false));
-    // try std.testing.expectEqual(1_486, try game.perft(2, std.testing.allocator, true));
-    try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, true));
+    try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, false));
 }
 
-// test "tmp123" {
-//     var game = try GameManager.from_fen(std.testing.allocator, "rnBq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 0 8");
-//     defer game.deinit();
+test "perft pos 5" {
+    var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+    defer game.deinit();
 
-//     // try std.testing.expectEqual(44, try game.perft(1, std.testing.allocator, false));
-//     // try std.testing.expectEqual(1_486, try game.perft(2, std.testing.allocator, true));
-//     try std.testing.expectEqual(1668, try game.perft(2, std.testing.allocator, true));
-// }
-
-// test "tmp1234" {
-//     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1P1ppp/2p5/8/2B5/b7/1PP1NnPP/RNBQK2R w KQ - 0 9");
-//     defer game.deinit();
-
-//     // try std.testing.expectEqual(44, try game.perft(1, std.testing.allocator, false));
-//     // try std.testing.expectEqual(1_486, try game.perft(2, std.testing.allocator, true));
-//     try std.testing.expectEqual(46, try game.perft(1, std.testing.allocator, true));
-// }
+    try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, false));
+}

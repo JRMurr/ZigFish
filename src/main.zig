@@ -83,6 +83,9 @@ pub fn main() anyerror!void {
     // test positon for debugging
     var game = try GameManager.from_fen(gpa_allocator, "rnB2k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBqK2R w KQ - 0 9");
 
+    // const perf = try game.perft(6, move_allocator, false);
+    // std.debug.print("nodes: {}\n", .{perf});
+
     var moving_piece: ?MovingPiece = null;
 
     // var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
