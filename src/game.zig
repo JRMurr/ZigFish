@@ -72,11 +72,19 @@ fn negate_score(x: Score) Score {
     };
 }
 
+const TranspositionEntry = struct {
+    depth: usize,
+    score: Score,
+};
+
+const TranspostionTable = std.AutoHashMap(u64, TranspositionEntry);
+
 pub const GameManager = struct {
     const Self = @This();
 
     board: Board,
     history: HistoryStack,
+    transposition: TranspostionTable,
 
     pub fn init(allocator: Allocator) Allocator.Error!Self {
         return Self.from_fen(allocator, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -89,7 +97,13 @@ pub const GameManager = struct {
     pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
         const board = fen.parse(fen_str);
         const history = try HistoryStack.initCapacity(allocator, 30);
-        return Self{ .board = board, .history = history };
+        var transposition = TranspostionTable.init(allocator);
+        try transposition.ensureTotalCapacity(10_000);
+        return Self{
+            .board = board,
+            .history = history,
+            .transposition = transposition,
+        };
     }
 
     pub fn getPos(self: Self, pos: Position) ?Piece {
@@ -553,9 +567,40 @@ pub const GameManager = struct {
         return score;
     }
 
+    /// update entry only if the passed in depth is greater than the stored
+    fn addToTransposition(self: *Self, hash: u64, score: Score, depth: usize) Allocator.Error!void {
+        const maybe_entry = self.transposition.getEntry(hash);
+        if (maybe_entry) |entry| {
+            if (entry.value_ptr.depth < depth) {
+                entry.value_ptr.* = .{ .depth = depth, .score = score };
+            }
+        } else {
+            try self.transposition.put(hash, .{ .depth = depth, .score = score });
+        }
+    }
+
+    /// Only get entry if stored depth is >= the requested depth
+    fn getFromTransposition(self: *Self, hash: u64, depth: usize) ?TranspositionEntry {
+        const maybe_entry = self.transposition.get(hash);
+        if (maybe_entry) |e| {
+            if (e.depth >= depth) {
+                return e;
+            }
+        }
+        return null;
+    }
+
     pub fn search(self: *Self, move_allocator: Allocator, depth: usize, alpha: Score, beta: Score) Allocator.Error!Score {
         if (depth == 0) {
-            return self.evaluate();
+            const hash = self.board.zhash;
+            if (self.getFromTransposition(hash, 0)) |e| {
+                return e.score;
+            }
+
+            const score = self.evaluate();
+
+            try self.addToTransposition(hash, score, 0);
+            return score;
         }
 
         const generated_moves = try self.getAllValidMoves(move_allocator);
@@ -577,14 +622,26 @@ pub const GameManager = struct {
 
         for (moves.items) |move| {
             try self.makeMove(move);
-            const eval = -%try self.search(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
+            const hash = self.board.zhash;
+            const score = if (self.getFromTransposition(hash, depth)) |e| blk: {
+                break :blk e.score;
+            } else blk: {
+                const res = -%try self.search(
+                    move_allocator,
+                    depth - 1,
+                    negate_score(beta),
+                    negate_score(alpha),
+                );
+                break :blk res;
+            };
+            try self.addToTransposition(hash, score, depth);
             self.unMakeMove(move);
 
-            if (eval >= beta) {
+            if (score >= beta) {
                 //  fail hard beta-cutoff
                 return beta;
             }
-            best_eval = @max(best_eval, eval);
+            best_eval = @max(best_eval, score);
         }
 
         return best_eval;

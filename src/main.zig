@@ -66,7 +66,7 @@ pub fn main() anyerror!void {
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    // var game = try GameManager.init(gpa_allocator);
+    var game = try GameManager.init(gpa_allocator);
 
     // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
@@ -77,7 +77,7 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
 
     // castling
-    var game = try GameManager.from_fen(gpa_allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
+    // var game = try GameManager.from_fen(gpa_allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
 
     // postion 5 in perft examples
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
@@ -113,17 +113,15 @@ pub fn main() anyerror!void {
         const mouse_x: usize = clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
-        // const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-        //     try game.findBestMove(move_allocator, 3)
-        // else
-        //     null;
+        const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
+            try game.findBestMove(move_allocator, 5)
+        else
+            null;
 
-        // if (maybe_best_black_moves) |m| {
-        //     try game.makeMove(m);
-        //     try move_history.append(m);
-        // } else
-
-        if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
+        if (maybe_best_black_moves) |m| {
+            try game.makeMove(m);
+            try move_history.append(m);
+        } else if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
