@@ -79,6 +79,32 @@ const TranspositionEntry = struct {
 
 const TranspostionTable = std.AutoHashMap(u64, TranspositionEntry);
 
+fn score_move(gen_info: MoveGenInfo, move: Move) Score {
+    var score: Score = 0;
+
+    const move_val = precompute.PIECE_SCORES.get(move.kind);
+
+    if (move.captured_kind) |k| {
+        const captured_score = precompute.PIECE_SCORES.get(k);
+
+        score += 10 * captured_score - move_val;
+    }
+
+    if (move.promotion_kind) |k| {
+        score += precompute.PIECE_SCORES.get(k);
+    }
+
+    if (gen_info.enemy_attacked_sqaures.isSet(move.end.toIndex())) {
+        score -= (@divFloor(move_val, 2));
+    }
+
+    return score;
+}
+
+fn compare_moves(gen_info: MoveGenInfo, a: Move, b: Move) bool {
+    return score_move(gen_info, a) < score_move(gen_info, b);
+}
+
 pub const GameManager = struct {
     const Self = @This();
 
@@ -604,7 +630,7 @@ pub const GameManager = struct {
         }
 
         const generated_moves = try self.getAllValidMoves(move_allocator);
-        const moves = generated_moves.moves;
+        var moves = generated_moves.moves;
         defer moves.deinit();
 
         const gen_info = generated_moves.gen_info;
@@ -618,9 +644,13 @@ pub const GameManager = struct {
             return 0;
         }
 
+        const to_sort = try moves.toOwnedSlice();
+
+        std.mem.sort(Move, to_sort, gen_info, compare_moves);
+
         var best_eval = alpha;
 
-        for (moves.items) |move| {
+        for (to_sort) |move| {
             try self.makeMove(move);
             const hash = self.board.zhash;
             const score = if (self.getFromTransposition(hash, depth)) |e| blk: {
