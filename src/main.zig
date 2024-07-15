@@ -66,8 +66,6 @@ pub fn main() anyerror!void {
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    const hasher = ZHashing.init();
-
     var game = try GameManager.init(gpa_allocator);
 
     // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
@@ -126,7 +124,6 @@ pub fn main() anyerror!void {
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
                 if (p.color == game.board.active_color) {
-                    std.debug.print("hash: {d}\n", .{hasher.getPieceNum(p, pos)});
                     const moves = try game.getValidMovesAt(move_allocator, pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     game.setPos(pos, null);
@@ -146,6 +143,8 @@ pub fn main() anyerror!void {
                     std.debug.print("{s}\n", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move);
+                    std.debug.print("hash: {d}\n", .{game.board.zhash});
+
                     // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;
                 }
