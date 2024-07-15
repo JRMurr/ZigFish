@@ -90,7 +90,7 @@ pub const ZHashing = struct {
     }
 
     pub fn getEnPassant(self: Self, pos: Position) u64 {
-        const file = pos.toRankFile().file;
+        const file: usize = pos.toRankFile().file;
 
         return self.enpassant_files[file];
     }

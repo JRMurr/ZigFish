@@ -286,7 +286,10 @@ pub const Board = struct {
         self.setPos(move.start, null);
         self.setPos(move.end, move_piece);
 
-        self.meta.en_passant_pos = null;
+        if (self.meta.en_passant_pos) |ep| {
+            self.zhash ^= self.hasher.getEnPassant(ep);
+            self.meta.en_passant_pos = null;
+        }
 
         if (move.move_flags.contains(MoveType.Capture) or move.kind == piece.Kind.Pawn) {
             self.meta.half_moves = 0;
@@ -310,7 +313,9 @@ pub const Board = struct {
                 const dir = diff_dir[1];
 
                 if (rank_diff == 2) {
+                    const ep_pos = move.start.move_dir(dir);
                     self.meta.en_passant_pos = move.start.move_dir(dir);
+                    self.zhash ^= self.hasher.getEnPassant(ep_pos);
                 }
 
                 if (move.move_flags.contains(MoveType.EnPassant)) {
@@ -319,11 +324,15 @@ pub const Board = struct {
                 }
             },
             piece.Kind.King => {
+                if (self.meta.castling_rights[color_idx].king_side) {
+                    self.zhash ^= self.hasher.getCastleRights(color, true);
+                }
+                if (self.meta.castling_rights[color_idx].queen_side) {
+                    self.zhash ^= self.hasher.getCastleRights(color, false);
+                }
+
                 self.meta.castling_rights[color_idx].king_side = false;
                 self.meta.castling_rights[color_idx].queen_side = false;
-
-                self.zhash ^= self.hasher.getCastleRights(color, true);
-                self.zhash ^= self.hasher.getCastleRights(color, false);
 
                 if (move.move_flags.contains(MoveType.Castling)) {
                     const all_castling_info = precompute.CASTLING_INFO[color_idx];
@@ -344,11 +353,15 @@ pub const Board = struct {
             piece.Kind.Rook => {
                 const start_file = move.start.toRankFile().file;
                 if (start_file == 0) {
+                    if (self.meta.castling_rights[color_idx].queen_side) {
+                        self.zhash ^= self.hasher.getCastleRights(color, false);
+                    }
                     self.meta.castling_rights[color_idx].queen_side = false;
-                    self.zhash ^= self.hasher.getCastleRights(color, false);
                 } else if (start_file == 7) {
+                    if (self.meta.castling_rights[color_idx].king_side) {
+                        self.zhash ^= self.hasher.getCastleRights(color, true);
+                    }
                     self.meta.castling_rights[color_idx].king_side = false;
-                    self.zhash ^= self.hasher.getCastleRights(color, true);
                 }
             },
             else => {},
@@ -379,7 +392,7 @@ pub const Board = struct {
         for (0..NUM_COLOR) |color_idx| {
             const color: piece.Color = @enumFromInt(color_idx);
             const old_castle = old_meta.castling_rights[color_idx];
-            const new_castle = old_meta.castling_rights[color_idx];
+            const new_castle = meta.castling_rights[color_idx];
 
             if (old_castle.king_side != new_castle.king_side) {
                 self.zhash ^= self.hasher.getCastleRights(color, true);
@@ -388,6 +401,7 @@ pub const Board = struct {
                 self.zhash ^= self.hasher.getCastleRights(color, false);
             }
         }
+
         self.meta = meta;
 
         const piece_color = self.active_color.get_enemy();

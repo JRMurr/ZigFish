@@ -66,7 +66,7 @@ pub fn main() anyerror!void {
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    var game = try GameManager.init(gpa_allocator);
+    // var game = try GameManager.init(gpa_allocator);
 
     // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
@@ -77,7 +77,7 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
 
     // castling
-    // var game = try GameManager.from_fen(gpa_allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
+    var game = try GameManager.from_fen(gpa_allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
 
     // postion 5 in perft examples
     // var game = try GameManager.from_fen(gpa_allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
@@ -99,6 +99,8 @@ pub fn main() anyerror!void {
 
     // var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
 
+    std.debug.print("start hash: {d}\n", .{game.board.zhash});
+
     const sprite_manager = sprite.SpriteManager.init(texture, &game, cell_size);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -111,15 +113,17 @@ pub fn main() anyerror!void {
         const mouse_x: usize = clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
-        const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, 3)
-        else
-            null;
+        // const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
+        //     try game.findBestMove(move_allocator, 3)
+        // else
+        //     null;
 
-        if (maybe_best_black_moves) |m| {
-            try game.makeMove(m);
-            try move_history.append(m);
-        } else if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
+        // if (maybe_best_black_moves) |m| {
+        //     try game.makeMove(m);
+        //     try move_history.append(m);
+        // } else
+
+        if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
@@ -143,7 +147,7 @@ pub fn main() anyerror!void {
                     std.debug.print("{s}\n", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move);
-                    std.debug.print("hash: {d}\n", .{game.board.zhash});
+                    std.debug.print("make hash: {d}\n", .{game.board.zhash});
 
                     // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;
@@ -158,6 +162,7 @@ pub fn main() anyerror!void {
             const maybe_move = move_history.popOrNull();
             if (maybe_move) |move| {
                 game.unMakeMove(move);
+                std.debug.print("unmake hash: {d}\n", .{game.board.zhash});
             }
         }
 

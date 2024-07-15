@@ -28,6 +28,8 @@
                 pkgs.zigpkgs."0.13.0" # keep in sync with zls
                 zlsPkg
 
+                pkgs.gdb
+
                 # common
                 pkgs.just
               ];

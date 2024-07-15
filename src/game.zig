@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const utils = @import("utils.zig");
 
 const board_types = @import("board.zig");
@@ -641,6 +642,43 @@ pub const GameManager = struct {
         return nodes;
     }
 };
+
+fn testZhashUnMake(game: *GameManager, print: bool) anyerror!void {
+    const moves = (try game.getAllValidMoves(std.testing.allocator)).moves;
+    defer moves.deinit();
+
+    for (moves.items) |move| {
+        const start_hash = game.board.zhash;
+        try game.makeMove(move);
+        game.unMakeMove(move);
+        const end_hash = game.board.zhash;
+
+        if (print) std.debug.print("{s}: {d}\t{d}\n", .{ move.toStrSimple(), start_hash, end_hash });
+
+        try std.testing.expectEqual(start_hash, end_hash);
+    }
+}
+
+test "zhash updates correctly - start pos" {
+    var game = try GameManager.init(std.testing.allocator);
+    defer game.deinit();
+
+    try testZhashUnMake(&game, false);
+}
+
+test "zhash updates correctly - could castle" {
+    var game = try GameManager.from_fen(std.testing.allocator, "r3k2r/8/8/4b3/8/8/6P1/R3K2R w KQkq - 0 1");
+    defer game.deinit();
+
+    try testZhashUnMake(&game, false);
+}
+
+test "zhash updates correctly - could promote" {
+    var game = try GameManager.from_fen(std.testing.allocator, "3r1q2/4P3/6K1/1k6/8/8/8/8 w - - 0 1");
+    defer game.deinit();
+
+    try testZhashUnMake(&game, false);
+}
 
 test "perft base" {
     var game = try GameManager.init(std.testing.allocator);
