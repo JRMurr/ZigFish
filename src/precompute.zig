@@ -17,6 +17,9 @@ const Line = bitset.Line;
 const NUM_DIRS = bitset.NUM_DIRS;
 const NUM_LINES = bitset.NUM_LINES;
 
+const game_types = @import("game.zig");
+const GamePhase = game_types.GamePhase;
+
 fn computeNumCellsToEdge() [64][8]u8 {
     const all_positon = Position.all_positions();
     var dist_to_edge: [64][8]u8 = undefined;
@@ -188,10 +191,160 @@ pub const CASTLING_INFO = compute_castling_info();
 pub const Score = i64;
 
 pub const PIECE_SCORES = std.EnumArray(piece.Kind, Score).init(.{
-    .King = 0,
-    .Queen = 1000,
-    .Bishop = 350,
-    .Knight = 350,
-    .Rook = 525,
+    .King = 200000,
+    .Queen = 900,
+    .Bishop = 330,
+    .Knight = 320,
+    .Rook = 500,
     .Pawn = 100,
 });
+
+pub const PieceSquareScore = struct {
+    const PieceSquare = [64]Score;
+
+    fn flipPieceSqaure(x: PieceSquare) PieceSquare {
+        var res: PieceSquare = undefined;
+
+        for (0..64) |idx| {
+            const start_pos = Position.fromIndex(idx);
+            const flipped = start_pos.flipRank();
+            res[flipped.toIndex()] = x[start_pos.toIndex()];
+        }
+
+        return res;
+    }
+
+    fn getPieceSquare(p: piece.Piece, phase: GamePhase) PieceSquare {
+        const kind = p.kind;
+        const is_white = p.color == piece.Color.White;
+
+        return switch (kind) {
+            .Knight => KNIGHT_SCORE,
+            .Queen => QUEEN_SCORE,
+            .Pawn => if (is_white) WHITE_PAWN_SCORE else BLACK_PAWN_SCORE,
+            .Bishop => if (is_white) WHITE_BISHOP_SCORE else BLACK_BISHOP_SCORE,
+            .Rook => if (is_white) WHITE_ROOK_SCORE else BLACK_ROOK_SCORE,
+            .King => switch (phase) {
+                .Opening => KING_OPENING_SCORE,
+                .Middle => if (is_white) WHITE_KING_MID_SCORE else BLACK_KING_MID_SCORE,
+                .End => if (is_white) WHITE_KING_END_SCORE else BLACK_KING_END_SCORE,
+            },
+        };
+    }
+
+    pub fn scorePieces(p: piece.Piece, phase: GamePhase, board: BoardBitSet) Score {
+        var score: Score = 0;
+
+        const piece_sqaure = getPieceSquare(p, phase);
+
+        var board_iter = board.iterator();
+        while (board_iter.next()) |pos| {
+            score += piece_sqaure[pos.toIndex()];
+        }
+
+        return score;
+    }
+
+    // https://www.chessprogramming.org/Simplified_Evaluation_Function#Piece-Square_Tables
+    // Note the arrays for the following boards have the 0 index as the a8, so they are from "blacks"
+    // perspective if using bitboard indexs
+    // some are syemtrical so name won't matter
+
+    // zig fmt: off
+    const BLACK_PAWN_SCORE = PieceSquare{ 
+        0,  0,  0,  0,  0,  0,  0,  0,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        10, 10, 20, 30, 30, 20, 10, 10,
+        5,  5, 10, 25, 25, 10,  5,  5,
+        0,  0,  0, 20, 20,  0,  0,  0,
+        5, -5,-10,  0,  0,-10, -5,  5,
+        5, 10, 10,-20,-20, 10, 10,  5,
+        0,  0,  0,  0,  0,  0,  0,  0
+    };
+    // zig fmt: on
+    const WHITE_PAWN_SCORE = flipPieceSqaure(BLACK_PAWN_SCORE);
+
+    // zig fmt: off
+    const KNIGHT_SCORE = PieceSquare{ 
+        -50,-40,-30,-30,-30,-30,-40,-50,
+        -40,-20,  0,  0,  0,  0,-20,-40,
+        -30,  0, 10, 15, 15, 10,  0,-30,
+        -30,  5, 15, 20, 20, 15,  5,-30,
+        -30,  0, 15, 20, 20, 15,  0,-30,
+        -30,  5, 10, 15, 15, 10,  5,-30,
+        -40,-20,  0,  5,  5,  0,-20,-40,
+        -50,-40,-30,-30,-30,-30,-40,-50,
+    };
+    // zig fmt: on
+
+    // zig fmt: off
+    const BLACK_BISHOP_SCORE = PieceSquare{ 
+        -20,-10,-10,-10,-10,-10,-10,-20,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -10,  0,  5, 10, 10,  5,  0,-10,
+        -10,  5,  5, 10, 10,  5,  5,-10,
+        -10,  0, 10, 10, 10, 10,  0,-10,
+        -10, 10, 10, 10, 10, 10, 10,-10,
+        -10,  5,  0,  0,  0,  0,  5,-10,
+        -20,-10,-10,-10,-10,-10,-10,-20,
+    };
+    // zig fmt: on
+    const WHITE_BISHOP_SCORE = flipPieceSqaure(BLACK_BISHOP_SCORE);
+
+    // zig fmt: off
+    const BLACK_ROOK_SCORE = PieceSquare{ 
+         0,  0,  0,  0,  0,  0,  0,  0,
+         5, 10, 10, 10, 10, 10, 10,  5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+         0,  0,  0,  5,  5,  0,  0,  0,
+    };
+    // zig fmt: on
+    const WHITE_ROOK_SCORE = flipPieceSqaure(BLACK_ROOK_SCORE);
+
+    // zig fmt: off
+    const QUEEN_SCORE = PieceSquare{ 
+        -20,-10,-10, -5, -5,-10,-10, -20,
+        -10,  0,  0,  0,  0,  0,  0, -10,
+        -10,  0,  5,  5,  5,  5,  0, -10,
+        -5 ,  0,  5,  5,  5,  5,  0,  -5,
+         0 ,  0,  5,  5,  5,  5,  0,  -5,
+        -10,  5,  5,  5,  5,  5,  0, -10,
+        -10,  0,  5,  0,  0,  0,  0, -10,
+        -20,-10,-10, -5, -5,-10,-10, -20
+    };
+    // zig fmt: on
+
+    const KING_OPENING_SCORE: PieceSquare = [_]Score{0} ** 64;
+
+    // zig fmt: off
+    const BLACK_KING_MID_SCORE = PieceSquare{ 
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -20,-30,-30,-40,-40,-30,-30,-20,
+        -10,-20,-20,-20,-20,-20,-20,-10,
+         20, 20,  0,  0,  0,  0, 20, 20,
+         20, 30, 10,  0,  0, 10, 30, 20
+    };
+    // zig fmt: on
+    const WHITE_KING_MID_SCORE = flipPieceSqaure(BLACK_KING_MID_SCORE);
+
+    // zig fmt: off
+    const BLACK_KING_END_SCORE = PieceSquare{ 
+        -50,-40,-30,-20,-20,-30,-40,-50,
+        -30,-20,-10,  0,  0,-10,-20,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-30,  0,  0,  0,  0,-30,-30,
+        -50,-30,-30,-30,-30,-30,-30,-50
+    };
+    // zig fmt: on
+    const WHITE_KING_END_SCORE = flipPieceSqaure(BLACK_KING_END_SCORE);
+};

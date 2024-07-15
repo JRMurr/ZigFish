@@ -114,7 +114,7 @@ pub fn main() anyerror!void {
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
         const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, 3)
+            try game.findBestMove(move_allocator, 4)
         else
             null;
 
@@ -145,7 +145,6 @@ pub fn main() anyerror!void {
                     std.debug.print("{s}\n", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move);
-                    std.debug.print("make hash: {d}\n", .{game.board.zhash});
 
                     // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;

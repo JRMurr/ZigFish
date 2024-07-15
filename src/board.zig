@@ -30,6 +30,11 @@ pub const Position = packed struct {
         return Position.fromIndex(p.rank * 8 + p.file);
     }
 
+    pub fn flipRank(self: Position) Position {
+        const rankFile = self.toRankFile();
+        return Position.fromRankFile(.{ .file = rankFile.file, .rank = (7 - rankFile.rank) });
+    }
+
     pub fn fromStr(str: []const u8) Position {
         const file_char = std.ascii.toLower(str[0]);
         const file = file_char - 97;

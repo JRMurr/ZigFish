@@ -39,6 +39,8 @@ const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook
 
 const HistoryStack = std.ArrayList(BoardMeta);
 
+pub const GamePhase = enum { Opening, Middle, End };
+
 const PinInfo = struct {
     // pieces pinned to the king
     pinned_pieces: BoardBitSet,
@@ -583,11 +585,12 @@ pub const GameManager = struct {
             if (kind == Kind.King) {
                 continue;
             }
-
-            const pieces = self.board.getPieceSet(.{ .kind = kind, .color = color });
+            const p: Piece = .{ .kind = kind, .color = color };
+            const pieces = self.board.getPieceSet(p);
             const piece_count = pieces.count();
 
             score += @as(Score, @intCast(piece_count)) * precompute.PIECE_SCORES.get(kind);
+            score += precompute.PieceSquareScore.scorePieces(p, .Opening, pieces);
         }
 
         return score;
