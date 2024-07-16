@@ -112,7 +112,7 @@ pub fn main() anyerror!void {
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
         const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, 4)
+            try game.findBestMove(move_allocator, 3)
         else
             null;
 

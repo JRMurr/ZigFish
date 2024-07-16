@@ -369,7 +369,7 @@ pub const GameManager = struct {
         };
     }
 
-    pub fn getAllValidMoves(self: Self, move_allocator: Allocator) Allocator.Error!GeneratedMoves {
+    pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
         const color = self.board.active_color;
 
         const pin_info = self.findPinnedPieces(color);
@@ -389,7 +389,7 @@ pub const GameManager = struct {
         while (color_iter.next()) |pos| {
             const p = self.getPos(pos).?;
 
-            try self.getValidMoves(&moves, &gen_info, pos, p);
+            try self.getValidMoves(&moves, &gen_info, pos, p, captures_only);
         }
 
         return .{ .moves = moves, .gen_info = gen_info };
@@ -401,6 +401,7 @@ pub const GameManager = struct {
         gen_info: *const MoveGenInfo,
         pos: Position,
         p: Piece,
+        comptime captures_only: bool,
     ) Allocator.Error!void {
         if (gen_info.king_attackers.count() >= 2 and !p.is_king()) {
             // if there are 2 or more direct attacks on the king, only it can move
@@ -425,28 +426,31 @@ pub const GameManager = struct {
 
         const enemies = self.board.color_sets[@intFromEnum(enemy_color)];
 
+        const occupied = self.board.occupied_set;
+
         var possible_moves = switch (p.kind) {
             Kind.Pawn => {
                 const start_bs = BoardBitSet.initWithIndex(start_idx);
-                const occupied = self.board.occupied_set;
 
-                const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(allowed_sqaures);
-                var non_captures_iter = non_captures.iterator();
-                while (non_captures_iter.next()) |to| {
-                    const end_rank = to.toRankFile().rank;
-                    if (end_rank == 0 or end_rank == 7) {
-                        for (PROMOTION_KINDS) |promotion_kind| {
-                            const move_flags = MoveFlags.initOne(MoveType.Promotion);
-                            out_moves.appendAssumeCapacity(.{
-                                .start = pos,
-                                .end = to,
-                                .kind = p.kind,
-                                .move_flags = move_flags,
-                                .promotion_kind = promotion_kind,
-                            });
+                if (!captures_only) {
+                    const non_captures = start_bs.pawnMoves(occupied.complement(), p.color).intersectWith(allowed_sqaures);
+                    var non_captures_iter = non_captures.iterator();
+                    while (non_captures_iter.next()) |to| {
+                        const end_rank = to.toRankFile().rank;
+                        if (end_rank == 0 or end_rank == 7) {
+                            for (PROMOTION_KINDS) |promotion_kind| {
+                                const move_flags = MoveFlags.initOne(MoveType.Promotion);
+                                out_moves.appendAssumeCapacity(.{
+                                    .start = pos,
+                                    .end = to,
+                                    .kind = p.kind,
+                                    .move_flags = move_flags,
+                                    .promotion_kind = promotion_kind,
+                                });
+                            }
+                        } else {
+                            out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.initEmpty() });
                         }
-                    } else {
-                        out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.initEmpty() });
                     }
                 }
 
@@ -506,14 +510,14 @@ pub const GameManager = struct {
 
                 const king_moves = precompute.KING_MOVES[start_idx];
 
-                if (self.castleAllowed(p.color, enemy_attacked_sqaures, true)) {
+                if (!captures_only and self.castleAllowed(p.color, enemy_attacked_sqaures, true)) {
                     // king side castle
                     const end = Position.fromIndex(pos.index + 2);
                     const flags = MoveFlags.initOne(MoveType.Castling);
                     const move = Move{ .start = pos, .end = end, .kind = Kind.King, .move_flags = flags };
                     out_moves.appendAssumeCapacity(move);
                 }
-                if (self.castleAllowed(p.color, enemy_attacked_sqaures, false)) {
+                if (!captures_only and self.castleAllowed(p.color, enemy_attacked_sqaures, false)) {
                     // queen side castle
                     const end = Position.fromIndex(pos.index - 2);
                     const flags = MoveFlags.initOne(MoveType.Castling);
@@ -530,6 +534,9 @@ pub const GameManager = struct {
         };
 
         possible_moves.remove(freinds);
+        if (captures_only) {
+            possible_moves.remove(occupied.complement());
+        }
 
         var move_iter = possible_moves.iterator();
 
@@ -540,6 +547,8 @@ pub const GameManager = struct {
             if (maybe_capture) |capture| {
                 captured_kind = capture.kind;
                 flags.setPresent(MoveType.Capture, true);
+            } else if (captures_only) {
+                continue;
             }
             out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
         }
@@ -562,7 +571,7 @@ pub const GameManager = struct {
             .king_attackers = attack_info.king_attackers,
         };
 
-        try self.getValidMoves(&moves, &gen_info, pos, p);
+        try self.getValidMoves(&moves, &gen_info, pos, p, false);
 
         return moves;
     }
@@ -619,20 +628,56 @@ pub const GameManager = struct {
         return null;
     }
 
+    // https://www.chessprogramming.org/Quiescence_Search
+    fn quiesceSearch(self: *Self, move_allocator: Allocator, alpha_init: Score, beta: Score) Allocator.Error!Score {
+        const start_eval = self.evaluate();
+        var alpha = alpha_init;
+
+        if (start_eval >= beta)
+            return beta;
+        if (alpha < start_eval)
+            alpha = start_eval;
+
+        const generated_moves = try self.getAllValidMoves(move_allocator, true);
+        var moves = generated_moves.moves;
+        defer moves.deinit();
+
+        const gen_info = generated_moves.gen_info;
+        const to_sort = try moves.toOwnedSlice();
+
+        std.mem.sort(Move, to_sort, gen_info, compare_moves);
+
+        for (to_sort) |move| {
+            std.debug.assert(move.captured_kind != null);
+            try self.makeMove(move);
+            const score = -%try self.quiesceSearch(move_allocator, negate_score(beta), negate_score(alpha));
+            self.unMakeMove(move);
+
+            if (score >= beta) {
+                //  fail hard beta-cutoff
+                return beta;
+            }
+            alpha = @max(alpha, score);
+        }
+
+        return alpha;
+    }
+
     pub fn search(self: *Self, move_allocator: Allocator, depth: usize, alpha: Score, beta: Score) Allocator.Error!Score {
         if (depth == 0) {
             const hash = self.board.zhash;
             if (self.getFromTransposition(hash, 0)) |e| {
                 return e.score;
             }
+            const score = try self.quiesceSearch(move_allocator, alpha, beta);
 
-            const score = self.evaluate();
+            // const score = self.evaluate();
 
             try self.addToTransposition(hash, score, 0);
             return score;
         }
 
-        const generated_moves = try self.getAllValidMoves(move_allocator);
+        const generated_moves = try self.getAllValidMoves(move_allocator, false);
         var moves = generated_moves.moves;
         defer moves.deinit();
 
@@ -683,7 +728,7 @@ pub const GameManager = struct {
     pub fn findBestMove(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!?Move {
         var alpha: Score = MIN_SCORE;
 
-        const generated_moves = try self.getAllValidMoves(move_allocator);
+        const generated_moves = try self.getAllValidMoves(move_allocator, false);
         const moves = generated_moves.moves;
         defer moves.deinit();
 
@@ -711,7 +756,7 @@ pub const GameManager = struct {
             return 1;
         }
 
-        const moves = (try self.getAllValidMoves(move_allocator)).moves;
+        const moves = (try self.getAllValidMoves(move_allocator, false)).moves;
         defer moves.deinit();
 
         if (depth == 1 and !print_count_per_move) {
@@ -734,7 +779,7 @@ pub const GameManager = struct {
 };
 
 fn testZhashUnMake(game: *GameManager, print: bool) anyerror!void {
-    const moves = (try game.getAllValidMoves(std.testing.allocator)).moves;
+    const moves = (try game.getAllValidMoves(std.testing.allocator, false)).moves;
     defer moves.deinit();
 
     for (moves.items) |move| {
