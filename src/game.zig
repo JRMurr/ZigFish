@@ -109,6 +109,7 @@ fn compare_moves(gen_info: MoveGenInfo, a: Move, b: Move) bool {
 
 pub const GameManager = struct {
     const Self = @This();
+    allocator: Allocator,
 
     board: Board,
     history: HistoryStack,
@@ -122,12 +123,17 @@ pub const GameManager = struct {
         self.history.deinit();
     }
 
+    // pub fn clone(self: *Self) Self {
+    //     const board_clone = std.mem.cop
+    // }
+
     pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
         const board = fen.parse(fen_str);
         const history = try HistoryStack.initCapacity(allocator, 30);
         var transposition = TranspostionTable.init(allocator);
         try transposition.ensureTotalCapacity(10_000);
         return Self{
+            .allocator = allocator,
             .board = board,
             .history = history,
             .transposition = transposition,

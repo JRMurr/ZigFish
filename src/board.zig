@@ -4,7 +4,7 @@ const Piece = piece.Piece;
 const fen = @import("fen.zig");
 const utils = @import("utils.zig");
 
-const ZHashing = @import("zhash.zig").ZHashing;
+const ZHashing = @import("zhash.zig");
 
 const precompute = @import("precompute.zig");
 
@@ -202,6 +202,8 @@ fn get_diff_dir(move: Move) std.meta.Tuple(&.{ u8, Dir }) {
     return .{ rank_diff, dir };
 }
 
+const HASHER = ZHashing.ZHASHER;
+
 pub const Board = struct {
     const Self = @This();
     kind_sets: [NUM_KINDS]BoardBitSet,
@@ -213,8 +215,6 @@ pub const Board = struct {
     full_moves: usize = 0,
 
     meta: BoardMeta,
-
-    hasher: ZHashing,
 
     zhash: u64 = 0,
 
@@ -237,7 +237,6 @@ pub const Board = struct {
             .color_sets = color_sets,
             .occupied_set = occupied_set,
             .meta = BoardMeta.init(),
-            .hasher = ZHashing.init(),
         };
     }
 
@@ -247,27 +246,27 @@ pub const Board = struct {
         var zhash: u64 = 0;
         while (occupied_iter.next()) |pos| {
             const p = self.getPos(pos).?;
-            zhash ^= self.hasher.getPieceNum(p, pos);
+            zhash ^= HASHER.getPieceNum(p, pos);
         }
 
         for (0..NUM_COLOR) |color_idx| {
             const color: piece.Color = @enumFromInt(color_idx);
 
             if (self.meta.castling_rights[color_idx].king_side) {
-                zhash ^= self.hasher.getCastleRights(color, true);
+                zhash ^= HASHER.getCastleRights(color, true);
             }
 
             if (self.meta.castling_rights[color_idx].queen_side) {
-                zhash ^= self.hasher.getCastleRights(color, false);
+                zhash ^= HASHER.getCastleRights(color, false);
             }
         }
 
         if (self.meta.en_passant_pos) |ep| {
-            zhash ^= self.hasher.getEnPassant(ep);
+            zhash ^= HASHER.getEnPassant(ep);
         }
 
         if (self.active_color == piece.Color.Black) {
-            zhash ^= self.hasher.black_to_move;
+            zhash ^= HASHER.black_to_move;
         }
 
         self.zhash = zhash;
@@ -292,7 +291,7 @@ pub const Board = struct {
         self.setPos(move.end, move_piece);
 
         if (self.meta.en_passant_pos) |ep| {
-            self.zhash ^= self.hasher.getEnPassant(ep);
+            self.zhash ^= HASHER.getEnPassant(ep);
             self.meta.en_passant_pos = null;
         }
 
@@ -305,11 +304,11 @@ pub const Board = struct {
         var captured_pos = move.end;
 
         // update hash for moved piece
-        self.zhash ^= self.hasher.getPieceNum(.{
+        self.zhash ^= HASHER.getPieceNum(.{
             .color = color,
             .kind = start_peice.kind,
         }, move.start);
-        self.zhash ^= self.hasher.getPieceNum(move_piece, move.end);
+        self.zhash ^= HASHER.getPieceNum(move_piece, move.end);
 
         switch (move.kind) {
             piece.Kind.Pawn => {
@@ -320,7 +319,7 @@ pub const Board = struct {
                 if (rank_diff == 2) {
                     const ep_pos = move.start.move_dir(dir);
                     self.meta.en_passant_pos = move.start.move_dir(dir);
-                    self.zhash ^= self.hasher.getEnPassant(ep_pos);
+                    self.zhash ^= HASHER.getEnPassant(ep_pos);
                 }
 
                 if (move.move_flags.contains(MoveType.EnPassant)) {
@@ -330,10 +329,10 @@ pub const Board = struct {
             },
             piece.Kind.King => {
                 if (self.meta.castling_rights[color_idx].king_side) {
-                    self.zhash ^= self.hasher.getCastleRights(color, true);
+                    self.zhash ^= HASHER.getCastleRights(color, true);
                 }
                 if (self.meta.castling_rights[color_idx].queen_side) {
-                    self.zhash ^= self.hasher.getCastleRights(color, false);
+                    self.zhash ^= HASHER.getCastleRights(color, false);
                 }
 
                 self.meta.castling_rights[color_idx].king_side = false;
@@ -348,8 +347,8 @@ pub const Board = struct {
                         .kind = piece.Kind.Rook,
                     };
 
-                    self.zhash ^= self.hasher.getPieceNum(rook, castling_info.rook_start);
-                    self.zhash ^= self.hasher.getPieceNum(rook, castling_info.rook_end);
+                    self.zhash ^= HASHER.getPieceNum(rook, castling_info.rook_start);
+                    self.zhash ^= HASHER.getPieceNum(rook, castling_info.rook_end);
 
                     self.setPos(castling_info.rook_start, null);
                     self.setPos(castling_info.rook_end, rook);
@@ -359,12 +358,12 @@ pub const Board = struct {
                 const start_file = move.start.toRankFile().file;
                 if (start_file == 0) {
                     if (self.meta.castling_rights[color_idx].queen_side) {
-                        self.zhash ^= self.hasher.getCastleRights(color, false);
+                        self.zhash ^= HASHER.getCastleRights(color, false);
                     }
                     self.meta.castling_rights[color_idx].queen_side = false;
                 } else if (start_file == 7) {
                     if (self.meta.castling_rights[color_idx].king_side) {
-                        self.zhash ^= self.hasher.getCastleRights(color, true);
+                        self.zhash ^= HASHER.getCastleRights(color, true);
                     }
                     self.meta.castling_rights[color_idx].king_side = false;
                 }
@@ -374,7 +373,7 @@ pub const Board = struct {
         // update hash to remove the captured piece
         if (move.captured_kind) |k| {
             const captuered_piece = Piece{ .color = color.get_enemy(), .kind = k };
-            self.zhash ^= self.hasher.getPieceNum(captuered_piece, captured_pos);
+            self.zhash ^= HASHER.getPieceNum(captuered_piece, captured_pos);
         }
 
         if (self.active_color == piece.Color.Black) {
@@ -382,16 +381,16 @@ pub const Board = struct {
         }
 
         self.active_color = self.active_color.get_enemy();
-        self.zhash ^= self.hasher.black_to_move;
+        self.zhash ^= HASHER.black_to_move;
     }
 
     pub fn unMakeMove(self: *Self, move: Move, meta: BoardMeta) void {
         const old_meta = self.meta;
         if (old_meta.en_passant_pos) |ep| {
-            self.zhash ^= self.hasher.getEnPassant(ep);
+            self.zhash ^= HASHER.getEnPassant(ep);
         }
         if (meta.en_passant_pos) |ep| {
-            self.zhash ^= self.hasher.getEnPassant(ep);
+            self.zhash ^= HASHER.getEnPassant(ep);
         }
 
         for (0..NUM_COLOR) |color_idx| {
@@ -400,10 +399,10 @@ pub const Board = struct {
             const new_castle = meta.castling_rights[color_idx];
 
             if (old_castle.king_side != new_castle.king_side) {
-                self.zhash ^= self.hasher.getCastleRights(color, true);
+                self.zhash ^= HASHER.getCastleRights(color, true);
             }
             if (old_castle.queen_side != new_castle.queen_side) {
-                self.zhash ^= self.hasher.getCastleRights(color, false);
+                self.zhash ^= HASHER.getCastleRights(color, false);
             }
         }
 
@@ -412,11 +411,11 @@ pub const Board = struct {
         const piece_color = self.active_color.get_enemy();
 
         const start_piece = Piece{ .color = piece_color, .kind = move.kind };
-        self.zhash ^= self.hasher.getPieceNum(start_piece, move.start);
+        self.zhash ^= HASHER.getPieceNum(start_piece, move.start);
         self.setPos(move.start, start_piece);
 
         const end_piece = if (move.promotion_kind) |k| Piece{ .color = piece_color, .kind = k } else start_piece;
-        self.zhash ^= self.hasher.getPieceNum(end_piece, move.end);
+        self.zhash ^= HASHER.getPieceNum(end_piece, move.end);
 
         const maybe_captured_piece = if (move.captured_kind) |k| Piece{
             .color = self.active_color,
@@ -443,8 +442,8 @@ pub const Board = struct {
                 .kind = piece.Kind.Rook,
             };
 
-            self.zhash ^= self.hasher.getPieceNum(rook, castling_info.rook_end);
-            self.zhash ^= self.hasher.getPieceNum(rook, castling_info.rook_start);
+            self.zhash ^= HASHER.getPieceNum(rook, castling_info.rook_end);
+            self.zhash ^= HASHER.getPieceNum(rook, castling_info.rook_start);
 
             self.setPos(castling_info.rook_end, null);
             self.setPos(castling_info.rook_start, rook);
@@ -452,7 +451,7 @@ pub const Board = struct {
 
         self.setPos(end_pos, maybe_captured_piece);
         if (maybe_captured_piece) |captured| {
-            self.zhash ^= self.hasher.getPieceNum(captured, move.end);
+            self.zhash ^= HASHER.getPieceNum(captured, move.end);
         }
 
         if (self.active_color == piece.Color.White) {
@@ -460,7 +459,7 @@ pub const Board = struct {
         }
 
         self.active_color = self.active_color.get_enemy();
-        self.zhash ^= self.hasher.black_to_move;
+        self.zhash ^= HASHER.black_to_move;
     }
 
     pub fn getPos(self: Self, pos: Position) ?Piece {

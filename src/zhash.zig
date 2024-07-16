@@ -58,6 +58,7 @@ pub const ZHashing = struct {
     enpassant_files: [8]u64,
 
     pub fn init() ZHashing {
+        @setEvalBranchQuota((NUM_PIECE_SQAURES + 4 + 8 + 1) * 100);
         // seed picked from no where...
         var prng = std.rand.DefaultPrng.init(3_475_632);
         const rand = prng.random();
@@ -95,3 +96,5 @@ pub const ZHashing = struct {
         return self.enpassant_files[file];
     }
 };
+
+pub const ZHASHER = ZHashing.init();
