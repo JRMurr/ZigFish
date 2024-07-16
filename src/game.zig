@@ -629,9 +629,13 @@ pub const GameManager = struct {
     }
 
     // https://www.chessprogramming.org/Quiescence_Search
-    fn quiesceSearch(self: *Self, move_allocator: Allocator, alpha_init: Score, beta: Score) Allocator.Error!Score {
+    fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_init: Score, beta: Score) Allocator.Error!Score {
         const start_eval = self.evaluate();
         var alpha = alpha_init;
+
+        if (depth == 0) {
+            return start_eval;
+        }
 
         if (start_eval >= beta)
             return beta;
@@ -650,7 +654,7 @@ pub const GameManager = struct {
         for (to_sort) |move| {
             std.debug.assert(move.captured_kind != null);
             try self.makeMove(move);
-            const score = -%try self.quiesceSearch(move_allocator, negate_score(beta), negate_score(alpha));
+            const score = -%try self.quiesceSearch(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
             self.unMakeMove(move);
 
             if (score >= beta) {
@@ -669,9 +673,7 @@ pub const GameManager = struct {
             if (self.getFromTransposition(hash, 0)) |e| {
                 return e.score;
             }
-            const score = try self.quiesceSearch(move_allocator, alpha, beta);
-
-            // const score = self.evaluate();
+            const score = try self.quiesceSearch(move_allocator, 3, alpha, beta);
 
             try self.addToTransposition(hash, score, 0);
             return score;
@@ -735,6 +737,7 @@ pub const GameManager = struct {
         var bestMove: ?Move = null;
 
         for (moves.items) |move| {
+            std.debug.print("checking {s}\n", .{move.toStrSimple()});
             try self.makeMove(move);
             const enemy_score = try self.search(move_allocator, depth - 1, MIN_SCORE, negate_score(alpha));
             const eval = negate_score(enemy_score);
@@ -744,6 +747,11 @@ pub const GameManager = struct {
                 bestMove = move;
                 alpha = eval;
             }
+        }
+        if (bestMove) |move| {
+            std.debug.print("best move: {s}\n", .{move.toStrSimple()});
+        } else {
+            std.debug.print("NO MOVE FOUND\n", .{});
         }
 
         return bestMove;

@@ -68,6 +68,9 @@ pub fn main() anyerror!void {
 
     var game = try GameManager.init(gpa_allocator);
 
+    // an italian opening
+    // var game = try GameManager.from_fen(gpa_allocator, "r1bq1rk1/bpp2ppp/p2p1nn1/4p3/P1BPP3/2P2N1P/1P3PP1/RNBQR1K1 w - - 1 11");
+
     // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
     // pin should be able to capture
@@ -112,7 +115,7 @@ pub fn main() anyerror!void {
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
         const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, 3)
+            try game.findBestMove(move_allocator, 4)
         else
             null;
 
