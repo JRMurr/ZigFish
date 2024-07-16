@@ -17,8 +17,8 @@ const Line = bitset.Line;
 const NUM_DIRS = bitset.NUM_DIRS;
 const NUM_LINES = bitset.NUM_LINES;
 
-const game_types = @import("game.zig");
-const GamePhase = game_types.GamePhase;
+const search_types = @import("search.zig");
+const GamePhase = search_types.GamePhase;
 
 fn computeNumCellsToEdge() [64][8]u8 {
     const all_positon = Position.all_positions();
