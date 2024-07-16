@@ -10,8 +10,10 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ zig.overlays.default ];
-        zlsPkg = zls.packages.${system}.default;
         pkgs = import nixpkgs { inherit system overlays; };
+
+        zigPkg = pkgs.zigpkgs."0.13.0"; # keep in sync with zls
+        zlsPkg = zls.packages.${system}.default;
 
         xorgDeps = with pkgs.xorg; [ libXrandr libXinerama libXi ];
         runtimeDeps = with pkgs; [ raylib xorg.libXcursor pkg-config ] ++ xorgDeps;
@@ -25,7 +27,7 @@
             buildInputs =
               [
                 # NOTE: these need to be roughly in sync
-                pkgs.zigpkgs."0.13.0" # keep in sync with zls
+                zigPkg
                 zlsPkg
 
                 pkgs.gdb
