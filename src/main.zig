@@ -99,8 +99,6 @@ pub fn main() anyerror!void {
 
     // var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
 
-    std.debug.print("start hash: {d}\n", .{game.board.zhash});
-
     const sprite_manager = sprite.SpriteManager.init(texture, &game, cell_size);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
