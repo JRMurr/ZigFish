@@ -43,6 +43,8 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
     return null;
 }
 
+const MAX_DEPTH = 10;
+
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -115,7 +117,7 @@ pub fn main() anyerror!void {
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
         const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, 4)
+            try game.findBestMove(move_allocator, MAX_DEPTH)
         else
             null;
 

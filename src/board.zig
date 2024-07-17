@@ -149,6 +149,10 @@ pub const Move = struct {
 
         return str;
     }
+
+    pub fn eql(self: Move, other: Move) bool {
+        return std.meta.eql(self, other);
+    }
 };
 
 pub const CastlingRights = struct {

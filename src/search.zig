@@ -2,17 +2,14 @@ const std = @import("std");
 const builtin = @import("builtin");
 const utils = @import("utils.zig");
 
+const Thread = std.Thread;
+
 const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
 const Move = board_types.Move;
-const MoveType = board_types.MoveType;
-const MoveFlags = board_types.MoveFlags;
-const BoardMeta = board_types.BoardMeta;
 
 const bit_set_types = @import("bitset.zig");
-const BoardBitSet = bit_set_types.BoardBitSet;
-const Dir = bit_set_types.Dir;
 
 const MoveGen = @import("move_gen.zig");
 const MoveList = MoveGen.MoveList;
@@ -50,8 +47,14 @@ const TranspositionEntry = struct {
 
 const TranspostionTable = std.AutoHashMap(u64, TranspositionEntry);
 
-fn score_move(gen_info: MoveGenInfo, move: Move) Score {
+fn score_move(ctx: MoveCompareCtx, move: Move) Score {
     var score: Score = 0;
+
+    if (ctx.best_move) |best| {
+        if (best.eql(move)) {
+            return MAX_SCORE;
+        }
+    }
 
     const move_val = precompute.PIECE_SCORES.get(move.kind);
 
@@ -65,15 +68,21 @@ fn score_move(gen_info: MoveGenInfo, move: Move) Score {
         score += precompute.PIECE_SCORES.get(k);
     }
 
-    if (gen_info.enemy_attacked_sqaures.isSet(move.end.toIndex())) {
+    if (ctx.gen_info.enemy_attacked_sqaures.isSet(move.end.toIndex())) {
         score -= (@divFloor(move_val, 2));
     }
 
     return score;
 }
 
-fn compare_moves(gen_info: MoveGenInfo, a: Move, b: Move) bool {
-    return score_move(gen_info, a) < score_move(gen_info, b);
+const MoveCompareCtx = struct {
+    gen_info: MoveGenInfo,
+    best_move: ?Move = null,
+};
+
+fn compare_moves(ctx: MoveCompareCtx, a: Move, b: Move) bool {
+    // sort descending
+    return score_move(ctx, a) > score_move(ctx, b);
 }
 
 const Self = @This();
@@ -81,16 +90,24 @@ const Self = @This();
 transposition: TranspostionTable,
 board: *Board,
 move_gen: MoveGen,
+stop_search: Thread.ResetEvent,
+best_move: ?Move,
+best_score: Score,
 
 pub fn init(allocator: Allocator, board: *Board) Allocator.Error!Self {
     var transposition = TranspostionTable.init(allocator);
     try transposition.ensureTotalCapacity(10_000);
     const move_gen = MoveGen{ .board = board };
 
+    const stop_search = Thread.ResetEvent{};
+
     return Self{
         .board = board,
         .move_gen = move_gen,
         .transposition = transposition,
+        .stop_search = stop_search,
+        .best_move = null,
+        .best_score = MIN_SCORE,
     };
 }
 
@@ -124,6 +141,9 @@ fn getFromTransposition(self: *Self, hash: u64, depth: usize) ?TranspositionEntr
 // https://www.chessprogramming.org/Quiescence_Search
 fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_init: Score, beta: Score) Allocator.Error!Score {
     const start_eval = evaluate(self.board.*);
+    if (self.stop_search.isSet()) {
+        return start_eval;
+    }
     var alpha = alpha_init;
 
     if (depth == 0) {
@@ -142,7 +162,11 @@ fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_ini
     const gen_info = generated_moves.gen_info;
     const to_sort = try moves.toOwnedSlice();
 
-    std.mem.sort(Move, to_sort, gen_info, compare_moves);
+    const sort_ctx = MoveCompareCtx{
+        .gen_info = gen_info,
+    };
+
+    std.mem.sort(Move, to_sort, sort_ctx, compare_moves);
 
     for (to_sort) |move| {
         std.debug.assert(move.captured_kind != null);
@@ -156,13 +180,23 @@ fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_ini
             return beta;
         }
         alpha = @max(alpha, score);
+
+        if (self.stop_search.isSet()) {
+            return alpha;
+        }
     }
 
     return alpha;
 }
 
-pub fn search(self: *Self, move_allocator: Allocator, depth: usize, alpha: Score, beta: Score) Allocator.Error!Score {
-    if (depth == 0) {
+pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, depth_remaing: usize, alpha: Score, beta: Score) Allocator.Error!Score {
+    var best_eval = alpha;
+
+    if (self.stop_search.isSet()) {
+        return 0;
+    }
+
+    if (depth_remaing == 0) {
         const hash = self.board.zhash;
         if (self.getFromTransposition(hash, 0)) |e| {
             return e.score;
@@ -190,26 +224,29 @@ pub fn search(self: *Self, move_allocator: Allocator, depth: usize, alpha: Score
 
     const to_sort = try moves.toOwnedSlice();
 
-    std.mem.sort(Move, to_sort, gen_info, compare_moves);
+    const sort_ctx = MoveCompareCtx{
+        .gen_info = gen_info,
+        .best_move = if (depth_from_root == 0) self.best_move else null,
+    };
 
-    var best_eval = alpha;
+    std.mem.sort(Move, to_sort, sort_ctx, compare_moves);
 
     for (to_sort) |move| {
         const meta = self.board.meta;
         self.board.makeMove(move);
         const hash = self.board.zhash;
-        const score = if (self.getFromTransposition(hash, depth)) |e| blk: {
+        const score = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
             break :blk e.score;
         } else blk: {
             const res = -%try self.search(
                 move_allocator,
-                depth - 1,
+                depth_from_root + 1,
+                depth_remaing - 1,
                 negate_score(beta),
                 negate_score(alpha),
             );
             break :blk res;
         };
-        try self.addToTransposition(hash, score, depth);
         self.board.unMakeMove(move, meta);
 
         if (score >= beta) {
@@ -217,38 +254,103 @@ pub fn search(self: *Self, move_allocator: Allocator, depth: usize, alpha: Score
             return beta;
         }
         best_eval = @max(best_eval, score);
+
+        try self.addToTransposition(hash, score, depth_remaing);
+
+        if (self.stop_search.isSet()) {
+            return best_eval;
+        }
     }
 
     return best_eval;
 }
 
-pub fn findBestMove(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!?Move {
-    var alpha: Score = MIN_SCORE;
+fn getCurrTimeInMilli() u64 {
+    return @intCast(std.time.milliTimestamp());
+}
 
-    const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
-    const moves = generated_moves.moves;
-    defer moves.deinit();
+fn monitorTimeLimit(stop_search: *Thread.ResetEvent, timeLimitMillis: u64) !void {
+    const startTime = getCurrTimeInMilli();
+    const endTime = startTime + timeLimitMillis;
 
-    var bestMove: ?Move = null;
+    while (true) {
+        const currentTime = getCurrTimeInMilli();
+        if (currentTime >= endTime) {
+            stop_search.set();
+            break;
+        }
+        std.time.sleep(1 * std.time.ns_per_ms); // Sleep for 1 millisecond to avoid busy waiting
+    }
+}
 
-    for (moves.items) |move| {
-        const meta = self.board.meta;
-        std.debug.print("checking {s}\n", .{move.toStrSimple()});
-        self.board.makeMove(move);
-        const enemy_score = try self.search(move_allocator, depth - 1, MIN_SCORE, negate_score(alpha));
-        const eval = negate_score(enemy_score);
-        self.board.unMakeMove(move, meta);
+pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize) Allocator.Error!?Move {
+    self.stop_search.reset();
+    self.best_score = MIN_SCORE;
+    self.best_move = null;
 
-        if (eval > alpha) {
-            bestMove = move;
-            alpha = eval;
+    for (1..max_depth) |depth| {
+        std.debug.print("checking at depth: {}\n", .{depth});
+        const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
+        const moves = generated_moves.moves;
+        defer moves.deinit();
+
+        for (moves.items) |move| {
+            const meta = self.board.meta;
+            // std.debug.print("checking {s}\n", .{move.toStrSimple()});
+            self.board.makeMove(move);
+            const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(self.best_score));
+            const eval = negate_score(enemy_score);
+            self.board.unMakeMove(move, meta);
+
+            if (eval > self.best_score) {
+                self.best_move = move;
+                self.best_score = eval;
+            }
+            if (self.stop_search.isSet()) {
+                break;
+            }
         }
     }
-    if (bestMove) |move| {
-        std.debug.print("best move: {s}\n", .{move.toStrSimple()});
-    } else {
-        std.debug.print("NO MOVE FOUND\n", .{});
-    }
 
-    return bestMove;
+    return self.best_move;
 }
+
+pub fn findBestMove(self: *Self, move_allocator: Allocator, max_depth: usize) !?Move {
+    const timeLimitMillis = 1000;
+    var monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), timeLimitMillis });
+    const best = try self.iterativeSearch(move_allocator, max_depth);
+    monitorThread.join();
+
+    return best;
+}
+
+// pub fn findBestMove(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!?Move {
+//     var alpha: Score = MIN_SCORE;
+
+//     const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
+//     const moves = generated_moves.moves;
+//     defer moves.deinit();
+
+//     var bestMove: ?Move = null;
+
+//     for (moves.items) |move| {
+//         const meta = self.board.meta;
+//         std.debug.print("checking {s}\n", .{move.toStrSimple()});
+//         self.board.makeMove(move);
+//         const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(alpha));
+//         const eval = negate_score(enemy_score);
+//         self.board.unMakeMove(move, meta);
+
+//         if (eval > alpha) {
+//             bestMove = move;
+//             alpha = eval;
+//         }
+//     }
+//     if (bestMove) |move| {
+//         std.debug.print("best move: {s}\n", .{move.toStrSimple()});
+//     } else {
+//         std.debug.print("NO MOVE FOUND\n", .{});
+//     }
+
+//     return bestMove;
+// }
