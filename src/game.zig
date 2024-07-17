@@ -57,9 +57,12 @@ pub const GameManager = struct {
         self.history.deinit();
     }
 
-    // pub fn clone(self: *Self) Self {
-    //     const board_clone = std.mem.cop
-    // }
+    pub fn clone(self: *Self) !Self {
+        const board_clone = self.board.clone();
+        const history_clone = try self.history.clone();
+
+        return Self{ .allocator = self.allocator, .board = board_clone, .history = history_clone };
+    }
 
     pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
         const board = fen.parse(fen_str);

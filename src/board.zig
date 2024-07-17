@@ -187,6 +187,18 @@ pub const BoardMeta = struct {
             .en_passant_pos = null,
         };
     }
+
+    pub fn clone(self: BoardMeta) BoardMeta {
+        var res = BoardMeta{
+            .half_moves = self.half_moves,
+            .en_passant_pos = self.en_passant_pos,
+            .castling_rights = undefined,
+        };
+
+        @memcpy(res.castling_rights[0..NUM_COLOR], self.castling_rights[0..NUM_COLOR]);
+
+        return res;
+    }
 };
 
 fn get_diff_dir(move: Move) std.meta.Tuple(&.{ u8, Dir }) {
@@ -242,6 +254,22 @@ pub const Board = struct {
             .occupied_set = occupied_set,
             .meta = BoardMeta.init(),
         };
+    }
+
+    pub fn clone(self: Self) Self {
+        var res: Self = undefined;
+        res.zhash = self.zhash;
+
+        @memcpy(res.kind_sets[0..NUM_KINDS], self.kind_sets[0..NUM_KINDS]);
+        @memcpy(res.color_sets[0..NUM_COLOR], self.color_sets[0..NUM_COLOR]);
+        res.occupied_set = self.occupied_set.clone();
+
+        res.active_color = self.active_color;
+        res.full_moves = self.full_moves;
+
+        res.meta = self.meta.clone();
+
+        return res;
     }
 
     pub fn initHash(self: *Self) void {

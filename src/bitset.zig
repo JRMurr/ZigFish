@@ -313,7 +313,7 @@ pub const BoardBitSet = packed struct {
     }
 
     pub fn clone(self: Self) Self {
-        return self.fromMask(self.bit_set.mask);
+        return Self.fromMask(self.bit_set.mask);
     }
 
     pub fn toSquare(self: Self) u32 {

@@ -1,6 +1,8 @@
 const std = @import("std");
 const rl = @import("raylib");
 
+const Thread = std.Thread;
+
 const SpriteManager = @import("./graphics/sprite.zig");
 
 const piece_types = @import("piece.zig");
@@ -45,6 +47,20 @@ const MAX_DEPTH = 100;
 const SEARCH_TIME = 5000; // milli seconds
 const QUIESCE_DEPTH = 5;
 
+const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
+
+const Allocator = std.mem.Allocator;
+
+fn searchInBackground(move_allocator: Allocator, game: *GameManager, search_res: *SearchRes) !void {
+    const move = try game.findBestMove(move_allocator, .{
+        .max_depth = MAX_DEPTH,
+        .time_limit_millis = SEARCH_TIME,
+    });
+
+    search_res.move = move;
+    search_res.done_search.set();
+}
+
 pub fn main() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -67,6 +83,8 @@ pub fn main() anyerror!void {
     const move_allocator = arena.allocator();
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
+    var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
+    var search_thread: ?Thread = null;
 
     var game = try GameManager.init(gpa_allocator);
 
@@ -116,18 +134,22 @@ pub fn main() anyerror!void {
         const mouse_x: usize = clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
-        const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, .{
-                .max_depth = MAX_DEPTH,
-                .time_limit_millis = SEARCH_TIME,
-            })
-        else
-            null;
+        const is_player_turn = game.board.active_color == piece_types.Color.White;
 
-        if (maybe_best_black_moves) |m| {
-            try game.makeMove(m);
-            try move_history.append(m);
-        } else if (moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
+        if (search_thread == null and !is_player_turn) {
+            search_res.done_search.reset();
+            search_res.move = null;
+            // TODO: should i clone game here?
+            var cloned_game = try game.clone();
+            search_thread = try std.Thread.spawn(.{}, searchInBackground, .{ move_allocator, &cloned_game, &search_res });
+        } else if (search_thread != null and search_res.done_search.isSet()) {
+            search_thread.?.join();
+            search_thread = null;
+            if (search_res.move) |m| {
+                try game.makeMove(m);
+                try move_history.append(m);
+            }
+        } else if (is_player_turn and moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
@@ -137,7 +159,7 @@ pub fn main() anyerror!void {
                     game.setPos(pos, null);
                 }
             }
-        } else if (moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
+        } else if (is_player_turn and moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
             const pos = sprite_manager.mouse_to_pos(mouse_x, mouse_y);
 
             const mp = moving_piece.?;
@@ -160,7 +182,7 @@ pub fn main() anyerror!void {
             moving_piece = null;
             // only reset once we are done using the possible moves
             defer _ = arena.reset(.retain_capacity);
-        } else if (moving_piece == null and rl.isKeyPressed(rl.KeyboardKey.key_left)) {
+        } else if (is_player_turn and moving_piece == null and rl.isKeyPressed(rl.KeyboardKey.key_left)) {
             // undo move
             const maybe_move = move_history.popOrNull();
             if (maybe_move) |move| {
