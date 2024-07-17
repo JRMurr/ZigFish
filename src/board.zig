@@ -288,8 +288,9 @@ pub const Board = struct {
             std.debug.panic(
                 \\attempted to play move: {s} but start piece was not found
                 \\fen: {s}
+                \\move: {?}
                 \\board: {?}
-            , .{ move.toSan(), fen.toFen(self.*), self });
+            , .{ move.toSan(), fen.toFen(self.*), move, self });
         };
 
         const color = self.active_color;
