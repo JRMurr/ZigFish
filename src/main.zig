@@ -43,7 +43,7 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
     return null;
 }
 
-const MAX_DEPTH = 10;
+const MAX_DEPTH = 100;
 
 pub fn main() anyerror!void {
     // Initialization

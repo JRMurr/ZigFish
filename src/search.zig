@@ -307,7 +307,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
                 self.best_score = eval;
             }
             if (self.stop_search.isSet()) {
-                break;
+                return self.best_move;
             }
         }
     }
