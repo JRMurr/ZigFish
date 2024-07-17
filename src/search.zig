@@ -92,12 +92,17 @@ fn compare_moves(ctx: MoveCompareCtx, a: Move, b: Move) bool {
 
 const Self = @This();
 
+const Diagnostics = struct {
+    num_nodes_analyzed: usize = 0,
+};
+
 transposition: TranspostionTable,
 board: *Board,
 move_gen: MoveGen,
 stop_search: Thread.ResetEvent,
 best_move: ?Move,
 best_score: Score,
+diagnostics: Diagnostics = .{},
 
 pub fn init(allocator: Allocator, board: *Board) Allocator.Error!Self {
     var transposition = TranspostionTable.init(allocator);
@@ -174,6 +179,7 @@ fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_ini
     std.mem.sort(Move, to_sort, sort_ctx, compare_moves);
 
     for (to_sort) |move| {
+        self.diagnostics.num_nodes_analyzed += 1;
         std.debug.assert(move.captured_kind != null);
         const meta = self.board.meta;
         self.board.makeMove(move);
@@ -243,6 +249,7 @@ pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, de
         const score = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
             break :blk e.score;
         } else blk: {
+            self.diagnostics.num_nodes_analyzed += 1;
             const res = -%try self.search(
                 move_allocator,
                 depth_from_root + 1,
@@ -294,7 +301,8 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        std.debug.print("checking at depth: {}\n", .{depth});
+        std.debug.print("checking at depth: {}\tchecked_last_iteration: {}\n", .{ depth, self.diagnostics.num_nodes_analyzed });
+        self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
         const moves = generated_moves.moves;
         defer moves.deinit();
