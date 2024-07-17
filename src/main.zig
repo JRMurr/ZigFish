@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 
-const sprite = @import("sprite.zig");
+const sprite = @import("./graphics/sprite.zig");
 
 const piece_types = @import("piece.zig");
 const Piece = piece_types.Piece;
@@ -15,8 +15,6 @@ const Position = board_types.Position;
 const Move = board_types.Move;
 
 const MoveList = game_types.MoveList;
-
-const ZHashing = @import("zhash.zig").ZHashing;
 
 const MovingPiece = struct {
     start: Position,
