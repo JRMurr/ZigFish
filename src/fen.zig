@@ -99,3 +99,9 @@ pub fn parse(str: []const u8) Board {
 
     return board;
 }
+
+pub fn toFen(board: Board) []const u8 {
+    _ = board;
+
+    return "TODO: FEN";
+}

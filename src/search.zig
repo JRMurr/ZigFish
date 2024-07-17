@@ -79,8 +79,11 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
     if (move.promotion_kind) |k| {
         score += precompute.PIECE_SCORES.get(k);
     }
+    const attack_info = ctx.gen_info.attack_info;
 
-    if (ctx.gen_info.enemy_attacked_sqaures.isSet(move.end.toIndex())) {
+    if (attack_info.attackers[@intFromEnum(Kind.Pawn)].isSet(move.end.toIndex())) {
+        score -= move_val;
+    } else if (attack_info.attacked_sqaures.isSet(move.end.toIndex())) {
         score -= (@divFloor(move_val, 2));
     }
 
@@ -235,7 +238,7 @@ pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, de
     const gen_info = generated_moves.gen_info;
 
     if (moves.items.len == 0) {
-        if (gen_info.king_attackers.count() > 0) {
+        if (gen_info.attack_info.king_attackers.count() > 0) {
             // checkmate
             return MIN_SCORE;
         }

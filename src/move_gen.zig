@@ -31,16 +31,18 @@ const PinInfo = struct {
     king_attack_ray: ?BoardBitSet,
 };
 
+const NUM_KINDS = utils.enum_len(Kind);
+
 const AttackedSqaureInfo = struct {
+    attackers: [NUM_KINDS]BoardBitSet,
     attacked_sqaures: BoardBitSet,
     king_attackers: BoardBitSet,
 };
 
 pub const MoveGenInfo = struct {
     pinned_pieces: BoardBitSet,
-    king_attackers: BoardBitSet,
     king_attack_ray: ?BoardBitSet,
-    enemy_attacked_sqaures: BoardBitSet,
+    attack_info: AttackedSqaureInfo,
 };
 
 pub const MoveList = std.ArrayList(Move);
@@ -210,6 +212,7 @@ pub fn castleAllowed(self: Self, color: Color, attacked_sqaures: BoardBitSet, ki
 }
 
 pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
+    var attackInfo: AttackedSqaureInfo = undefined;
     var attacks = BoardBitSet.initEmpty();
 
     const king_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = Kind.King });
@@ -217,7 +220,7 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
 
     var king_attackers = BoardBitSet.initEmpty();
 
-    for (0..utils.enum_len(Kind)) |kind_idx| {
+    for (0..NUM_KINDS) |kind_idx| {
         const kind: Kind = @enumFromInt(kind_idx);
         const p = Piece{ .color = color, .kind = kind };
         const piece_set = self.board.getPieceSet(p);
@@ -232,6 +235,7 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
                     const freindly_pawn_attacking_king = king_board.pawnAttacks(color.get_enemy(), piece_set);
                     king_attackers.toggleSet(freindly_pawn_attacking_king);
                 }
+                attackInfo.attackers[kind_idx] = pawn_attacks;
                 // pawn_attacks.debug();
                 attacks.setUnion(pawn_attacks);
             },
@@ -241,12 +245,14 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
                     const attacking_knights = precompute.KNIGHT_MOVES[king_square].intersectWith(piece_set);
                     king_attackers.toggleSet(attacking_knights);
                 }
+                attackInfo.attackers[kind_idx] = knight_attacks;
                 // knight_attacks.debug();
                 attacks.setUnion(knight_attacks);
             },
             Kind.King => {
                 const king_attacks = piece_set.kingMoves();
                 // king_attacks.debug();
+                attackInfo.attackers[kind_idx] = king_attacks;
                 attacks.setUnion(king_attacks);
             },
             Kind.Bishop, Kind.Queen, Kind.Rook => {
@@ -260,16 +266,15 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
                     }
                     slide_attacks.setUnion(moves);
                 }
+                attackInfo.attackers[kind_idx] = slide_attacks;
                 // slide_attacks.debug();
                 attacks.setUnion(slide_attacks);
             },
         }
     }
-
-    return .{
-        .king_attackers = king_attackers,
-        .attacked_sqaures = attacks,
-    };
+    attackInfo.king_attackers = king_attackers;
+    attackInfo.attacked_sqaures = attacks;
+    return attackInfo;
 }
 
 pub fn getGenInfo(self: Self) MoveGenInfo {
@@ -281,8 +286,7 @@ pub fn getGenInfo(self: Self) MoveGenInfo {
     const gen_info = MoveGenInfo{
         .pinned_pieces = pin_info.pinned_pieces,
         .king_attack_ray = pin_info.king_attack_ray,
-        .enemy_attacked_sqaures = attack_info.attacked_sqaures,
-        .king_attackers = attack_info.king_attackers,
+        .attack_info = attack_info,
     };
 
     return gen_info;
@@ -314,7 +318,9 @@ pub fn getValidMoves(
     p: Piece,
     comptime captures_only: bool,
 ) Allocator.Error!void {
-    if (gen_info.king_attackers.count() >= 2 and !p.is_king()) {
+    const attack_info = gen_info.attack_info;
+
+    if (attack_info.king_attackers.count() >= 2 and !p.is_king()) {
         // if there are 2 or more direct attacks on the king, only it can move
         return;
     }
@@ -325,9 +331,9 @@ pub fn getValidMoves(
     const is_pinned = pinned_pieces.isSet(start_idx);
     const pin_ray = if (is_pinned) self.pinAttacker(pos, BoardBitSet.initEmpty()) else BoardBitSet.initFull();
     const remove_check_sqaures = if (gen_info.king_attack_ray) |attack_ray|
-        attack_ray.unionWith(gen_info.king_attackers)
+        attack_ray.unionWith(attack_info.king_attackers)
     else blk: {
-        break :blk if (gen_info.king_attackers.count() >= 1) gen_info.king_attackers else BoardBitSet.initFull();
+        break :blk if (attack_info.king_attackers.count() >= 1) attack_info.king_attackers else BoardBitSet.initFull();
     };
 
     const allowed_sqaures = pin_ray.intersectWith(remove_check_sqaures);
@@ -417,7 +423,7 @@ pub fn getValidMoves(
         },
         Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(allowed_sqaures).differenceWith(freinds),
         Kind.King => blk: {
-            const enemy_attacked_sqaures = gen_info.enemy_attacked_sqaures;
+            const enemy_attacked_sqaures = gen_info.attack_info.attacked_sqaures;
 
             const king_moves = precompute.KING_MOVES[start_idx];
 

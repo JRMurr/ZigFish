@@ -284,7 +284,13 @@ pub const Board = struct {
     }
 
     pub fn makeMove(self: *Self, move: Move) void {
-        const start_peice = self.getPos(move.start).?;
+        const start_peice = self.getPos(move.start) orelse {
+            std.debug.panic(
+                \\attempted to play move: {s} but start piece was not found
+                \\fen: {s}
+                \\board: {?}
+            , .{ move.toSan(), fen.toFen(self.*), self });
+        };
 
         const color = self.active_color;
         const color_idx = @intFromEnum(color);
