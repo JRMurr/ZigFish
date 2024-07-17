@@ -42,7 +42,8 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
 }
 
 const MAX_DEPTH = 100;
-const SEARCH_TIME = 10000; // milli seconds
+const SEARCH_TIME = 5000; // milli seconds
+const QUIESCE_DEPTH = 5;
 
 pub fn main() anyerror!void {
     // Initialization

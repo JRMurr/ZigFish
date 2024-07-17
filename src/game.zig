@@ -115,10 +115,10 @@ pub const GameManager = struct {
     }
 
     pub fn findBestMove(self: *Self, move_allocator: Allocator, search_opts: Search.SearchOpts) !?Move {
-        var search = try Search.init(self.allocator, &self.board);
+        var search = try Search.init(self.allocator, &self.board, search_opts);
         defer search.deinit();
 
-        return search.findBestMove(move_allocator, search_opts);
+        return search.findBestMove(move_allocator);
     }
 
     // https://www.chessprogramming.org/Perft
@@ -128,7 +128,9 @@ pub const GameManager = struct {
             return 1;
         }
 
-        const moves = (try self.getAllValidMoves(move_allocator, false)).moves;
+        const move_gen = MoveGen{ .board = &self.board };
+
+        const moves = (try move_gen.getAllValidMoves(move_allocator, false)).moves;
         defer moves.deinit();
 
         if (depth == 1 and !print_count_per_move) {
@@ -151,7 +153,9 @@ pub const GameManager = struct {
 };
 
 fn testZhashUnMake(game: *GameManager, print: bool) anyerror!void {
-    const moves = (try game.getAllValidMoves(std.testing.allocator, false)).moves;
+    const move_gen = MoveGen{ .board = &game.board };
+
+    const moves = (try move_gen.getAllValidMoves(std.testing.allocator, false)).moves;
     defer moves.deinit();
 
     for (moves.items) |move| {
@@ -191,9 +195,9 @@ test "perft base" {
     var game = try GameManager.init(std.testing.allocator);
     defer game.deinit();
 
-    const perf = try game.perft(3, std.testing.allocator, false);
+    const perf = try game.perft(5, std.testing.allocator, false);
 
-    try std.testing.expectEqual(8_902, perf);
+    try std.testing.expectEqual(4_865_609, perf);
 }
 
 test "perft pos 4" {
