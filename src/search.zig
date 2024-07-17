@@ -8,6 +8,7 @@ const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
 const Move = board_types.Move;
+const MoveType = board_types.MoveType;
 
 const bit_set_types = @import("bitset.zig");
 
@@ -64,10 +65,16 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
 
     const move_val = precompute.PIECE_SCORES.get(move.kind);
 
+    if (move.move_flags.contains(MoveType.Castling)) {
+        score += 100;
+    }
+
     if (move.captured_kind) |k| {
         const captured_score = precompute.PIECE_SCORES.get(k);
 
         score += 10 * captured_score - move_val;
+    } else {
+        score += move_val;
     }
 
     if (move.promotion_kind) |k| {
@@ -218,7 +225,7 @@ pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, de
         }
         const score = try self.quiesceSearch(move_allocator, self.search_opts.quiesce_depth, alpha, beta);
 
-        // try self.addToTransposition(hash, score, 0);
+        try self.addToTransposition(hash, score, 0);
         return score;
     }
 
