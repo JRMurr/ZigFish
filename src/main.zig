@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 
-const sprite = @import("./graphics/sprite.zig");
+const SpriteManager = @import("./graphics/sprite.zig");
 
 const piece_types = @import("piece.zig");
 const Piece = piece_types.Piece;
@@ -103,7 +103,7 @@ pub fn main() anyerror!void {
 
     // var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
 
-    const sprite_manager = sprite.SpriteManager.init(texture, &game, cell_size);
+    const sprite_manager = SpriteManager.init(texture, &game, cell_size);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
