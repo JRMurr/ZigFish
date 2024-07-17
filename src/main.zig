@@ -139,9 +139,12 @@ pub fn main() anyerror!void {
         if (search_thread == null and !is_player_turn) {
             search_res.done_search.reset();
             search_res.move = null;
-            // TODO: should i clone game here?
             var cloned_game = try game.clone();
-            search_thread = try std.Thread.spawn(.{}, searchInBackground, .{ move_allocator, &cloned_game, &search_res });
+            search_thread = try std.Thread.spawn(.{}, searchInBackground, .{
+                move_allocator,
+                &cloned_game,
+                &search_res,
+            });
         } else if (search_thread != null and search_res.done_search.isSet()) {
             search_thread.?.join();
             search_thread = null;
