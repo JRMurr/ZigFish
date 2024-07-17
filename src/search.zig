@@ -29,6 +29,11 @@ const Allocator = std.mem.Allocator;
 
 pub const GamePhase = enum { Opening, Middle, End };
 
+pub const SearchOpts = struct {
+    max_depth: usize = 100,
+    time_limit_millis: usize = 1000,
+};
+
 const MIN_SCORE = std.math.minInt(Score);
 const MAX_SCORE = std.math.maxInt(Score);
 
@@ -315,10 +320,9 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
     return self.best_move;
 }
 
-pub fn findBestMove(self: *Self, move_allocator: Allocator, max_depth: usize) !?Move {
-    const timeLimitMillis = 1000;
-    var monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), timeLimitMillis });
-    const best = try self.iterativeSearch(move_allocator, max_depth);
+pub fn findBestMove(self: *Self, move_allocator: Allocator, search_opts: SearchOpts) !?Move {
+    var monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), search_opts.time_limit_millis });
+    const best = try self.iterativeSearch(move_allocator, search_opts.max_depth);
     monitorThread.join();
 
     return best;

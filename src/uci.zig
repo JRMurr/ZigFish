@@ -29,7 +29,7 @@ pub fn main() anyerror!void {
 
     var game = try GameManager.init(gpa_allocator);
 
-    const move = try game.findBestMove(move_allocator, 4);
+    const move = try game.findBestMove(move_allocator, .{});
 
     std.debug.print("{}\n", .{move.?});
 }

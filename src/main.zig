@@ -44,6 +44,7 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
 }
 
 const MAX_DEPTH = 100;
+const SEARCH_TIME = 1000; // milli seconds
 
 pub fn main() anyerror!void {
     // Initialization
@@ -117,7 +118,10 @@ pub fn main() anyerror!void {
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
         const maybe_best_black_moves = if (game.board.active_color == piece_types.Color.Black)
-            try game.findBestMove(move_allocator, MAX_DEPTH)
+            try game.findBestMove(move_allocator, .{
+                .max_depth = MAX_DEPTH,
+                .time_limit_millis = SEARCH_TIME,
+            })
         else
             null;
 

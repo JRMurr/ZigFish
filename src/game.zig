@@ -114,11 +114,11 @@ pub const GameManager = struct {
         return moves;
     }
 
-    pub fn findBestMove(self: *Self, move_allocator: Allocator, max_depth: usize) !?Move {
+    pub fn findBestMove(self: *Self, move_allocator: Allocator, search_opts: Search.SearchOpts) !?Move {
         var search = try Search.init(self.allocator, &self.board);
         defer search.deinit();
 
-        return search.findBestMove(move_allocator, max_depth);
+        return search.findBestMove(move_allocator, search_opts);
     }
 
     // https://www.chessprogramming.org/Perft
