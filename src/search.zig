@@ -14,7 +14,6 @@ const bit_set_types = @import("bitset.zig");
 
 const MoveGen = @import("move_gen.zig");
 const MoveList = MoveGen.MoveList;
-const MoveGenInfo = MoveGen.MoveGenInfo;
 
 const piece = @import("piece.zig");
 const Color = piece.Color;
@@ -89,7 +88,7 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
 }
 
 const MoveCompareCtx = struct {
-    gen_info: MoveGenInfo,
+    gen_info: MoveGen.MoveGenInfo,
     best_move: ?Move = null,
 };
 

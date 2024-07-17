@@ -272,7 +272,7 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
     };
 }
 
-pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
+pub fn getGenInfo(self: Self) MoveGenInfo {
     const color = self.board.active_color;
 
     const pin_info = self.findPinnedPieces(color);
@@ -284,6 +284,14 @@ pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures
         .enemy_attacked_sqaures = attack_info.attacked_sqaures,
         .king_attackers = attack_info.king_attackers,
     };
+
+    return gen_info;
+}
+
+pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
+    const color = self.board.active_color;
+
+    const gen_info = self.getGenInfo();
 
     var moves = MoveList.init(move_allocator);
 

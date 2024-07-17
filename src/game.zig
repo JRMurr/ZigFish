@@ -28,7 +28,6 @@ const Search = @import("search.zig");
 
 const MoveGen = @import("move_gen.zig");
 pub const MoveList = MoveGen.MoveList;
-const MoveGenInfo = MoveGen.MoveGenInfo;
 
 const Allocator = std.mem.Allocator;
 
@@ -99,15 +98,7 @@ pub const GameManager = struct {
 
         const p = if (maybe_peice) |p| p else return moves;
 
-        const pin_info = move_gen.findPinnedPieces(p.color);
-        const attack_info = move_gen.allAttackedSqaures(p.color.get_enemy());
-
-        const gen_info = MoveGenInfo{
-            .pinned_pieces = pin_info.pinned_pieces,
-            .king_attack_ray = pin_info.king_attack_ray,
-            .enemy_attacked_sqaures = attack_info.attacked_sqaures,
-            .king_attackers = attack_info.king_attackers,
-        };
+        const gen_info = move_gen.getGenInfo();
 
         try move_gen.getValidMoves(&moves, &gen_info, pos, p, false);
 
