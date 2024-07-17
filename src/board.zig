@@ -257,17 +257,19 @@ pub const Board = struct {
     }
 
     pub fn clone(self: Self) Self {
-        var res: Self = undefined;
-        res.zhash = self.zhash;
+        var res = Self{
+            .zhash = self.zhash,
+            .kind_sets = undefined,
+            .color_sets = undefined,
+            .occupied_set = self.occupied_set.clone(),
+            .active_color = self.active_color,
+            .full_moves = self.full_moves,
+
+            .meta = self.meta.clone(),
+        };
 
         @memcpy(res.kind_sets[0..NUM_KINDS], self.kind_sets[0..NUM_KINDS]);
         @memcpy(res.color_sets[0..NUM_COLOR], self.color_sets[0..NUM_COLOR]);
-        res.occupied_set = self.occupied_set.clone();
-
-        res.active_color = self.active_color;
-        res.full_moves = self.full_moves;
-
-        res.meta = self.meta.clone();
 
         return res;
     }
