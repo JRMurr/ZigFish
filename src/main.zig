@@ -42,7 +42,7 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
 }
 
 const MAX_DEPTH = 100;
-const SEARCH_TIME = 1000; // milli seconds
+const SEARCH_TIME = 10000; // milli seconds
 
 pub fn main() anyerror!void {
     // Initialization
@@ -176,7 +176,7 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.ray_white);
-        sprite_manager.draw_board();
+        sprite_manager.draw_board(move_history.getLastOrNull());
 
         // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
         // while (attacked_iter.next()) |p_idx| {

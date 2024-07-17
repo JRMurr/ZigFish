@@ -5,6 +5,7 @@ const game_types = @import("../game.zig");
 const GameManager = game_types.GameManager;
 const board_types = @import("../board.zig");
 const Position = board_types.Position;
+const Move = board_types.Move;
 
 const num_piece_types = 6;
 const num_colors = 2;
@@ -33,16 +34,24 @@ pub fn init(texture: rl.Texture, game_manager: *GameManager, cell_size: u32) Spr
     };
 }
 
-pub fn draw_board(self: SpriteManager) void {
+pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
     for (0..8) |rank| {
         for (0..8) |file| {
             const flipped_rank = 7 - rank;
             const pos_x = self.cell_size * file;
             const pos_y = self.cell_size * (rank);
 
+            const pos = Position.fromRankFile(.{ .rank = @intCast(flipped_rank), .file = @intCast(file) });
+
             const is_white_cell = @mod(rank + file, 2) == 0;
 
-            const cell_color = if (is_white_cell) rl.Color.light_gray else rl.Color.dark_gray;
+            var cell_color = if (is_white_cell) rl.Color.light_gray else rl.Color.dark_gray;
+
+            if (last_move) |move| {
+                if (move.start.eql(pos) or move.end.eql(pos)) {
+                    cell_color = rl.Color.beige;
+                }
+            }
 
             rl.drawRectangle(
                 @intCast(pos_x),
@@ -51,8 +60,6 @@ pub fn draw_board(self: SpriteManager) void {
                 @intCast(self.cell_size),
                 cell_color,
             );
-
-            const pos = Position.fromRankFile(.{ .rank = @intCast(flipped_rank), .file = @intCast(file) });
 
             if (self.game_manager.getPos(pos)) |p| {
                 self.draw_piece(
