@@ -48,7 +48,7 @@ fn negate_score(x: Score) Score {
 
 const TranspositionEntry = struct {
     depth: usize,
-    score: Score,
+    search_res: SearchRes,
 };
 
 const TranspostionTable = std.AutoHashMap(u64, TranspositionEntry);
@@ -138,14 +138,17 @@ pub fn deinit(self: *Self) void {
 }
 
 /// update entry only if the passed in depth is greater than the stored
-fn addToTransposition(self: *Self, hash: u64, score: Score, depth: usize) Allocator.Error!void {
+fn addToTransposition(self: *Self, hash: u64, search_res: SearchRes, depth: usize) Allocator.Error!void {
+    if (search_res.was_canceled) {
+        return;
+    }
     const maybe_entry = self.transposition.getEntry(hash);
     if (maybe_entry) |entry| {
         if (entry.value_ptr.depth < depth) {
-            entry.value_ptr.* = .{ .depth = depth, .score = score };
+            entry.value_ptr.* = .{ .depth = depth, .search_res = search_res };
         }
     } else {
-        try self.transposition.put(hash, .{ .depth = depth, .score = score });
+        try self.transposition.put(hash, .{ .depth = depth, .search_res = search_res });
     }
 }
 
@@ -161,20 +164,39 @@ fn getFromTransposition(self: *Self, hash: u64, depth: usize) ?TranspositionEntr
     return null;
 }
 
+const SearchRes = struct {
+    score: Score,
+    was_canceled: bool = false,
+
+    pub fn normal(score: Score) SearchRes {
+        return .{ .score = score, .was_canceled = false };
+    }
+
+    pub fn canceled(score: Score) SearchRes {
+        return .{ .score = score, .was_canceled = true };
+    }
+};
+
 // https://www.chessprogramming.org/Quiescence_Search
-fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_init: Score, beta: Score) Allocator.Error!Score {
+fn quiesceSearch(
+    self: *Self,
+    move_allocator: Allocator,
+    depth: usize,
+    alpha_init: Score,
+    beta: Score,
+) Allocator.Error!SearchRes {
     const start_eval = evaluate(self.board.*);
     if (self.stop_search.isSet()) {
-        return start_eval;
+        return SearchRes.canceled(start_eval);
     }
     var alpha = alpha_init;
 
     if (depth == 0) {
-        return start_eval;
+        return SearchRes.normal(start_eval);
     }
 
     if (start_eval >= beta)
-        return beta;
+        return SearchRes.normal(beta);
     if (alpha < start_eval)
         alpha = start_eval;
 
@@ -196,37 +218,46 @@ fn quiesceSearch(self: *Self, move_allocator: Allocator, depth: usize, alpha_ini
         std.debug.assert(move.captured_kind != null);
         const meta = self.board.meta;
         self.board.makeMove(move);
-        const score = -%try self.quiesceSearch(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
+        var res = try self.quiesceSearch(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
+        res.score = negate_score(res.score);
         self.board.unMakeMove(move, meta);
 
-        if (score >= beta) {
+        if (res.score >= beta) {
             //  fail hard beta-cutoff
-            return beta;
+            return SearchRes.normal(beta);
         }
-        alpha = @max(alpha, score);
+        alpha = @max(alpha, res.score);
 
         if (self.stop_search.isSet()) {
-            return alpha;
+            return SearchRes.normal(alpha);
         }
     }
-
-    return alpha;
+    return SearchRes.normal(alpha);
 }
 
-pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, depth_remaing: usize, alpha: Score, beta: Score) Allocator.Error!Score {
+pub fn search(
+    self: *Self,
+    move_allocator: Allocator,
+    depth_from_root: usize,
+    depth_remaing: usize,
+    alpha: Score,
+    beta: Score,
+) Allocator.Error!SearchRes {
     var best_eval = alpha;
 
     if (self.stop_search.isSet()) {
-        return 0;
+        return SearchRes.canceled(0);
     }
 
     if (depth_remaing == 0) {
         const hash = self.board.zhash;
         if (self.getFromTransposition(hash, 0)) |e| {
-            return e.score;
+            return e.search_res;
         }
         const score = try self.quiesceSearch(move_allocator, self.search_opts.quiesce_depth, alpha, beta);
-
+        if (self.stop_search.isSet()) {
+            return score;
+        }
         try self.addToTransposition(hash, score, 0);
         return score;
     }
@@ -240,10 +271,10 @@ pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, de
     if (moves.items.len == 0) {
         if (gen_info.attack_info.king_attackers.count() > 0) {
             // checkmate
-            return MIN_SCORE;
+            return SearchRes.normal(MIN_SCORE);
         }
         // draw
-        return 0;
+        return SearchRes.normal(0);
     }
 
     const to_sort = try moves.toOwnedSlice();
@@ -259,34 +290,35 @@ pub fn search(self: *Self, move_allocator: Allocator, depth_from_root: usize, de
         const meta = self.board.meta;
         self.board.makeMove(move);
         const hash = self.board.zhash;
-        const score = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
-            break :blk e.score;
+        const res = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
+            break :blk e.search_res;
         } else blk: {
-            const res = -%try self.search(
+            var search_res = try self.search(
                 move_allocator,
                 depth_from_root + 1,
                 depth_remaing - 1,
                 negate_score(beta),
                 negate_score(alpha),
             );
-            break :blk res;
+            search_res.score = negate_score(search_res.score);
+            break :blk search_res;
         };
         self.board.unMakeMove(move, meta);
 
-        if (score >= beta) {
+        if (res.score >= beta) {
             //  fail hard beta-cutoff
-            return beta;
+            return SearchRes.normal(beta);
         }
-        best_eval = @max(best_eval, score);
 
-        try self.addToTransposition(hash, score, depth_remaing);
-
+        best_eval = @max(best_eval, res.score);
         if (self.stop_search.isSet()) {
-            return best_eval;
+            return SearchRes.canceled(best_eval);
         }
+
+        try self.addToTransposition(hash, res, depth_remaing);
     }
 
-    return best_eval;
+    return SearchRes.normal(best_eval);
 }
 
 pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize) Allocator.Error!?Move {
@@ -307,7 +339,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
             // std.debug.print("checking {s}\n", .{move.toStrSimple()});
             self.board.makeMove(move);
             const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(self.best_score));
-            const eval = negate_score(enemy_score);
+            const eval = negate_score(enemy_score.score);
             self.board.unMakeMove(move, meta);
 
             if (eval > self.best_score) {
