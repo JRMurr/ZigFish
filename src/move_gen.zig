@@ -7,10 +7,11 @@ const Allocator = std.mem.Allocator;
 const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
-const Move = board_types.Move;
-const MoveType = board_types.MoveType;
-const MoveFlags = board_types.MoveFlags;
 const BoardMeta = board_types.BoardMeta;
+
+const Move = @import("move.zig");
+const MoveType = Move.MoveType;
+const MoveFlags = Move.MoveFlags;
 
 const bit_set_types = @import("bitset.zig");
 const BoardBitSet = bit_set_types.BoardBitSet;
