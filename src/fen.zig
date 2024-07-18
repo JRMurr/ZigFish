@@ -1,6 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
 
+const utils = @import("utils.zig");
+
 const Piece = @import("piece.zig");
 const Color = Piece.Color;
 const Kind = Piece.Kind;
@@ -9,21 +11,6 @@ const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
 const PositionRankFile = board_types.PositionRankFile;
-
-const piece_lookup = std.StaticStringMap(Piece).initComptime(.{
-    .{ "K", Piece{ .kind = Kind.King, .color = Color.White } },
-    .{ "k", Piece{ .kind = Kind.King, .color = Color.Black } },
-    .{ "Q", Piece{ .kind = Kind.Queen, .color = Color.White } },
-    .{ "q", Piece{ .kind = Kind.Queen, .color = Color.Black } },
-    .{ "B", Piece{ .kind = Kind.Bishop, .color = Color.White } },
-    .{ "b", Piece{ .kind = Kind.Bishop, .color = Color.Black } },
-    .{ "N", Piece{ .kind = Kind.Knight, .color = Color.White } },
-    .{ "n", Piece{ .kind = Kind.Knight, .color = Color.Black } },
-    .{ "R", Piece{ .kind = Kind.Rook, .color = Color.White } },
-    .{ "r", Piece{ .kind = Kind.Rook, .color = Color.Black } },
-    .{ "P", Piece{ .kind = Kind.Pawn, .color = Color.White } },
-    .{ "p", Piece{ .kind = Kind.Pawn, .color = Color.Black } },
-});
 
 fn parseInt(comptime T: type, buf: []const u8) T {
     return std.fmt.parseInt(T, buf, 10) catch |err| {
@@ -51,13 +38,12 @@ pub fn parse(str: []const u8) Board {
     while (rank_strs.next()) |rank_str| {
         curr_pos.file = 0;
         for (rank_str) |char| {
-            const key = [_]u8{char};
-            if (piece_lookup.has(&key)) {
-                const piece = piece_lookup.get(&key).?;
+            if (std.ascii.isAlphabetic(char)) {
+                const piece = Piece.fromChar(char);
                 board.setPos(curr_pos.toPosition(), piece);
                 curr_pos.file += 1;
             } else {
-                const num_empty = parseInt(u8, &key);
+                const num_empty = char - '0';
                 curr_pos.file +%= num_empty;
             }
         }
@@ -92,15 +78,130 @@ pub fn parse(str: []const u8) Board {
 
     board.meta.half_moves = parseInt(usize, half_move_str);
 
-    _ = full_move_str;
+    board.full_moves = parseInt(usize, full_move_str);
 
     board.initHash();
 
     return board;
 }
 
-pub fn toFen(board: Board) []const u8 {
-    _ = board;
+const MAX_FEN_LEN = 90; // probably could reduce this but who cares
 
-    return "TODO: FEN";
+const digitToChar = std.fmt.digitToChar;
+
+pub fn toFen(board: Board) [MAX_FEN_LEN]u8 {
+    // TOOD: see if i can do a sentil terminated slice
+    var str = comptime utils.initStr(' ', MAX_FEN_LEN);
+    var idx: usize = 0;
+
+    for (0..8) |r| {
+        var num_empty: u8 = 0;
+        const rank = 7 - r;
+        for (0..8) |file| {
+            const pos = Position.fromRankFile(.{ .rank = @intCast(rank), .file = @intCast(file) });
+            if (board.getPos(pos)) |p| {
+                if (num_empty > 0) {
+                    str[idx] = digitToChar(num_empty, .lower);
+                    idx += 1;
+                }
+                str[idx] = p.toChar();
+                idx += 1;
+                num_empty = 0;
+            } else {
+                num_empty += 1;
+            }
+        }
+        if (num_empty != 0) {
+            str[idx] = digitToChar(num_empty, .lower);
+            idx += 1;
+        }
+        if (rank != 0) {
+            str[idx] = '/';
+            idx += 1;
+        }
+    }
+
+    str[idx] = ' ';
+    idx += 1;
+
+    const active_char: u8 = if (board.active_color == Color.White) 'w' else 'b';
+    str[idx] = active_char;
+    idx += 1;
+
+    str[idx] = ' ';
+    idx += 1;
+
+    var can_castle = false;
+    for (0..Piece.NUM_COLOR) |color_idx| {
+        const color: Color = @enumFromInt(color_idx);
+        const castling_rights = board.meta.castling_rights[color_idx];
+        if (!castling_rights.canCastle()) {
+            continue;
+        }
+        for (castling_rights.toStr()) |c| {
+            const char = if (color == Color.Black)
+                c + 32
+            else
+                c;
+            str[idx] = char;
+            idx += 1;
+        }
+        can_castle = true;
+    }
+
+    if (!can_castle) {
+        str[idx] = '-';
+        idx += 1;
+    }
+
+    str[idx] = ' ';
+    idx += 1;
+
+    if (board.meta.en_passant_pos) |p| {
+        const pos_str = p.toStr();
+        str[idx] = pos_str[0];
+        idx += 1;
+        str[idx] = pos_str[1];
+        idx += 1;
+    } else {
+        str[idx] = '-';
+        idx += 1;
+    }
+
+    str[idx] = ' ';
+    idx += 1;
+
+    const num_idx = std.fmt.formatIntBuf(str[idx .. idx + 2], board.meta.half_moves, 10, .lower, .{});
+    idx += num_idx;
+
+    str[idx] = ' ';
+    idx += 1;
+
+    _ = std.fmt.formatIntBuf(str[idx .. idx + 2], board.full_moves, 10, .lower, .{});
+
+    return str;
+}
+
+test "no static erros" {
+    std.testing.refAllDeclsRecursive(@This());
+}
+
+fn toAndFromFen(str: []const u8) anyerror!void {
+    const board = parse(str);
+
+    const fen = toFen(board);
+
+    try std.testing.expectStringStartsWith(&fen, str);
+}
+
+test "start pos to from" {
+    try toAndFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+}
+
+test "bigger half moves to from" {
+    try toAndFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 10 20");
+}
+
+test "non start to from" {
+    try toAndFromFen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 1 8");
 }

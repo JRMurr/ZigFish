@@ -96,6 +96,23 @@ pub const CastlingRights = struct {
     pub fn initNone() CastlingRights {
         return .{ .queen_side = false, .king_side = false };
     }
+
+    pub fn canCastle(self: CastlingRights) bool {
+        return self.queen_side or self.king_side;
+    }
+
+    pub fn toStr(self: CastlingRights) []const u8 {
+        if (self.queen_side and self.king_side) {
+            return "KQ";
+        }
+        if (self.king_side) {
+            return "K";
+        }
+        if (self.queen_side) {
+            return "Q";
+        }
+        return "-";
+    }
 };
 
 const NUM_KINDS = utils.enum_len(Kind);
