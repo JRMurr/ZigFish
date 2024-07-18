@@ -61,10 +61,10 @@ pub fn toSan(self: Move) [SAN_LEN]u8 {
     return str;
 }
 
-pub fn fromSan(pgn: []u8, valid_moves: MoveList) Move {
+pub fn fromSan(san: []u8, valid_moves: MoveList) Move {
     // Handle castling
-    const is_king_castle = std.mem.eql(u8, pgn, "O-O");
-    const is_queen_castle = std.mem.eql(u8, pgn, "O-O-O");
+    const is_king_castle = std.mem.eql(u8, san, "O-O");
+    const is_queen_castle = std.mem.eql(u8, san, "O-O-O");
     if (is_king_castle or is_queen_castle) {
         const end_file = if (is_king_castle) 7 else 2;
         for (valid_moves.items) |m| {
@@ -78,7 +78,7 @@ pub fn fromSan(pgn: []u8, valid_moves: MoveList) Move {
 
             return m;
         }
-        std.debug.panic("could not find castle move for {s}", .{pgn});
+        std.debug.panic("could not find castle move for {s}", .{san});
     }
 
     var move_flags = MoveFlags.initEmpty();
@@ -91,41 +91,41 @@ pub fn fromSan(pgn: []u8, valid_moves: MoveList) Move {
     var promotion_kind: ?Kind = null;
     // var capture_kind: ?kind = null;
 
-    if (std.ascii.isUpper(pgn[idx])) {
-        kind = parsePieceType(pgn[idx]);
+    if (std.ascii.isUpper(san[idx])) {
+        kind = parsePieceType(san[idx]);
         idx += 1;
     }
 
     // Parse captures
-    if (std.mem.indexOf(u8, pgn, "x")) |capture_idx| {
+    if (std.mem.indexOf(u8, san, "x")) |capture_idx| {
         move_flags |= MoveFlags{ .Capture = true };
         idx = capture_idx + 1;
     }
 
     // Parse destination square
-    if (pgn.len - idx >= 2) {
-        const square_str = pgn[(pgn.len - 2)..];
+    if (san.len - idx >= 2) {
+        const square_str = san[(san.len - 2)..];
         end_square = Position.fromStr(square_str);
     } else {
-        std.debug.panic("error parsing end_square: {s}", .{pgn});
+        std.debug.panic("error parsing end_square: {s}", .{san});
     }
 
     // Parse promotion
-    if (pgn.len > 2 and pgn[pgn.len - 3] == '=') {
+    if (san.len > 2 and san[san.len - 3] == '=') {
         move_flags |= MoveFlags{ .Promotion = true };
-        promotion_kind = parsePieceType(pgn[pgn.len - 1]);
+        promotion_kind = parsePieceType(san[san.len - 1]);
     }
 
     var maybe_file: ?usize = null;
     var maybe_rank: ?usize = null;
 
-    if (std.ascii.isAlphabetic(pgn[idx])) {
-        maybe_file = @intCast(pgn[idx] - 'a');
+    if (std.ascii.isAlphabetic(san[idx])) {
+        maybe_file = @intCast(san[idx] - 'a');
         idx += 1;
     }
 
-    if (std.ascii.isDigit(pgn[idx])) {
-        maybe_rank = @intCast(pgn[idx] - '1');
+    if (std.ascii.isDigit(san[idx])) {
+        maybe_rank = @intCast(san[idx] - '1');
         idx += 1;
     }
 
@@ -154,7 +154,7 @@ pub fn fromSan(pgn: []u8, valid_moves: MoveList) Move {
         return m;
     }
 
-    std.debug.panic("could not find move for {s}", .{pgn});
+    std.debug.panic("could not find move for {s}", .{san});
 }
 
 pub fn toStrSimple(self: Move) [5]u8 {
