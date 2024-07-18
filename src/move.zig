@@ -53,13 +53,13 @@ pub fn toSan(self: Move) [SAN_LEN]u8 {
     return str;
 }
 
-pub fn fromSan(san: []const u8, valid_moves: MoveList) Move {
+pub fn fromSan(san: []const u8, valid_moves: []Move) Move {
     // Handle castling
     const is_king_castle: bool = std.mem.startsWith(u8, san, "O-O");
     const is_queen_castle: bool = std.mem.startsWith(u8, san, "O-O-O");
     if (is_king_castle or is_queen_castle) {
         const end_file: usize = if (is_queen_castle) 2 else 6;
-        for (valid_moves.items) |m| {
+        for (valid_moves) |m| {
             if (!m.move_flags.eql(MoveFlags.initOne(MoveType.Castling))) {
                 continue;
             }
@@ -129,7 +129,7 @@ pub fn fromSan(san: []const u8, valid_moves: MoveList) Move {
         }
     }
 
-    for (valid_moves.items) |m| {
+    for (valid_moves) |m| {
         if (m.kind != kind) {
             continue;
         }

@@ -46,6 +46,18 @@ fn negate_score(x: Score) Score {
     };
 }
 
+const MoveScored = struct {
+    move: Move,
+    score: Score,
+
+    pub fn init(move: Move, ctx: MoveCompareCtx) MoveScored {
+        return .{
+            .move = move,
+            .score = score_move(ctx, move),
+        };
+    }
+};
+
 const TranspositionEntry = struct {
     depth: usize,
     search_res: SearchRes,
@@ -98,6 +110,27 @@ const MoveCompareCtx = struct {
 fn compare_moves(ctx: MoveCompareCtx, a: Move, b: Move) bool {
     // sort descending
     return score_move(ctx, a) > score_move(ctx, b);
+}
+
+fn compareScored(_: @TypeOf(.{}), a: MoveScored, b: MoveScored) bool {
+    // sort descending
+    return a.score > b.score;
+}
+
+fn scoreAndSort(movesList: *MoveList, move_allocator: Allocator, ctx: MoveCompareCtx) Allocator.Error![]MoveScored {
+    const moves = try movesList.toOwnedSlice();
+
+    var scored = try std.ArrayList(MoveScored).initCapacity(move_allocator, moves.len);
+
+    for (moves) |m| {
+        scored.appendAssumeCapacity(MoveScored.init(m, ctx));
+    }
+
+    const res = try scored.toOwnedSlice();
+
+    std.mem.sort(MoveScored, res, .{}, compareScored);
+
+    return res;
 }
 
 const Self = @This();
@@ -205,15 +238,15 @@ fn quiesceSearch(
     defer moves.deinit();
 
     const gen_info = generated_moves.gen_info;
-    const to_sort = try moves.toOwnedSlice();
 
     const sort_ctx = MoveCompareCtx{
         .gen_info = gen_info,
     };
 
-    std.mem.sort(Move, to_sort, sort_ctx, compare_moves);
+    const sorted = try scoreAndSort(&moves, move_allocator, sort_ctx);
 
-    for (to_sort) |move| {
+    for (sorted) |move_score| {
+        const move = move_score.move;
         self.diagnostics.num_nodes_analyzed += 1;
         std.debug.assert(move.captured_kind != null);
         const meta = self.board.meta;
@@ -277,16 +310,15 @@ pub fn search(
         return SearchRes.normal(0);
     }
 
-    const to_sort = try moves.toOwnedSlice();
-
     const sort_ctx = MoveCompareCtx{
         .gen_info = gen_info,
         .best_move = if (depth_from_root == 0) self.best_move else null,
     };
 
-    std.mem.sort(Move, to_sort, sort_ctx, compare_moves);
+    const sorted = try scoreAndSort(&moves, move_allocator, sort_ctx);
 
-    for (to_sort) |move| {
+    for (sorted) |move_scored| {
+        const move = move_scored.move;
         const meta = self.board.meta;
         self.board.makeMove(move);
         const hash = self.board.zhash;
@@ -413,3 +445,7 @@ pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
 
 //     return bestMove;
 // }
+
+test "all" {
+    std.testing.refAllDecls(@This());
+}

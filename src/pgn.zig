@@ -48,7 +48,7 @@ pub fn fromPgn(pgn: []const u8, allocator: Allocator) Allocator.Error!GameManage
                 std.debug.panic("expected move but got nothing {s}\n", .{pgn});
             };
 
-            const move = Move.fromSan(move_str, moves);
+            const move = Move.fromSan(move_str, moves.items);
             try game.makeMove(move);
 
             if (it.peek()) |peeked| {
