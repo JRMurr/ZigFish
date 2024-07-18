@@ -41,18 +41,17 @@ pub const Position = packed struct {
 
     pub fn fromStr(str: []const u8) Position {
         const file_char = std.ascii.toLower(str[0]);
-        const file = file_char - 97;
+        const file = file_char - 'a';
 
         const rank_char = str[1];
-        const rank = rank_char - 49; // 48 is where 0 is, need an extra -1 since we are 0 indexed
-
+        const rank = rank_char - '1';
         return Position.fromRankFile(.{ .rank = rank, .file = file });
     }
 
     pub fn toStr(self: Position) [2]u8 {
         const rankFile = self.toRankFile();
-        const file_char = rankFile.file + 97;
-        const rank_char = rankFile.rank + 49;
+        const file_char = rankFile.file + 'a';
+        const rank_char = rankFile.rank + '1';
 
         return .{ file_char, rank_char };
     }
