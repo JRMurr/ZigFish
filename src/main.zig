@@ -226,3 +226,7 @@ pub fn main() anyerror!void {
         //----------------------------------------------------------------------------------
     }
 }
+
+test {
+    @import("std").testing.refAllDecls(@This());
+}

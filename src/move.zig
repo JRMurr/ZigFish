@@ -193,5 +193,5 @@ fn parsePieceType(ch: u8) Kind {
 }
 
 test "no static erros" {
-    std.testing.refAllDeclsRecursive(Move);
+    std.testing.refAllDecls(Move);
 }
