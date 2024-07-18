@@ -58,7 +58,7 @@ pub fn fromSan(san: []const u8, valid_moves: MoveList) Move {
     const is_king_castle: bool = std.mem.startsWith(u8, san, "O-O");
     const is_queen_castle: bool = std.mem.startsWith(u8, san, "O-O-O");
     if (is_king_castle or is_queen_castle) {
-        const end_file: usize = if (!is_queen_castle) 6 else 2;
+        const end_file: usize = if (is_queen_castle) 2 else 6;
         for (valid_moves.items) |m| {
             if (!m.move_flags.eql(MoveFlags.initOne(MoveType.Castling))) {
                 continue;
