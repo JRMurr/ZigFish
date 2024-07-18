@@ -55,10 +55,10 @@ pub fn toSan(self: Move) [SAN_LEN]u8 {
 
 pub fn fromSan(san: []const u8, valid_moves: MoveList) Move {
     // Handle castling
-    const is_king_castle: bool = std.mem.eql(u8, san, "O-O");
-    const is_queen_castle: bool = std.mem.eql(u8, san, "O-O-O");
+    const is_king_castle: bool = std.mem.startsWith(u8, san, "O-O");
+    const is_queen_castle: bool = std.mem.startsWith(u8, san, "O-O-O");
     if (is_king_castle or is_queen_castle) {
-        const end_file: usize = if (is_king_castle) 6 else 2;
+        const end_file: usize = if (!is_queen_castle) 6 else 2;
         for (valid_moves.items) |m| {
             if (!m.move_flags.eql(MoveFlags.initOne(MoveType.Castling))) {
                 continue;
@@ -75,7 +75,6 @@ pub fn fromSan(san: []const u8, valid_moves: MoveList) Move {
 
     var move_flags = MoveFlags.initEmpty();
 
-    // Determine piece type and start position
     var idx: usize = 0;
     var end_idx = san.len - 1;
     var kind = Kind.Pawn;
