@@ -5,8 +5,7 @@ const Thread = std.Thread;
 
 const SpriteManager = @import("./graphics/sprite.zig");
 
-const piece_types = @import("piece.zig");
-const Piece = piece_types.Piece;
+const Piece = @import("piece.zig");
 
 const game_types = @import("game.zig");
 const GameManager = game_types.GameManager;
@@ -134,7 +133,7 @@ pub fn main() anyerror!void {
         const mouse_x: usize = clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
-        const is_player_turn = game.board.active_color == piece_types.Color.White;
+        const is_player_turn = game.board.active_color == Piece.Color.White;
 
         if (search_thread == null and !is_player_turn) {
             search_res.done_search.reset();

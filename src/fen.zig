@@ -1,10 +1,9 @@
 const std = @import("std");
 const testing = std.testing;
 
-const piece_types = @import("piece.zig");
-const Piece = piece_types.Piece;
-const Color = piece_types.Color;
-const Kind = piece_types.Kind;
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
+const Kind = Piece.Kind;
 
 const board_types = @import("board.zig");
 const Board = board_types.Board;

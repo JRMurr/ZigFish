@@ -17,10 +17,9 @@ const bit_set_types = @import("bitset.zig");
 const BoardBitSet = bit_set_types.BoardBitSet;
 const Dir = bit_set_types.Dir;
 
-const piece = @import("piece.zig");
-const Color = piece.Color;
-const Kind = piece.Kind;
-const Piece = piece.Piece;
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
+const Kind = Piece.Kind;
 
 const precompute = @import("precompute.zig");
 const Score = precompute.Score;
@@ -148,7 +147,7 @@ pub fn findPinnedPieces(self: Self, color: Color) PinInfo {
     return .{ .pinned_pieces = pinned, .king_attack_ray = king_attack_ray };
 }
 
-pub fn slidingMoves(self: Self, p: piece.Piece, pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
+pub fn slidingMoves(self: Self, p: Piece, pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
     // TODO: debug assert pos has the piece?
     const start_idx = pos.toIndex();
 

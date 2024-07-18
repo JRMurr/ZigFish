@@ -4,11 +4,11 @@ const utils = @import("utils.zig");
 const board_types = @import("board.zig");
 const Position = board_types.Position;
 
-const piece = @import("piece.zig");
-const Color = piece.Color;
-const Kind = piece.Kind;
-const NUM_KINDS = utils.enum_len(piece.Kind);
-const NUM_COLOR = utils.enum_len(piece.Color);
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
+const Kind = Piece.Kind;
+const NUM_KINDS = utils.enum_len(Kind);
+const NUM_COLOR = utils.enum_len(Color);
 
 const bitset = @import("bitset.zig");
 const BoardBitSet = bitset.BoardBitSet;
@@ -190,7 +190,7 @@ pub const CASTLING_INFO = compute_castling_info();
 
 pub const Score = i64;
 
-pub const PIECE_SCORES = std.EnumArray(piece.Kind, Score).init(.{
+pub const PIECE_SCORES = std.EnumArray(Kind, Score).init(.{
     .King = 200000,
     .Queen = 900,
     .Bishop = 330,
@@ -214,9 +214,9 @@ pub const PieceSquareScore = struct {
         return res;
     }
 
-    fn getPieceSquare(p: piece.Piece, phase: GamePhase) PieceSquare {
+    fn getPieceSquare(p: Piece, phase: GamePhase) PieceSquare {
         const kind = p.kind;
-        const is_white = p.color == piece.Color.White;
+        const is_white = p.color == Color.White;
 
         return switch (kind) {
             .Knight => KNIGHT_SCORE,
@@ -232,7 +232,7 @@ pub const PieceSquareScore = struct {
         };
     }
 
-    pub fn scorePieces(p: piece.Piece, phase: GamePhase, board: BoardBitSet) Score {
+    pub fn scorePieces(p: Piece, phase: GamePhase, board: BoardBitSet) Score {
         var score: Score = 0;
 
         const piece_sqaure = getPieceSquare(p, phase);

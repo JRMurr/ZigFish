@@ -5,10 +5,9 @@ const board_types = @import("board.zig");
 const Board = board_types.Board;
 const Position = board_types.Position;
 
-const piece = @import("piece.zig");
-const Color = piece.Color;
-const Kind = piece.Kind;
-const Piece = piece.Piece;
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
+const Kind = Piece.Kind;
 
 const precompute = @import("precompute.zig");
 const Score = precompute.Score;

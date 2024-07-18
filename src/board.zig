@@ -1,6 +1,7 @@
 const std = @import("std");
-const piece = @import("piece.zig");
-const Piece = piece.Piece;
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
+const Kind = Piece.Kind;
 const fen = @import("fen.zig");
 const utils = @import("utils.zig");
 
@@ -98,8 +99,8 @@ pub const CastlingRights = struct {
     }
 };
 
-const NUM_KINDS = utils.enum_len(piece.Kind);
-const NUM_COLOR = utils.enum_len(piece.Color);
+const NUM_KINDS = utils.enum_len(Kind);
+const NUM_COLOR = utils.enum_len(Color);
 
 /// Metadata about the board that is irreversible
 /// Need to store copies of this for move unmaking
@@ -161,7 +162,7 @@ pub const Board = struct {
     /// redudent set for easy check if a square is occupied
     occupied_set: BoardBitSet,
 
-    active_color: piece.Color = piece.Color.White,
+    active_color: Color = Color.White,
     full_moves: usize = 0,
 
     meta: BoardMeta,
@@ -218,7 +219,7 @@ pub const Board = struct {
         }
 
         for (0..NUM_COLOR) |color_idx| {
-            const color: piece.Color = @enumFromInt(color_idx);
+            const color: Color = @enumFromInt(color_idx);
 
             if (self.meta.castling_rights[color_idx].king_side) {
                 zhash ^= HASHER.getCastleRights(color, true);
@@ -233,7 +234,7 @@ pub const Board = struct {
             zhash ^= HASHER.getEnPassant(ep);
         }
 
-        if (self.active_color == piece.Color.Black) {
+        if (self.active_color == Color.Black) {
             zhash ^= HASHER.black_to_move;
         }
 
@@ -270,7 +271,7 @@ pub const Board = struct {
             self.meta.en_passant_pos = null;
         }
 
-        if (move.move_flags.contains(MoveType.Capture) or move.kind == piece.Kind.Pawn) {
+        if (move.move_flags.contains(MoveType.Capture) or move.kind == Kind.Pawn) {
             self.meta.half_moves = 0;
         } else {
             self.meta.half_moves += 1;
@@ -286,7 +287,7 @@ pub const Board = struct {
         self.zhash ^= HASHER.getPieceNum(move_piece, move.end);
 
         switch (move.kind) {
-            piece.Kind.Pawn => {
+            Kind.Pawn => {
                 const diff_dir = get_diff_dir(move);
                 const rank_diff = diff_dir[0];
                 const dir = diff_dir[1];
@@ -302,7 +303,7 @@ pub const Board = struct {
                     self.setPos(captured_pos, null);
                 }
             },
-            piece.Kind.King => {
+            Kind.King => {
                 if (self.meta.castling_rights[color_idx].king_side) {
                     self.zhash ^= HASHER.getCastleRights(color, true);
                 }
@@ -319,7 +320,7 @@ pub const Board = struct {
 
                     const rook = Piece{
                         .color = color,
-                        .kind = piece.Kind.Rook,
+                        .kind = Kind.Rook,
                     };
 
                     self.zhash ^= HASHER.getPieceNum(rook, castling_info.rook_start);
@@ -329,7 +330,7 @@ pub const Board = struct {
                     self.setPos(castling_info.rook_end, rook);
                 }
             },
-            piece.Kind.Rook => {
+            Kind.Rook => {
                 const start_file = move.start.toRankFile().file;
                 if (start_file == 0) {
                     if (self.meta.castling_rights[color_idx].queen_side) {
@@ -351,7 +352,7 @@ pub const Board = struct {
             self.zhash ^= HASHER.getPieceNum(captuered_piece, captured_pos);
         }
 
-        if (self.active_color == piece.Color.Black) {
+        if (self.active_color == Color.Black) {
             self.full_moves += 1;
         }
 
@@ -369,7 +370,7 @@ pub const Board = struct {
         }
 
         for (0..NUM_COLOR) |color_idx| {
-            const color: piece.Color = @enumFromInt(color_idx);
+            const color: Color = @enumFromInt(color_idx);
             const old_castle = old_meta.castling_rights[color_idx];
             const new_castle = meta.castling_rights[color_idx];
 
@@ -414,7 +415,7 @@ pub const Board = struct {
 
             const rook = Piece{
                 .color = piece_color,
-                .kind = piece.Kind.Rook,
+                .kind = Kind.Rook,
             };
 
             self.zhash ^= HASHER.getPieceNum(rook, castling_info.rook_end);
@@ -429,7 +430,7 @@ pub const Board = struct {
             self.zhash ^= HASHER.getPieceNum(captured, move.end);
         }
 
-        if (self.active_color == piece.Color.White) {
+        if (self.active_color == Color.White) {
             self.full_moves -= 1;
         }
 
@@ -444,7 +445,7 @@ pub const Board = struct {
             return null;
         }
 
-        const color: piece.Color = for (0..NUM_COLOR) |idx| {
+        const color: Color = for (0..NUM_COLOR) |idx| {
             if (self.color_sets[idx].isSet(pos_idx)) {
                 break @enumFromInt(idx);
             }
@@ -452,7 +453,7 @@ pub const Board = struct {
             std.debug.panic("No color found when occupied was set", .{});
         };
 
-        const kind: piece.Kind = for (0..NUM_KINDS) |idx| {
+        const kind: Kind = for (0..NUM_KINDS) |idx| {
             if (self.kind_sets[idx].isSet(pos_idx)) {
                 break @enumFromInt(idx);
             }

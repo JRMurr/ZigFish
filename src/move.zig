@@ -1,9 +1,13 @@
 const std = @import("std");
-const piece = @import("piece.zig");
-const Piece = piece.Piece;
+const Piece = @import("piece.zig");
+const Kind = Piece.Kind;
+const Color = Piece.Color;
 
 const board_types = @import("board.zig");
 const Position = board_types.Position;
+
+const MoveGen = @import("move_gen.zig");
+pub const MoveList = MoveGen.MoveList;
 
 pub const MoveType = enum {
     Capture,
@@ -29,10 +33,10 @@ fn initStr(char: u8, comptime len: usize) [len]u8 {
 
 start: Position,
 end: Position,
-kind: piece.Kind,
+kind: Kind,
 move_flags: MoveFlags,
-captured_kind: ?piece.Kind = null,
-promotion_kind: ?piece.Kind = null,
+captured_kind: ?Kind = null,
+promotion_kind: ?Kind = null,
 
 pub fn toSan(self: Move) [SAN_LEN]u8 {
     // https://www.chessprogramming.org/Algebraic_Chess_Notation#SAN
@@ -73,3 +77,24 @@ pub fn toStrSimple(self: Move) [5]u8 {
 pub fn eql(self: Move, other: Move) bool {
     return std.meta.eql(self, other);
 }
+
+// fn parsePieceType(ch: u8) Kind {
+//     return switch (ch) {
+//         'N' => Kind.Knight,
+//         'B' => Kind.Bishop,
+//         'R' => Kind.Rook,
+//         'Q' => Kind.Queen,
+//         'K' => Kind.King,
+//         else => Kind.Pawn,
+//     };
+// }
+
+// pub fn fromPgn(pgn: []u8, color: P valid_moves: MoveList) Move {
+//     // Handle castling
+//     if (std.mem.eql(u8, pgn, "O-O")) {
+//         // king side
+//     } else if (std.mem.eql(u8, pgn, "O-O-O")) {
+//         // queen side
+//     }
+
+// }

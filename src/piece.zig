@@ -1,3 +1,5 @@
+const utils = @import("utils.zig");
+
 pub const Color = enum(u1) {
     White = 0,
     Black = 1,
@@ -30,54 +32,57 @@ pub const Kind = enum(u3) {
     }
 };
 
-pub const Piece = struct {
-    color: Color,
-    kind: Kind,
+pub const NUM_KINDS = utils.enum_len(Kind);
+pub const NUM_COLOR = utils.enum_len(Color);
 
-    pub fn eql(self: Piece, other: Piece) bool {
-        return self.color == other.color and self.kind == other.kind;
-    }
+const Piece = @This();
 
-    pub fn is_knight(self: Piece) bool {
-        return self.kind == Kind.Knight;
-    }
+color: Color,
+kind: Kind,
 
-    pub fn is_king(self: Piece) bool {
-        return self.kind == Kind.King;
-    }
+pub fn eql(self: Piece, other: Piece) bool {
+    return self.color == other.color and self.kind == other.kind;
+}
 
-    pub fn is_queen(self: Piece) bool {
-        return self.kind == Kind.Queen;
-    }
+pub fn is_knight(self: Piece) bool {
+    return self.kind == Kind.Knight;
+}
 
-    pub fn is_bishop(self: Piece) bool {
-        return self.kind == Kind.Bishop;
-    }
+pub fn is_king(self: Piece) bool {
+    return self.kind == Kind.King;
+}
 
-    pub fn is_rook(self: Piece) bool {
-        return self.kind == Kind.Rook;
-    }
+pub fn is_queen(self: Piece) bool {
+    return self.kind == Kind.Queen;
+}
 
-    pub fn is_pawn(self: Piece) bool {
-        return self.kind == Kind.Pawn;
-    }
+pub fn is_bishop(self: Piece) bool {
+    return self.kind == Kind.Bishop;
+}
 
-    pub fn is_white(self: Piece) bool {
-        return self.color == Color.White;
-    }
+pub fn is_rook(self: Piece) bool {
+    return self.kind == Kind.Rook;
+}
 
-    pub fn is_black(self: Piece) bool {
-        return self.color == Color.Black;
-    }
+pub fn is_pawn(self: Piece) bool {
+    return self.kind == Kind.Pawn;
+}
 
-    pub fn is_freindly(self: Piece, other: Piece) bool {
-        return self.color == other.color;
-    }
+pub fn is_white(self: Piece) bool {
+    return self.color == Color.White;
+}
 
-    pub fn on_starting_rank(self: Piece, rank: usize) bool {
-        return switch (self.color) {
-            Color.White => if (self.is_pawn()) rank == 1 else rank == 0,
-            Color.Black => if (self.is_pawn()) rank == 6 else rank == 7,
-        };
-    }
-};
+pub fn is_black(self: Piece) bool {
+    return self.color == Color.Black;
+}
+
+pub fn is_freindly(self: Piece, other: Piece) bool {
+    return self.color == other.color;
+}
+
+pub fn on_starting_rank(self: Piece, rank: usize) bool {
+    return switch (self.color) {
+        Color.White => if (self.is_pawn()) rank == 1 else rank == 0,
+        Color.Black => if (self.is_pawn()) rank == 6 else rank == 7,
+    };
+}

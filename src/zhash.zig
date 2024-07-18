@@ -4,11 +4,11 @@ const utils = @import("utils.zig");
 const board_types = @import("board.zig");
 const Position = board_types.Position;
 
-const piece = @import("piece.zig");
-const Color = piece.Color;
-const Kind = piece.Kind;
-const NUM_KINDS = utils.enum_len(piece.Kind);
-const NUM_COLOR = utils.enum_len(piece.Color);
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
+const Kind = Piece.Kind;
+const NUM_KINDS = Piece.NUM_KINDS;
+const NUM_COLOR = Piece.NUM_COLOR;
 
 // var prng = std.rand.DefaultPrng.init(blk: {
 //     var seed: u64 = undefined;
@@ -28,21 +28,6 @@ fn randomSlice(comptime len: usize, rand: std.Random) [len]u64 {
 
     return res;
 }
-
-// const PieceNums = [NUM_COLOR][NUM_KINDS][64]u64;
-
-// fn genPieceNum(rand: std.Random) PieceNums {
-//     var res: PieceNums = undefined;
-//     inline for (utils.enum_fields(Color)) |f_c| {
-//         const color_idx = f_c.value;
-//         inline for (utils.enum_fields(Kind)) |f_k| {
-//             const kind_idx = f_k.value;
-//             res[color_idx][kind_idx] = randomSlice(64, rand);
-//         }
-//     }
-
-//     return res;
-// }
 
 const NUM_PIECE_SQAURES = 64 * NUM_KINDS * NUM_COLOR;
 const PieceNums = [NUM_PIECE_SQAURES]u64;
@@ -71,7 +56,7 @@ pub const ZHashing = struct {
         };
     }
 
-    pub fn getPieceNum(self: Self, p: piece.Piece, pos: Position) u64 {
+    pub fn getPieceNum(self: Self, p: Piece, pos: Position) u64 {
         const color_idx: usize = @intFromEnum(p.color);
         const kind_idx: usize = @intFromEnum(p.kind);
         const pos_idx = pos.toIndex();

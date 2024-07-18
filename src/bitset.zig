@@ -1,8 +1,8 @@
 const std = @import("std");
 const utils = @import("utils.zig");
 
-const piece_types = @import("piece.zig");
-const Color = piece_types.Color;
+const Piece = @import("piece.zig");
+const Color = Piece.Color;
 
 const precompute = @import("precompute.zig");
 
