@@ -92,6 +92,13 @@ pub const GameManager = struct {
         self.board.unMakeMove(move, meta);
     }
 
+    pub fn getAllValidMoves(self: *Self, move_allocator: Allocator) Allocator.Error!MoveList {
+        const move_gen = MoveGen{ .board = &self.board };
+        const res = try move_gen.getAllValidMoves(move_allocator, false);
+
+        return res.moves;
+    }
+
     pub fn getValidMovesAt(self: *Self, move_allocator: Allocator, pos: Position) Allocator.Error!MoveList {
         const maybe_peice = self.getPos(pos);
         const move_gen = MoveGen{ .board = &self.board };

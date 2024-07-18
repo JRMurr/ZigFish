@@ -61,17 +61,17 @@ pub fn toSan(self: Move) [SAN_LEN]u8 {
     return str;
 }
 
-pub fn fromSan(san: []u8, valid_moves: MoveList) Move {
+pub fn fromSan(san: []const u8, valid_moves: MoveList) Move {
     // Handle castling
-    const is_king_castle = std.mem.eql(u8, san, "O-O");
-    const is_queen_castle = std.mem.eql(u8, san, "O-O-O");
+    const is_king_castle: bool = std.mem.eql(u8, san, "O-O");
+    const is_queen_castle: bool = std.mem.eql(u8, san, "O-O-O");
     if (is_king_castle or is_queen_castle) {
-        const end_file = if (is_king_castle) 7 else 2;
+        const end_file: usize = if (is_king_castle) 6 else 2;
         for (valid_moves.items) |m| {
-            if (!m.move_flags.eql(MoveFlags{ .Castling = true })) {
+            if (!m.move_flags.eql(MoveFlags.initOne(MoveType.Castling))) {
                 continue;
             }
-            const rankFile = m.start.toRankFile();
+            const rankFile = m.end.toRankFile();
             if (rankFile.file != end_file) {
                 continue;
             }
@@ -84,8 +84,14 @@ pub fn fromSan(san: []u8, valid_moves: MoveList) Move {
     var move_flags = MoveFlags.initEmpty();
 
     // Determine piece type and start position
-    var idx = 0;
+    var idx: usize = 0;
+    var end_idx = san.len - 1;
     var kind = Kind.Pawn;
+
+    if (!std.ascii.isDigit(san[end_idx])) {
+        // check or checkmate char at end
+        end_idx -= 1;
+    }
 
     var end_square: Position = undefined;
     var promotion_kind: ?Kind = null;
@@ -98,35 +104,38 @@ pub fn fromSan(san: []u8, valid_moves: MoveList) Move {
 
     // Parse captures
     if (std.mem.indexOf(u8, san, "x")) |capture_idx| {
-        move_flags |= MoveFlags{ .Capture = true };
+        move_flags.setUnion(MoveFlags.initOne(MoveType.Capture));
         idx = capture_idx + 1;
     }
 
     // Parse destination square
-    if (san.len - idx >= 2) {
-        const square_str = san[(san.len - 2)..];
+    if (end_idx - idx >= 1) {
+        const square_str = san[(end_idx - 1)..(end_idx + 1)];
+        // std.debug.print("square_str {s}\n", .{square_str});
         end_square = Position.fromStr(square_str);
     } else {
         std.debug.panic("error parsing end_square: {s}", .{san});
     }
 
     // Parse promotion
-    if (san.len > 2 and san[san.len - 3] == '=') {
-        move_flags |= MoveFlags{ .Promotion = true };
-        promotion_kind = parsePieceType(san[san.len - 1]);
+    if (san.len > 2 and san[end_idx - 2] == '=') {
+        move_flags.setUnion(MoveFlags.initOne(MoveType.Promotion));
+        promotion_kind = parsePieceType(san[end_idx]);
     }
 
     var maybe_file: ?usize = null;
     var maybe_rank: ?usize = null;
 
-    if (std.ascii.isAlphabetic(san[idx])) {
-        maybe_file = @intCast(san[idx] - 'a');
-        idx += 1;
-    }
+    if (idx < end_idx - 1) {
+        if (std.ascii.isAlphabetic(san[idx])) {
+            maybe_file = @intCast(san[idx] - 'a');
+            idx += 1;
+        }
 
-    if (std.ascii.isDigit(san[idx])) {
-        maybe_rank = @intCast(san[idx] - '1');
-        idx += 1;
+        if (std.ascii.isDigit(san[idx])) {
+            maybe_rank = @intCast(san[idx] - '1');
+            idx += 1;
+        }
     }
 
     for (valid_moves.items) |m| {
@@ -154,7 +163,13 @@ pub fn fromSan(san: []u8, valid_moves: MoveList) Move {
         return m;
     }
 
-    std.debug.panic("could not find move for {s}", .{san});
+    std.debug.panic("could not find move for {s}\nkind: {}\nend_square: {s}\nmaybe_file: {?}\nmaybe_rank: {?}\n", .{
+        san,
+        kind,
+        end_square.toStr(),
+        maybe_file,
+        maybe_rank,
+    });
 }
 
 pub fn toStrSimple(self: Move) [5]u8 {
@@ -183,4 +198,8 @@ fn parsePieceType(ch: u8) Kind {
         'K' => Kind.King,
         else => Kind.Pawn,
     };
+}
+
+test "no static erros" {
+    std.testing.refAllDeclsRecursive(Move);
 }
