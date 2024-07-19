@@ -27,6 +27,7 @@ pub const SearchOpts = struct {
     max_depth: usize = 100,
     time_limit_millis: usize = 1000,
     quiesce_depth: usize = 5,
+    max_extensions: usize = 10,
 };
 
 const MIN_SCORE = std.math.minInt(Score);
@@ -78,9 +79,10 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
         const captured_score = Precompute.PIECE_SCORES.get(k);
 
         score += 10 * captured_score - move_val;
-    } else {
-        score += move_val;
     }
+    //  else {
+    //     score += move_val;
+    // }
 
     if (move.promotion_kind) |k| {
         score += Precompute.PIECE_SCORES.get(k);
@@ -88,9 +90,9 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
     const attack_info = ctx.gen_info.attack_info;
 
     if (attack_info.attackers[@intFromEnum(Kind.Pawn)].isSet(move.end.toIndex())) {
-        score -= move_val;
+        score -= (@divFloor(move_val, 4));
     } else if (attack_info.attacked_sqaures.isSet(move.end.toIndex())) {
-        score -= (@divFloor(move_val, 2));
+        score -= (@divFloor(move_val, 8));
     }
 
     return score;
@@ -288,6 +290,7 @@ pub fn search(
     move_allocator: Allocator,
     depth_from_root: usize,
     depth_remaing: usize,
+    num_extensions: usize,
     alpha_int: Score,
     beta: Score,
 ) Allocator.Error!SearchRes {
@@ -351,10 +354,18 @@ pub fn search(
         const res = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
             break :blk e.search_res;
         } else blk: {
+            var depth_remaing_updated = depth_remaing - 1;
+            var num_extensions_updated = num_extensions;
+            if (num_extensions_updated < self.search_opts.max_extensions and self.board.king_in_check()) {
+                depth_remaing_updated += 1;
+                num_extensions_updated += 1;
+            }
+
             var search_res = try self.search(
                 move_allocator,
                 depth_from_root + 1,
-                depth_remaing - 1,
+                depth_remaing_updated,
+                num_extensions_updated,
                 negate_score(beta),
                 negate_score(best_eval),
             );
@@ -400,7 +411,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
             const meta = self.board.meta;
             // std.log.debug("checking {s}", .{move.toStrSimple()});
             self.board.makeMove(move);
-            const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(self.best_score));
+            const enemy_score = try self.search(move_allocator, 0, depth - 1, 0, MIN_SCORE, negate_score(self.best_score));
             const eval = negate_score(enemy_score.score);
             self.board.unMakeMove(move, meta);
 

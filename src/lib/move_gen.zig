@@ -148,7 +148,7 @@ pub fn findPinnedPieces(self: Self, color: Color) PinInfo {
     return .{ .pinned_pieces = pinned, .king_attack_ray = king_attack_ray };
 }
 
-pub fn slidingMoves(self: Self, p: Piece, pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
+pub fn slidingMoves(board: Board, p: Piece, pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
     // TODO: debug assert pos has the piece?
     const start_idx = pos.toIndex();
 
@@ -162,7 +162,7 @@ pub fn slidingMoves(self: Self, p: Piece, pos: Position, ignore_sqaures: BoardBi
 
         const dir: Dir = @enumFromInt(dirIndex);
 
-        const blocker = moves.intersectWith(self.board.occupied_set.differenceWith(ignore_sqaures));
+        const blocker = moves.intersectWith(board.occupied_set.differenceWith(ignore_sqaures));
         if (blocker.count() > 0) {
             const sqaure = if (dir.is_positive())
                 blocker.bitScanForward()
@@ -212,11 +212,13 @@ pub fn castleAllowed(self: Self, color: Color, attacked_sqaures: BoardBitSet, ki
     return rooks.isSet(maybe_rook_idx);
 }
 
-pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
+pub fn allAttackedSqaures(board: Board) AttackedSqaureInfo {
     var attackInfo: AttackedSqaureInfo = undefined;
     var attacks = BoardBitSet.initEmpty();
 
-    const king_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = Kind.King });
+    const color = board.active_color.get_enemy();
+
+    const king_board = board.getPieceSet(Piece{ .color = board.active_color, .kind = Kind.King });
     const king_square = king_board.bitScanForward();
 
     var king_attackers = BoardBitSet.initEmpty();
@@ -224,7 +226,7 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
     for (0..NUM_KINDS) |kind_idx| {
         const kind: Kind = @enumFromInt(kind_idx);
         const p = Piece{ .color = color, .kind = kind };
-        const piece_set = self.board.getPieceSet(p);
+        const piece_set = board.getPieceSet(p);
 
         switch (kind) {
             Kind.Pawn => {
@@ -261,7 +263,7 @@ pub fn allAttackedSqaures(self: Self, color: Color) AttackedSqaureInfo {
                 var iter = piece_set.iterator();
                 while (iter.next()) |pos| {
                     // ignore king when calculating sliding moves so he wont be able to walk along an attack line
-                    const moves = self.slidingMoves(p, pos, king_board);
+                    const moves = slidingMoves(board, p, pos, king_board);
                     if (moves.isSet(king_square)) {
                         king_attackers.set(pos.toIndex());
                     }
@@ -282,7 +284,7 @@ pub fn getGenInfo(self: Self) MoveGenInfo {
     const color = self.board.active_color;
 
     const pin_info = self.findPinnedPieces(color);
-    const attack_info = self.allAttackedSqaures(color.get_enemy());
+    const attack_info = allAttackedSqaures(self.board.*);
 
     const gen_info = MoveGenInfo{
         .pinned_pieces = pin_info.pinned_pieces,
@@ -448,7 +450,7 @@ pub fn getValidMoves(
         Kind.Bishop,
         Kind.Queen,
         Kind.Rook,
-        => self.slidingMoves(p, pos, BoardBitSet.initEmpty()).intersectWith(allowed_sqaures),
+        => slidingMoves(self.board.*, p, pos, BoardBitSet.initEmpty()).intersectWith(allowed_sqaures),
     };
 
     possible_moves.remove(freinds);

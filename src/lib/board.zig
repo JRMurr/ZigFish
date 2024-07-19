@@ -493,6 +493,12 @@ pub const Board = struct {
             self.occupied_set.set(pos_idx);
         }
     }
+
+    pub fn king_in_check(self: Self) bool {
+        const attack_info = ZigFish.MoveGen.allAttackedSqaures(self);
+
+        return attack_info.king_attackers.count() > 0;
+    }
 };
 
 test "parse pos str" {
