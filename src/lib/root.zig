@@ -2,15 +2,12 @@ const std = @import("std");
 const testing = std.testing;
 
 pub usingnamespace @import("board.zig");
-// const board_types = @import("board.zig");
-// pub const Position = board_types.Position;
-// pub const Board = board_types.Board;
-// pub const BoardMeta = board_types.BoardMeta;
 
 const game_types = @import("game.zig");
 pub const GameManager = game_types.GameManager;
 
-pub usingnamespace @import("move_gen.zig");
+pub const MoveGen = @import("move_gen.zig");
+pub const MoveList = MoveGen.MoveList;
 pub usingnamespace @import("piece.zig");
 pub usingnamespace @import("move.zig");
 
