@@ -46,7 +46,7 @@ pub const CommandKind = enum {
 
         inline for (Utils.enum_fields(CommandKind)) |f| {
             const kind: CommandKind = @enumFromInt(f.value);
-            if (std.mem.startsWith(u8, command_str, kind.asStr())) {
+            if (std.mem.eql(u8, command_str, kind.asStr())) {
                 return .{ .parsed = kind, .rest = iter };
             }
         }
@@ -78,7 +78,16 @@ pub const Command = union(CommandKind) {
 
         const command: Command = switch (kind) {
             .Uci, .IsReady, .Register, .UciNewGame, .Stop, .PonderHit, .Quit => |k| blk: {
-                break :blk @unionInit(Command, @tagName(k), {});
+                // init the void commandArgs, need some comptime sadness...
+                inline for (Utils.unionFields(Command)) |f| {
+                    if (f.type != void) {
+                        continue;
+                    }
+                    if (std.mem.eql(u8, f.name, @tagName(k))) {
+                        break :blk @unionInit(Command, f.name, {});
+                    }
+                }
+                std.debug.panic("TODO:", .{});
             },
             else => std.debug.panic("TODO:", .{}),
         };
@@ -94,10 +103,10 @@ test {
 test "parse command kind" {
     const parsed = try CommandKind.fromStr("position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 e4");
     try std.testing.expectEqual(CommandKind.Position, parsed.parsed);
-    try std.testing.expectEqual("fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 e4", parsed.rest.rest());
+    try std.testing.expectEqualDeep("fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 e4", parsed.rest.rest());
 }
 
 test "parse EmptyCommandArgs" {
     const parsed = try Command.fromStr("ucinewgame");
-    try std.testing.expectEqual(.{ .UciNewGame = {} }, parsed.parsed);
+    try std.testing.expectEqual(Command{ .UciNewGame = {} }, parsed.parsed);
 }
