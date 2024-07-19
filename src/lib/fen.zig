@@ -1,8 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
-const ZigFish = @import("root");
+const ZigFish = @import("root.zig");
 
-const utils = ZigFish.utils;
+const utils = ZigFish.Utils;
 
 const Piece = @import("piece.zig");
 const Color = Piece.Color;

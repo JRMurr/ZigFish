@@ -1,5 +1,5 @@
 const std = @import("std");
-const utils = @import("zigfish").utils;
+const utils = @import("root.zig").Utils;
 
 pub const Color = enum(u1) {
     White = 0,
@@ -36,7 +36,7 @@ pub const Kind = enum(u3) {
 pub const NUM_KINDS = utils.enum_len(Kind);
 pub const NUM_COLOR = utils.enum_len(Color);
 
-const Piece = @This();
+pub const Piece = @This();
 
 color: Color,
 kind: Kind,

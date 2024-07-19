@@ -1,6 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
-const ZigFish = @import("root");
+const ZigFish = @import("zigfish");
 const Position = ZigFish.Position;
 const Move = ZigFish.Move;
 

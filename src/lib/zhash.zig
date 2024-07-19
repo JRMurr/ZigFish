@@ -1,7 +1,7 @@
 const std = @import("std");
-const utils = ZigFish.utils;
+const utils = ZigFish.Utils;
 
-const ZigFish = @import("root");
+const ZigFish = @import("root.zig");
 const Position = ZigFish.Position;
 
 const Piece = ZigFish.Piece;

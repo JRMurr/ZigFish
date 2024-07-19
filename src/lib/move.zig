@@ -1,15 +1,14 @@
 const std = @import("std");
-const ZigFish = @import("root");
+const ZigFish = @import("root.zig");
 
-const utils = ZigFish.utils;
+const utils = ZigFish.Utils;
 const Piece = ZigFish.Piece;
 const Kind = Piece.Kind;
 const Color = Piece.Color;
 
 const Position = ZigFish.Position;
 
-const MoveGen = @import("move_gen.zig");
-pub const MoveList = MoveGen.MoveList;
+const MoveList = ZigFish.MoveList;
 
 pub const MoveType = enum {
     Capture,
@@ -20,7 +19,7 @@ pub const MoveType = enum {
 
 pub const MoveFlags = std.enums.EnumSet(MoveType);
 
-const Move = @This();
+pub const Move = @This();
 
 const SAN_LEN = 8;
 

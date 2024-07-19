@@ -1,10 +1,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const utils = ZigFish.utils;
+const utils = ZigFish.Utils;
 
 const Allocator = std.mem.Allocator;
 
-const ZigFish = @import("root");
+const ZigFish = @import("root.zig");
 const Board = ZigFish.Board;
 const Position = ZigFish.Position;
 const BoardMeta = ZigFish.BoardMeta;
@@ -54,6 +54,7 @@ const NUM_DIRS = utils.enum_len(Dir);
 const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook };
 
 const Self = @This();
+pub const MoveGen = Self;
 
 board: *Board,
 

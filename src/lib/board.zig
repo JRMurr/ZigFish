@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const ZigFish = @import("root");
+const ZigFish = @import("root.zig");
 const ZHashing = ZigFish.Zhasing;
 const Precompute = ZigFish.Precompute;
 const Bitset = ZigFish.BitSet;

@@ -1,10 +1,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const utils = ZigFish.utils;
+const utils = ZigFish.Utils;
 
 const Thread = std.Thread;
 
-const ZigFish = @import("root");
+const ZigFish = @import("root.zig");
 const Board = ZigFish.Board;
 const Position = ZigFish.Position;
 const Move = ZigFish.Move;
