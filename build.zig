@@ -24,6 +24,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const zigfish = b.addModule("zigfish", .{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -35,6 +41,11 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    exe.root_module.addImport("zigfish", zigfish);
+
+    // exe.linkLibrary(lib);
+    // exe.linkLibrary(lib);
 
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
@@ -48,6 +59,14 @@ pub fn build(b: *std.Build) void {
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
+
+    const mecha_dep = b.dependency("mecha", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const mecha = mecha_dep.module("mecha");
+    exe.root_module.addImport("mecha", mecha);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -126,10 +145,12 @@ pub fn build(b: *std.Build) void {
 
     const exe_uci = b.addExecutable(.{
         .name = "zigfish-uci",
-        .root_source_file = b.path("src/uci.zig"),
+        .root_source_file = b.path("src/uci/main.zig"),
         .target = target,
         .optimize = optimize,
     });
+    exe_uci.root_module.addImport("mecha", mecha);
+    exe_uci.root_module.addImport("zigfish", zigfish);
 
     b.installArtifact(exe_uci);
 

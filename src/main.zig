@@ -45,6 +45,7 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
 const MAX_DEPTH = 100;
 const SEARCH_TIME = 5000; // milli seconds
 const QUIESCE_DEPTH = 5;
+const PLAYER_COLOR = Piece.Color.White;
 const AI_ON: bool = true;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
@@ -136,7 +137,7 @@ pub fn main() anyerror!void {
         const mouse_x: usize = clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
-        const is_player_turn = if (AI_ON) game.board.active_color == Piece.Color.White else true;
+        const is_player_turn = if (AI_ON) game.board.active_color == PLAYER_COLOR else true;
 
         if (search_thread == null and !is_player_turn) {
             search_res.done_search.reset();

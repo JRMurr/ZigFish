@@ -1,19 +1,21 @@
 const std = @import("std");
 
-const piece_types = @import("piece.zig");
-const Piece = piece_types.Piece;
+const ZigFish = @import("zigfish");
 
-const game_types = @import("game.zig");
-const GameManager = game_types.GameManager;
+// const piece_types = @import("piece.zig");
+// const Piece = piece_types.Piece;
 
-const board_types = @import("board.zig");
-const BoardBitSet = board_types.BoardBitSet;
-const Position = board_types.Position;
-const Move = board_types.Move;
+// const game_types = @import("game.zig");
+// const GameManager = game_types.GameManager;
 
-const MoveList = game_types.MoveList;
+// const board_types = @import("board.zig");
+// const BoardBitSet = board_types.BoardBitSet;
+// const Position = board_types.Position;
+// const Move = board_types.Move;
 
-const ZHashing = @import("zhash.zig").ZHashing;
+// const MoveList = game_types.MoveList;
+
+// const ZHashing = @import("zhash.zig").ZHashing;
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -27,7 +29,7 @@ pub fn main() anyerror!void {
 
     // var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
 
-    var game = try GameManager.init(gpa_allocator);
+    var game = try ZigFish.GameManager.init(gpa_allocator);
 
     const move = try game.findBestMove(move_allocator, .{});
 

@@ -27,6 +27,10 @@
             .url = "https://github.com/Not-Nik/raylib-zig/archive/2d8e856009bf0ee60ef78bde78e32512bdaae714.tar.gz",
             .hash = "1220d32c92222ded6912529bbd502b2e0c5c5c2056c4b709ad0f6924d6524343a2d2",
         },
+        .mecha = .{
+            .url = "https://github.com/Hejsil/mecha/archive/refs/tags/0.9.0.tar.gz",
+            .hash = "12206311fbaae8a0adc35e4835ddd9bcc1ff8fff756c9df40e19133f007fa05d3948",
+        },
     },
     .paths = .{
         "build.zig",
