@@ -8,10 +8,10 @@ const ZigFish = @import("zigfish");
 // const game_types = @import("game.zig");
 // const GameManager = game_types.GameManager;
 
-// const board_types = @import("board.zig");
-// const BoardBitSet = board_types.BoardBitSet;
-// const Position = board_types.Position;
-// const Move = board_types.Move;
+// const ZigFish = @import("root");
+// const BoardBitSet = ZigFish.BoardBitSet;
+// const Position = ZigFish.Position;
+// const Move = ZigFish.Move;
 
 // const MoveList = game_types.MoveList;
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("zigfish").utils;
 
 pub const Color = enum(u1) {
     White = 0,

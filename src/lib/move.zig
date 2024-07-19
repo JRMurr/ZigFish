@@ -1,11 +1,12 @@
 const std = @import("std");
-const utils = @import("utils.zig");
-const Piece = @import("piece.zig");
+const ZigFish = @import("root");
+
+const utils = ZigFish.utils;
+const Piece = ZigFish.Piece;
 const Kind = Piece.Kind;
 const Color = Piece.Color;
 
-const board_types = @import("board.zig");
-const Position = board_types.Position;
+const Position = ZigFish.Position;
 
 const MoveGen = @import("move_gen.zig");
 pub const MoveList = MoveGen.MoveList;

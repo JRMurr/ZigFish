@@ -1,16 +1,16 @@
 const std = @import("std");
 const testing = std.testing;
+const ZigFish = @import("root");
 
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
 const Piece = @import("piece.zig");
 const Color = Piece.Color;
 const Kind = Piece.Kind;
 
-const board_types = @import("board.zig");
-const Board = board_types.Board;
-const Position = board_types.Position;
-const PositionRankFile = board_types.PositionRankFile;
+const Board = ZigFish.Board;
+const Position = ZigFish.Position;
+const PositionRankFile = ZigFish.PositionRankFile;
 
 fn parseInt(comptime T: type, buf: []const u8) T {
     return std.fmt.parseInt(T, buf, 10) catch |err| {

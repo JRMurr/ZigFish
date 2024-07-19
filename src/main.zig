@@ -1,21 +1,16 @@
 const std = @import("std");
 const rl = @import("raylib");
+const ZigFish = @import("zigfish");
 
 const Thread = std.Thread;
 
 const SpriteManager = @import("./graphics/sprite.zig");
 
-const Piece = @import("piece.zig");
-
-const game_types = @import("game.zig");
-const GameManager = game_types.GameManager;
-
-const board_types = @import("board.zig");
-const BoardBitSet = board_types.BoardBitSet;
-const Position = board_types.Position;
-const Move = board_types.Move;
-
-const MoveList = game_types.MoveList;
+const Position = ZigFish.Position;
+const Piece = ZigFish.Piece;
+const MoveList = ZigFish.MoveList;
+const Move = ZigFish.Move;
+const GameManager = ZigFish.GameManager;
 
 const MovingPiece = struct {
     start: Position,

@@ -1,18 +1,17 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
-const board_types = @import("board.zig");
-const Board = board_types.Board;
-const Position = board_types.Position;
-const Move = board_types.Move;
-const MoveType = board_types.MoveType;
-const MoveFlags = board_types.MoveFlags;
-const BoardMeta = board_types.BoardMeta;
+const ZigFish = @import("root");
+const Board = ZigFish.Board;
+const Position = ZigFish.Position;
+const Move = ZigFish.Move;
+const MoveType = ZigFish.MoveType;
+const MoveFlags = ZigFish.MoveFlags;
+const BoardMeta = ZigFish.BoardMeta;
 
-const bit_set_types = @import("bitset.zig");
-const BoardBitSet = bit_set_types.BoardBitSet;
-const Dir = bit_set_types.Dir;
+const BoardBitSet = ZigFish.BoardBitSet;
+const Dir = ZigFish.Dir;
 
 const Piece = @import("piece.zig");
 const Color = Color;

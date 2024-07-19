@@ -1,26 +1,23 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
 const Thread = std.Thread;
 
-const board_types = @import("board.zig");
-const Board = board_types.Board;
-const Position = board_types.Position;
-const Move = board_types.Move;
-const MoveType = board_types.MoveType;
+const ZigFish = @import("root");
+const Board = ZigFish.Board;
+const Position = ZigFish.Position;
+const Move = ZigFish.Move;
+const MoveType = ZigFish.MoveType;
 
-const bit_set_types = @import("bitset.zig");
-
-const MoveGen = @import("move_gen.zig");
+const MoveGen = ZigFish.MoveGen;
 const MoveList = MoveGen.MoveList;
 
-const piece = @import("piece.zig");
-const Color = piece.Color;
-const Kind = piece.Kind;
-const Piece = piece.Piece;
+const Piece = ZigFish.Piece;
+const Color = Piece.Color;
+const Kind = Piece.Kind;
 
-const precompute = @import("precompute.zig");
+const precompute = ZigFish.Precompute;
 const Score = precompute.Score;
 
 const evaluate = @import("eval.zig").evaluate;

@@ -1,9 +1,9 @@
 const builtin = @import("builtin");
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
-const board_types = @import("board.zig");
-const Board = board_types.Board;
-const Position = board_types.Position;
+const ZigFish = @import("root");
+const Board = ZigFish.Board;
+const Position = ZigFish.Position;
 
 const Piece = @import("piece.zig");
 const Color = Piece.Color;

@@ -1,22 +1,17 @@
 const std = @import("std");
-const Piece = @import("piece.zig");
+
+const ZigFish = @import("root");
+const ZHashing = ZigFish.Zhasing;
+const Precompute = ZigFish.Precompute;
+const Bitset = ZigFish.BitSet;
+const Move = ZigFish.Move;
+const MoveType = ZigFish.Move.MoveType;
+const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 const Kind = Piece.Kind;
-const fen = @import("fen.zig");
-const utils = @import("utils.zig");
 
-pub const Move = @import("move.zig");
-pub const MoveType = Move.MoveType;
-
-const ZHashing = @import("zhash.zig");
-
-const precompute = @import("precompute.zig");
-
-const bitset = @import("bitset.zig");
-
-const Dir = bitset.Dir;
-
-pub const BoardBitSet = @import("bitset.zig").BoardBitSet;
+const Dir = Bitset.Dir;
+const BoardBitSet = ZigFish.BoardBitSet;
 
 pub const PositionRankFile = packed struct {
     rank: u8,
@@ -115,8 +110,8 @@ pub const CastlingRights = struct {
     }
 };
 
-const NUM_KINDS = utils.enum_len(Kind);
-const NUM_COLOR = utils.enum_len(Color);
+const NUM_KINDS = ZigFish.Utils.enum_len(ZigFish.Kind);
+const NUM_COLOR = ZigFish.Utils.enum_len(ZigFish.Color);
 
 /// Metadata about the board that is irreversible
 /// Need to store copies of this for move unmaking
@@ -178,7 +173,7 @@ pub const Board = struct {
     /// redudent set for easy check if a square is occupied
     occupied_set: BoardBitSet,
 
-    active_color: Color = Color.White,
+    active_color: ZigFish.Color = ZigFish.Color.White,
     full_moves: usize = 0,
 
     meta: BoardMeta,
@@ -271,7 +266,7 @@ pub const Board = struct {
                 \\fen: {s}
                 \\move: {?}
                 \\board: {?}
-            , .{ move.toSan(), fen.toFen(self.*), move, self });
+            , .{ move.toSan(), ZigFish.Fen.toFen(self.*), move, self });
         };
 
         const color = self.active_color;
@@ -331,7 +326,7 @@ pub const Board = struct {
                 self.meta.castling_rights[color_idx].queen_side = false;
 
                 if (move.move_flags.contains(MoveType.Castling)) {
-                    const all_castling_info = precompute.CASTLING_INFO[color_idx];
+                    const all_castling_info = Precompute.CASTLING_INFO[color_idx];
                     const castling_info = all_castling_info.from_king_end(move.end).?;
 
                     const rook = Piece{
@@ -426,7 +421,7 @@ pub const Board = struct {
 
         if (move.move_flags.contains(MoveType.Castling)) {
             const color_idx = @intFromEnum(piece_color);
-            const all_castling_info = precompute.CASTLING_INFO[color_idx];
+            const all_castling_info = Precompute.CASTLING_INFO[color_idx];
             const castling_info = all_castling_info.from_king_end(move.end).?;
 
             const rook = Piece{

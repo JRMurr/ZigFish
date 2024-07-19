@@ -1,8 +1,8 @@
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
-const board_types = @import("board.zig");
-const Position = board_types.Position;
+const ZigFish = @import("root");
+const Position = ZigFish.Position;
 
 const Piece = @import("piece.zig");
 const Color = Piece.Color;

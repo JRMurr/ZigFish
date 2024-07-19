@@ -1,12 +1,14 @@
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
-const Piece = @import("piece.zig");
+const ZigFish = @import("root");
+
+const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 
 const precompute = @import("precompute.zig");
 
-const Position = @import("board.zig").Position;
+const Position = ZigFish.Position;
 
 pub const BitSet = std.bit_set.IntegerBitSet(64);
 

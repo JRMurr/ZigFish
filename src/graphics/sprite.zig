@@ -1,11 +1,11 @@
 const std = @import("std");
 const rl = @import("raylib");
-const Piece = @import("../piece.zig");
-const game_types = @import("../game.zig");
-const GameManager = game_types.GameManager;
-const board_types = @import("../board.zig");
-const Position = board_types.Position;
-const Move = board_types.Move;
+const ZigFish = @import("root");
+const Position = ZigFish.Position;
+const Move = ZigFish.Move;
+
+const Piece = ZigFish.Piece;
+const GameManager = ZigFish.GameManager;
 
 const num_piece_types = 6;
 const num_colors = 2;

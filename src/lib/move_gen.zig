@@ -1,13 +1,13 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const utils = @import("utils.zig");
+const utils = ZigFish.utils;
 
 const Allocator = std.mem.Allocator;
 
-const board_types = @import("board.zig");
-const Board = board_types.Board;
-const Position = board_types.Position;
-const BoardMeta = board_types.BoardMeta;
+const ZigFish = @import("root");
+const Board = ZigFish.Board;
+const Position = ZigFish.Position;
+const BoardMeta = ZigFish.BoardMeta;
 
 const Move = @import("move.zig");
 const MoveType = Move.MoveType;
