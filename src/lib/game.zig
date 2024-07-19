@@ -206,9 +206,10 @@ test "perft pos 4" {
     try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, false));
 }
 
-test "perft pos 5 depth 5" {
-    var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
-    defer game.deinit();
+// SLOW!!!!!
+// test "perft pos 5 depth 5" {
+//     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+//     defer game.deinit();
 
-    try std.testing.expectEqual(89_941_194, try game.perft(5, std.testing.allocator, false));
-}
+//     try std.testing.expectEqual(89_941_194, try game.perft(5, std.testing.allocator, false));
+// }

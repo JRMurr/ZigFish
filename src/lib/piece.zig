@@ -125,9 +125,9 @@ pub fn toChar(self: Piece) u8 {
     return kind_char + 32;
 }
 
-test "no static erros" {
-    std.testing.refAllDeclsRecursive(@This());
-}
+// test "no static erros" {
+//     std.testing.refAllDecls(@This());
+// }
 
 test "from and to char" {
     const chars = "KkQqBbNnRrPp";

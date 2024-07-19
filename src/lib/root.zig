@@ -8,7 +8,10 @@ pub const GameManager = game_types.GameManager;
 
 pub const MoveGen = @import("move_gen.zig");
 pub const MoveList = MoveGen.MoveList;
-pub usingnamespace @import("piece.zig");
+pub const Piece = @import("piece.zig");
+pub const Kind = Piece.Kind;
+pub const Color = Piece.Color;
+
 pub usingnamespace @import("move.zig");
 
 pub const BitSet = @import("bitset.zig");
