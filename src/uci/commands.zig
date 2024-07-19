@@ -58,6 +58,16 @@ pub const CommandKind = enum {
 const EmptyCommandArgs = void;
 const ToDoArgs = u8;
 
+fn consumeConst(iter: *TokenIter, val: []const u8) !void {
+    if (iter.next()) |next| {
+        if (!std.mem.eql(u8, next, val)) {
+            return error.MissingConst;
+        }
+    }
+
+    return error.EndOfInput;
+}
+
 pub const Command = union(CommandKind) {
     Uci,
     Debug: bool,
@@ -74,7 +84,7 @@ pub const Command = union(CommandKind) {
     pub fn fromStr(str: []const u8) !ParseRes(Command) {
         const commandKindRes = try CommandKind.fromStr(str);
         const kind = commandKindRes.parsed;
-        const iter = commandKindRes.rest;
+        var iter = commandKindRes.rest;
 
         const command: Command = switch (kind) {
             .Uci, .IsReady, .Register, .UciNewGame, .Stop, .PonderHit, .Quit => |k| blk: {
@@ -87,8 +97,20 @@ pub const Command = union(CommandKind) {
                         break :blk @unionInit(Command, f.name, {});
                     }
                 }
-                std.debug.panic("TODO:", .{});
+                std.debug.panic("No match on EmptyCommandArgs for: {s}", .{@tagName(k)});
             },
+            .Debug => blk: {
+                const toggle_str = iter.next() orelse std.debug.panic("No on/off on debug command {s}\n", .{str});
+                if (std.mem.eql(u8, toggle_str, "on")) {
+                    break :blk Command{ .Debug = true };
+                }
+                break :blk Command{ .Debug = false };
+            },
+            // TODO: make UciOption parser
+            // .SetOption => blk: {
+            //     consumeConst(iter, "name");
+            //     const id = iter.next() orelse return error.missingParam;
+            // },
             else => std.debug.panic("TODO:", .{}),
         };
 
@@ -109,4 +131,9 @@ test "parse command kind" {
 test "parse EmptyCommandArgs" {
     const parsed = try Command.fromStr("ucinewgame");
     try std.testing.expectEqual(Command{ .UciNewGame = {} }, parsed.parsed);
+}
+
+test "parse debug on" {
+    const parsed = try Command.fromStr("debug on");
+    try std.testing.expectEqual(Command{ .Debug = true }, parsed.parsed);
 }
