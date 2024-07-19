@@ -9,16 +9,13 @@ const Board = ZigFish.Board;
 const Position = ZigFish.Position;
 const Move = ZigFish.Move;
 const MoveType = ZigFish.MoveType;
-
 const MoveGen = ZigFish.MoveGen;
 const MoveList = MoveGen.MoveList;
-
 const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 const Kind = Piece.Kind;
-
-const precompute = ZigFish.Precompute;
-const Score = precompute.Score;
+const Precompute = ZigFish.Precompute;
+const Score = ZigFish.Score;
 
 const evaluate = @import("eval.zig").evaluate;
 
@@ -71,14 +68,14 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
         }
     }
 
-    const move_val = precompute.PIECE_SCORES.get(move.kind);
+    const move_val = Precompute.PIECE_SCORES.get(move.kind);
 
     if (move.move_flags.contains(MoveType.Castling)) {
         score += 100;
     }
 
     if (move.captured_kind) |k| {
-        const captured_score = precompute.PIECE_SCORES.get(k);
+        const captured_score = Precompute.PIECE_SCORES.get(k);
 
         score += 10 * captured_score - move_val;
     } else {
@@ -86,7 +83,7 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
     }
 
     if (move.promotion_kind) |k| {
-        score += precompute.PIECE_SCORES.get(k);
+        score += Precompute.PIECE_SCORES.get(k);
     }
     const attack_info = ctx.gen_info.attack_info;
 
@@ -196,10 +193,24 @@ fn getFromTransposition(self: *Self, hash: u64, depth: usize) ?TranspositionEntr
 
 const SearchRes = struct {
     score: Score,
+    best_move: ?Move = null,
+    refutation: ?Move = null,
     was_canceled: bool = false,
 
     pub fn normal(score: Score) SearchRes {
         return .{ .score = score, .was_canceled = false };
+    }
+
+    pub fn initBest(alpha: Score, best_move: ?Move) SearchRes {
+        return .{ .score = alpha, .best_move = best_move, .was_canceled = false };
+    }
+
+    pub fn initCut(beta: Score, refutation: Move) SearchRes {
+        return .{ .score = beta, .refutation = refutation, .was_canceled = false };
+    }
+
+    pub fn canceledWithBest(score: Score, best_move: ?Move) SearchRes {
+        return .{ .score = score, .best_move = best_move, .was_canceled = true };
     }
 
     pub fn canceled(score: Score) SearchRes {
@@ -242,10 +253,14 @@ fn quiesceSearch(
 
     const sorted = try scoreAndSort(&moves, move_allocator, sort_ctx);
 
+    var best_move: ?Move = null;
+
     for (sorted) |move_score| {
         const move = move_score.move;
         self.diagnostics.num_nodes_analyzed += 1;
         std.debug.assert(move.captured_kind != null);
+
+        // make, score, unmake
         const meta = self.board.meta;
         self.board.makeMove(move);
         var res = try self.quiesceSearch(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
@@ -254,15 +269,18 @@ fn quiesceSearch(
 
         if (res.score >= beta) {
             //  fail hard beta-cutoff
-            return SearchRes.normal(beta);
+            return SearchRes.initCut(beta, move);
         }
-        alpha = @max(alpha, res.score);
+        if (res.score > alpha) {
+            alpha = res.score;
+            best_move = move;
+        }
 
         if (self.stop_search.isSet()) {
-            return SearchRes.normal(alpha);
+            return SearchRes.initBest(alpha, best_move);
         }
     }
-    return SearchRes.normal(alpha);
+    return SearchRes.initBest(alpha, best_move);
 }
 
 pub fn search(
@@ -270,10 +288,10 @@ pub fn search(
     move_allocator: Allocator,
     depth_from_root: usize,
     depth_remaing: usize,
-    alpha: Score,
+    alpha_int: Score,
     beta: Score,
 ) Allocator.Error!SearchRes {
-    var best_eval = alpha;
+    var best_eval = alpha_int;
 
     if (self.stop_search.isSet()) {
         return SearchRes.canceled(0);
@@ -284,7 +302,7 @@ pub fn search(
         if (self.getFromTransposition(hash, 0)) |e| {
             return e.search_res;
         }
-        const score = try self.quiesceSearch(move_allocator, self.search_opts.quiesce_depth, alpha, beta);
+        const score = try self.quiesceSearch(move_allocator, self.search_opts.quiesce_depth, alpha_int, beta);
         if (self.stop_search.isSet()) {
             return score;
         }
@@ -307,12 +325,23 @@ pub fn search(
         return SearchRes.normal(0);
     }
 
+    var prev_best_move: ?Move = null;
+
+    if (depth_from_root == 0) {
+        prev_best_move = self.best_move;
+    } else if (self.transposition.get(self.board.zhash)) |e| {
+        const prev_res = e.search_res;
+        prev_best_move = prev_res.best_move orelse prev_res.refutation;
+    }
+
     const sort_ctx = MoveCompareCtx{
         .gen_info = gen_info,
-        .best_move = if (depth_from_root == 0) self.best_move else null,
+        .best_move = prev_best_move,
     };
 
     const sorted = try scoreAndSort(&moves, move_allocator, sort_ctx);
+
+    var best_move: ?Move = null;
 
     for (sorted) |move_scored| {
         const move = move_scored.move;
@@ -327,7 +356,7 @@ pub fn search(
                 depth_from_root + 1,
                 depth_remaing - 1,
                 negate_score(beta),
-                negate_score(alpha),
+                negate_score(best_eval),
             );
             search_res.score = negate_score(search_res.score);
             break :blk search_res;
@@ -336,18 +365,22 @@ pub fn search(
 
         if (res.score >= beta) {
             //  fail hard beta-cutoff
-            return SearchRes.normal(beta);
+            return SearchRes.initCut(beta, move);
         }
 
-        best_eval = @max(best_eval, res.score);
+        if (res.score > best_eval) {
+            best_eval = res.score;
+            best_move = move;
+        }
+
         if (self.stop_search.isSet()) {
-            return SearchRes.canceled(best_eval);
+            return SearchRes.canceledWithBest(best_eval, best_move);
         }
 
         try self.addToTransposition(hash, res, depth_remaing);
     }
 
-    return SearchRes.normal(best_eval);
+    return SearchRes.initBest(best_eval, best_move);
 }
 
 pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize) Allocator.Error!?Move {
@@ -408,7 +441,7 @@ pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
     var monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), self.search_opts.time_limit_millis });
     const best = try self.iterativeSearch(move_allocator, self.search_opts.max_depth);
     monitorThread.join();
-
+    std.log.debug("eval: {}", .{self.best_score});
     return best;
 }
 
