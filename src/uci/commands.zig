@@ -68,6 +68,57 @@ fn consumeConst(iter: *TokenIter, val: []const u8) !void {
     return error.EndOfInput;
 }
 
+const PositionArgs = struct {
+    fen: []const u8,
+    // moves
+};
+
+const MoveStr = []const u8;
+
+const GoArgs = union(enum) {
+    SearchMoves: TokenIter,
+    Ponder,
+    Wtime: usize,
+    Btime: usize,
+    Winc: usize,
+    Binc: usize,
+    MovesToGo: usize,
+    Depth: usize,
+    Nodes: usize,
+    Mate: usize,
+    Movetime: usize,
+    Infinite,
+
+    pub fn fromStr(str: []const u8) !GoArgs {
+        var iter = std.mem.tokenizeScalar(u8, str, ' ');
+
+        const go_str = iter.next() orelse {
+            return error.EmptyInput;
+        };
+
+        // TODO: multiple go commands can be on the same line
+        // go infinite searchmoves e2e4 d2d4
+        inline for (Utils.unionFields(GoArgs)) |f| {
+            if (std.ascii.eqlIgnoreCase(f.name, go_str)) {
+                if (f.type == void) {
+                    return @unionInit(GoArgs, f.name, {});
+                }
+                if (f.type == usize) {
+                    const int_str = iter.next() orelse {
+                        return error.EmptyInput;
+                    };
+                    const parsedInt = try std.fmt.parseInt(usize, int_str, 10);
+                    return @unionInit(GoArgs, f.name, parsedInt);
+                }
+
+                return @unionInit(GoArgs, f.name, iter);
+            }
+        }
+
+        return error.InvalidCommand;
+    }
+};
+
 pub const Command = union(CommandKind) {
     Uci,
     Debug: bool,
@@ -75,8 +126,8 @@ pub const Command = union(CommandKind) {
     SetOption: ToDoArgs,
     Register,
     UciNewGame,
-    Position: ToDoArgs,
-    Go: ToDoArgs,
+    Position: PositionArgs,
+    Go: GoArgs,
     Stop,
     PonderHit,
     Quit,
@@ -100,18 +151,32 @@ pub const Command = union(CommandKind) {
                 std.debug.panic("No match on EmptyCommandArgs for: {s}", .{@tagName(k)});
             },
             .Debug => blk: {
-                const toggle_str = iter.next() orelse std.debug.panic("No on/off on debug command {s}\n", .{str});
+                const toggle_str = iter.next() orelse return error.InvalidCommand;
                 if (std.mem.eql(u8, toggle_str, "on")) {
                     break :blk Command{ .Debug = true };
                 }
                 break :blk Command{ .Debug = false };
             },
             // TODO: make UciOption parser
-            // .SetOption => blk: {
-            //     consumeConst(iter, "name");
-            //     const id = iter.next() orelse return error.missingParam;
-            // },
-            else => std.debug.panic("TODO:", .{}),
+            .SetOption => {
+                std.debug.panic("TODO:", .{});
+                // consumeConst(iter, "name");
+                // const id = iter.next() orelse return error.missingParam;
+            },
+            .Position => blk: {
+                const fenOrStartPos = iter.next() orelse return error.EndOfInput;
+                const fen = if (std.mem.eql(u8, fenOrStartPos, "startpos"))
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                else
+                    fenOrStartPos;
+                // TODO: moves
+
+                break :blk Command{ .Position = .{ .fen = fen } };
+            },
+            .Go => blk: {
+                const args = try GoArgs.fromStr(iter.rest());
+                break :blk Command{ .Go = args };
+            },
         };
 
         return .{ .parsed = command, .rest = iter };
