@@ -356,7 +356,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        std.debug.print("checking at depth: {}\n", .{depth});
+        std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
         const moves = generated_moves.moves;
@@ -365,7 +365,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
         for (moves.items) |move| {
             self.diagnostics.num_nodes_analyzed += 1;
             const meta = self.board.meta;
-            // std.debug.print("checking {s}\n", .{move.toStrSimple()});
+            // std.log.debug("checking {s}", .{move.toStrSimple()});
             self.board.makeMove(move);
             const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(self.best_score));
             const eval = negate_score(enemy_score.score);
@@ -376,11 +376,11 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
                 self.best_score = eval;
             }
             if (self.stop_search.isSet()) {
-                std.debug.print("Check before stopping: {}\n", .{self.diagnostics.num_nodes_analyzed});
+                std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
                 return self.best_move;
             }
         }
-        std.debug.print("Checked this iteration: {}\n", .{self.diagnostics.num_nodes_analyzed});
+        std.log.debug("Checked this iteration: {}", .{self.diagnostics.num_nodes_analyzed});
     }
 
     return self.best_move;
@@ -423,7 +423,7 @@ pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
 
 //     for (moves.items) |move| {
 //         const meta = self.board.meta;
-//         std.debug.print("checking {s}\n", .{move.toStrSimple()});
+//         std.log.debug("checking {s}", .{move.toStrSimple()});
 //         self.board.makeMove(move);
 //         const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(alpha));
 //         const eval = negate_score(enemy_score);
@@ -435,9 +435,9 @@ pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
 //         }
 //     }
 //     if (bestMove) |move| {
-//         std.debug.print("best move: {s}\n", .{move.toStrSimple()});
+//         std.log.debug("best move: {s}", .{move.toStrSimple()});
 //     } else {
-//         std.debug.print("NO MOVE FOUND\n", .{});
+//         std.log.debug("NO MOVE FOUND", .{});
 //     }
 
 //     return bestMove;

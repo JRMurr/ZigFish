@@ -141,7 +141,7 @@ pub const GameManager = struct {
             try self.makeMove(move);
             const num_leafs = try self.perft(depth - 1, move_allocator, false);
             if (print_count_per_move) {
-                std.debug.print("{s}: {d}\n", .{ move.toStrSimple(), num_leafs });
+                std.log.debug("{s}: {d}", .{ move.toStrSimple(), num_leafs });
             }
             nodes += num_leafs;
             self.unMakeMove(move);
@@ -163,7 +163,7 @@ fn testZhashUnMake(game: *GameManager, print: bool) anyerror!void {
         game.unMakeMove(move);
         const end_hash = game.board.zhash;
 
-        if (print) std.debug.print("{s}: {d}\t{d}\n", .{ move.toStrSimple(), start_hash, end_hash });
+        if (print) std.log.debug("{s}: {d}\t{d}", .{ move.toStrSimple(), start_hash, end_hash });
 
         try std.testing.expectEqual(start_hash, end_hash);
     }

@@ -242,12 +242,12 @@ pub const BoardBitSet = packed struct {
 
     pub fn debug(self: Self) void {
         var iter = self.bit_set.iterator(.{});
-        std.debug.print("-------------\n", .{});
+        std.log.debug("-------------", .{});
         while (iter.next()) |sqaure| {
             const attacked_pos = Position.fromIndex(sqaure);
-            std.debug.print("{s}\n", .{attacked_pos.toStr()});
+            std.log.debug("{s}", .{attacked_pos.toStr()});
         }
-        std.debug.print("-------------\n", .{});
+        std.log.debug("-------------", .{});
     }
 
     /// Returns true if the bit at the specified index

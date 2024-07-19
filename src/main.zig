@@ -89,7 +89,7 @@ pub fn main() anyerror!void {
     // an italian opening
     // var game = try GameManager.from_fen(gpa_allocator, "r1bq1rk1/bpp2ppp/p2p1nn1/4p3/P1BPP3/2P2N1P/1P3PP1/RNBQR1K1 w - - 1 11");
 
-    // std.debug.print("moves: {}", .{try game.getAllValidMoves(move_allocator)});
+    // std.log.debug("moves: {}", .{try game.getAllValidMoves(move_allocator)});
 
     // pin should be able to capture
     // var game = try GameManager.from_fen(gpa_allocator, "8/2rk4/8/2p5/b3q3/1NRP4/2K5/8 w - - 0 1");
@@ -109,12 +109,12 @@ pub fn main() anyerror!void {
     // var game = try GameManager.from_fen(gpa_allocator, "8/2p5/3p4/KP5r/6pk/8/4P1P1/8 w - - 1 1");
 
     // const perf = try game.perft(6, move_allocator, true);
-    // std.debug.print("nodes: {}\n", .{perf});
+    // std.log.debug("nodes: {}", .{perf});
 
     // const best_move = (try game.findBestMove(move_allocator, 6)).?;
-    // std.debug.print("search_res: {}\n", .{best_move});
+    // std.log.debug("search_res: {}", .{best_move});
 
-    // std.debug.print("score: {}\n", .{game.evaluate()});
+    // std.log.debug("score: {}", .{game.evaluate()});
 
     var moving_piece: ?MovingPiece = null;
 
@@ -171,7 +171,7 @@ pub fn main() anyerror!void {
             for (mp.valid_moves.items) |move| {
                 // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
-                    std.debug.print("{s}\n", .{move.toSan()});
+                    std.log.debug("{s}", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move);
 
@@ -188,7 +188,7 @@ pub fn main() anyerror!void {
             const maybe_move = move_history.popOrNull();
             if (maybe_move) |move| {
                 game.unMakeMove(move);
-                std.debug.print("unmake hash: {d}\n", .{game.board.zhash});
+                std.log.debug("unmake hash: {d}", .{game.board.zhash});
             }
         }
 

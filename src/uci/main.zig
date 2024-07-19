@@ -2,21 +2,6 @@ const std = @import("std");
 
 const ZigFish = @import("zigfish");
 
-// const piece_types = @import("piece.zig");
-// const Piece = piece_types.Piece;
-
-// const game_types = @import("game.zig");
-// const GameManager = game_types.GameManager;
-
-// const ZigFish = @import("root");
-// const BoardBitSet = ZigFish.BoardBitSet;
-// const Position = ZigFish.Position;
-// const Move = ZigFish.Move;
-
-// const MoveList = game_types.MoveList;
-
-// const ZHashing = @import("zhash.zig").ZHashing;
-
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const gpa_allocator = gpa.allocator();
@@ -33,5 +18,5 @@ pub fn main() anyerror!void {
 
     const move = try game.findBestMove(move_allocator, .{});
 
-    std.debug.print("{}\n", .{move.?});
+    std.log.debug("{}", .{move.?});
 }

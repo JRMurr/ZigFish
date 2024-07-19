@@ -102,7 +102,7 @@ pub fn fromSan(san: []const u8, valid_moves: []Move) Move {
     // Parse destination square
     if (end_idx - idx >= 1) {
         const square_str = san[(end_idx - 1)..(end_idx + 1)];
-        // std.debug.print("square_str {s}\n", .{square_str});
+        // std.log.debug("square_str {s}", .{square_str});
         end_square = Position.fromStr(square_str);
     } else {
         std.debug.panic("error parsing end_square: {s}", .{san});

@@ -500,7 +500,7 @@ test "parse pos str" {
 
     try std.testing.expect(pos.eql(Position.fromRankFile(.{ .rank = 3, .file = 4 })));
 
-    // std.debug.print("{s}\n", .{pos.toStr()});
+    // std.log.debug("{s}", .{pos.toStr()});
 
     try std.testing.expect(std.mem.eql(u8, &pos.toStr(), "e4"));
 }
@@ -508,7 +508,7 @@ test "parse pos str" {
 test "pos to str" {
     const pos = Position.fromRankFile(.{ .rank = 0, .file = 0 });
 
-    // std.debug.print("{s}\n", .{pos.toStr()});
+    // std.log.debug("{s}", .{pos.toStr()});
 
     try std.testing.expect(std.mem.eql(u8, &pos.toStr(), "a1"));
 }
