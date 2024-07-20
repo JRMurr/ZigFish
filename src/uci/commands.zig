@@ -1,5 +1,6 @@
 const std = @import("std");
-const Utils = @import("zigfish").Utils;
+const ZigFish = @import("zigfish");
+const Utils = ZigFish.Utils;
 
 const TokenIter = std.mem.TokenIterator(u8, .scalar);
 
@@ -70,13 +71,39 @@ fn consumeConst(iter: *TokenIter, val: []const u8) !void {
 
 const PositionArgs = struct {
     fen: []const u8,
-    // moves
+    moves: SimpleMoveList,
 };
 
-const MoveStr = []const u8;
+const SimpleMove = struct {
+    start: ZigFish.Position,
+    end: ZigFish.Position,
+
+    pub fn fromStr(str: []const u8) !SimpleMove {
+        if (str.len != 4) {
+            return error.InvalidMove;
+        }
+
+        const start = ZigFish.Position.fromStr(str[0..2]);
+        const end = ZigFish.Position.fromStr(str[2..4]);
+        return .{ .start = start, .end = end };
+    }
+};
+const Allocator = std.mem.Allocator;
+pub const SimpleMoveList = std.ArrayList(SimpleMove);
+
+fn consumeIterToMoves(allocator: Allocator, iter: *TokenIter) !SimpleMoveList {
+    var moves = SimpleMoveList.init(allocator);
+    errdefer moves.deinit();
+
+    while (iter.next()) |m| {
+        try moves.append(try SimpleMove.fromStr(m));
+    }
+
+    return moves;
+}
 
 const GoArgs = union(enum) {
-    SearchMoves: TokenIter,
+    SearchMoves: SimpleMoveList,
     Ponder,
     Wtime: usize,
     Btime: usize,
@@ -89,7 +116,7 @@ const GoArgs = union(enum) {
     Movetime: usize,
     Infinite,
 
-    pub fn fromStr(str: []const u8) !GoArgs {
+    pub fn fromStr(allocator: Allocator, str: []const u8) !GoArgs {
         var iter = std.mem.tokenizeScalar(u8, str, ' ');
 
         const go_str = iter.next() orelse {
@@ -111,7 +138,7 @@ const GoArgs = union(enum) {
                     return @unionInit(GoArgs, f.name, parsedInt);
                 }
 
-                return @unionInit(GoArgs, f.name, iter);
+                return @unionInit(GoArgs, f.name, try consumeIterToMoves(allocator, &iter));
             }
         }
 
@@ -132,7 +159,7 @@ pub const Command = union(CommandKind) {
     PonderHit,
     Quit,
 
-    pub fn fromStr(str: []const u8) !ParseRes(Command) {
+    pub fn fromStr(allocator: Allocator, str: []const u8) !ParseRes(Command) {
         const commandKindRes = try CommandKind.fromStr(str);
         const kind = commandKindRes.parsed;
         var iter = commandKindRes.rest;
@@ -169,12 +196,12 @@ pub const Command = union(CommandKind) {
                     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
                 else
                     fenOrStartPos;
-                // TODO: moves
+                const moves = try consumeIterToMoves(allocator, &iter);
 
-                break :blk Command{ .Position = .{ .fen = fen } };
+                break :blk Command{ .Position = .{ .fen = fen, .moves = moves } };
             },
             .Go => blk: {
-                const args = try GoArgs.fromStr(iter.rest());
+                const args = try GoArgs.fromStr(allocator, iter.rest());
                 break :blk Command{ .Go = args };
             },
         };
@@ -194,11 +221,11 @@ test "parse command kind" {
 }
 
 test "parse EmptyCommandArgs" {
-    const parsed = try Command.fromStr("ucinewgame");
+    const parsed = try Command.fromStr(std.testing.allocator, "ucinewgame");
     try std.testing.expectEqual(Command{ .UciNewGame = {} }, parsed.parsed);
 }
 
 test "parse debug on" {
-    const parsed = try Command.fromStr("debug on");
+    const parsed = try Command.fromStr(std.testing.allocator, "debug on");
     try std.testing.expectEqual(Command{ .Debug = true }, parsed.parsed);
 }
