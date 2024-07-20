@@ -448,6 +448,10 @@ fn monitorTimeLimit(stop_search: *Thread.ResetEvent, timeLimitMillis: u64) !void
     }
 }
 
+pub fn stopSearch(self: *Self) void {
+    self.stop_search.set();
+}
+
 pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
     var monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), self.search_opts.time_limit_millis });
     const best = try self.iterativeSearch(move_allocator, self.search_opts.max_depth);
