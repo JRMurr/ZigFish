@@ -21,6 +21,21 @@ pub const MoveFlags = std.enums.EnumSet(MoveType);
 
 pub const Move = @This();
 
+pub const SimpleMove = struct {
+    start: Position,
+    end: Position,
+
+    pub fn fromStr(str: []const u8) !SimpleMove {
+        if (str.len != 4) {
+            return error.InvalidMove;
+        }
+
+        const start = Position.fromStr(str[0..2]);
+        const end = Position.fromStr(str[2..4]);
+        return .{ .start = start, .end = end };
+    }
+};
+
 const SAN_LEN = 8;
 
 start: Position,

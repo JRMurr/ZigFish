@@ -98,6 +98,17 @@ pub const GameManager = struct {
         self.board.makeMove(move);
     }
 
+    pub fn makeSimpleMove(self: *Self, move: Move.SimpleMove) !void {
+        const validMoves = try self.getValidMovesAt(self.allocator, move.start);
+        defer validMoves.deinit();
+        for (validMoves.items) |m| {
+            if (m.end.eql(move.end)) {
+                return try self.makeMove(m);
+            }
+        }
+        std.debug.panic("could not make simple move {}", .{move});
+    }
+
     pub fn unMakeMove(self: *Self, move: Move) void {
         const meta = self.history.pop();
         self.board.unMakeMove(move, meta);

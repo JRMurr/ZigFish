@@ -27,7 +27,9 @@ pub fn main() anyerror!void {
     while (true) {
         const msg = try stdin.readUntilDelimiterOrEof(&msg_buf, '\n') orelse continue;
         const command_parsed = try Uci.Commands.Command.fromStr(gpa_allocator, msg);
-        try session.handleCommand(command_parsed.parsed);
+        const command = command_parsed.parsed;
+        defer command.deinit();
+        try session.handleCommand(command);
         try buf.flush();
     }
 

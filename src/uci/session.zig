@@ -12,6 +12,7 @@ const Command = Uci.Commands.Command;
 writer: std.io.BufferedWriter(4096, std.fs.File.Writer).Writer,
 arena: std.heap.ArenaAllocator,
 game: *ZigFish.GameManager,
+search: ?ZigFish.Search,
 
 const Self = @This();
 
@@ -43,14 +44,16 @@ pub fn handleCommand(self: Self, command: Command) !void {
             try self.writeLn("readyok");
         },
         .SetOption => |opts| {
-            _ = opts;
+            std.debug.panic("Option not supported: {s}", .{opts.name.items});
         },
         .Register => {},
         .UciNewGame => {},
         .Position => |args| {
             const fen = args.fen;
-            // TODO: play moves;
             self.game.reinitFen(fen);
+            for (args.moves.items) |m| {
+                try self.game.makeSimpleMove(m);
+            }
         },
         .Go => |args| {
             _ = args;

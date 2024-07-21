@@ -1,6 +1,7 @@
 const std = @import("std");
 const ZigFish = @import("zigfish");
 const Utils = ZigFish.Utils;
+const SimpleMove = ZigFish.Move.SimpleMove;
 
 const TokenIter = std.mem.TokenIterator(u8, .scalar);
 
@@ -74,20 +75,6 @@ const PositionArgs = struct {
     moves: SimpleMoveList,
 };
 
-const SimpleMove = struct {
-    start: ZigFish.Position,
-    end: ZigFish.Position,
-
-    pub fn fromStr(str: []const u8) !SimpleMove {
-        if (str.len != 4) {
-            return error.InvalidMove;
-        }
-
-        const start = ZigFish.Position.fromStr(str[0..2]);
-        const end = ZigFish.Position.fromStr(str[2..4]);
-        return .{ .start = start, .end = end };
-    }
-};
 const Allocator = std.mem.Allocator;
 pub const SimpleMoveList = std.ArrayList(SimpleMove);
 
@@ -102,7 +89,9 @@ fn consumeIterToMoves(allocator: Allocator, iter: *TokenIter) !SimpleMoveList {
     return moves;
 }
 
-const GoArgs = union(enum) {
+const GoArgs = std.ArrayList(GoArg);
+
+const GoArg = union(enum) {
     SearchMoves: SimpleMoveList,
     Ponder,
     Wtime: usize,
@@ -119,34 +108,41 @@ const GoArgs = union(enum) {
     pub fn fromStr(allocator: Allocator, str: []const u8) !GoArgs {
         var iter = std.mem.tokenizeScalar(u8, str, ' ');
 
-        const go_str = iter.next() orelse {
-            return error.EmptyInput;
-        };
+        var args = std.ArrayList(GoArg).init(allocator);
 
-        // TODO: multiple go commands can be on the same line
-        // go infinite searchmoves e2e4 d2d4
-        inline for (Utils.unionFields(GoArgs)) |f| {
-            if (std.ascii.eqlIgnoreCase(f.name, go_str)) {
-                if (f.type == void) {
-                    return @unionInit(GoArgs, f.name, {});
+        // ex: infinite searchmoves e2e4 d2d4
+        while (iter.next()) |go_str| {
+            const arg = blk: inline for (Utils.unionFields(GoArg)) |f| {
+                if (std.ascii.eqlIgnoreCase(f.name, go_str)) {
+                    if (f.type == void) {
+                        break :blk @unionInit(GoArg, f.name, {});
+                    } else if (f.type == usize) {
+                        const int_str = iter.next() orelse {
+                            return error.EmptyInput;
+                        };
+                        const parsedInt = try std.fmt.parseInt(usize, int_str, 10);
+                        break :blk @unionInit(GoArg, f.name, parsedInt);
+                    } else {
+                        break :blk @unionInit(GoArg, f.name, try consumeIterToMoves(allocator, &iter));
+                    }
                 }
-                if (f.type == usize) {
-                    const int_str = iter.next() orelse {
-                        return error.EmptyInput;
-                    };
-                    const parsedInt = try std.fmt.parseInt(usize, int_str, 10);
-                    return @unionInit(GoArgs, f.name, parsedInt);
-                }
+            } else {
+                return error.InvalidCommand;
+            };
 
-                return @unionInit(GoArgs, f.name, try consumeIterToMoves(allocator, &iter));
-            }
+            try args.append(arg);
         }
 
-        return error.InvalidCommand;
+        return args;
     }
 };
 
-pub const OptionArgs = struct { name: []const u8, value: ?[]const u8 };
+const StringList = std.ArrayList(u8);
+
+pub const OptionArgs = struct {
+    name: StringList,
+    value: ?StringList,
+};
 
 pub const Command = union(CommandKind) {
     Uci,
@@ -160,6 +156,24 @@ pub const Command = union(CommandKind) {
     Stop,
     PonderHit,
     Quit,
+
+    pub fn deinit(self: Command) void {
+        switch (self) {
+            .Position => |args| {
+                args.moves.deinit();
+            },
+            .SetOption => |args| {
+                args.name.deinit();
+                if (args.value) |v| {
+                    v.deinit();
+                }
+            },
+            .Go => |args| {
+                args.deinit();
+            },
+            else => {},
+        }
+    }
 
     pub fn fromStr(allocator: Allocator, str: []const u8) !ParseRes(Command) {
         const commandKindRes = try CommandKind.fromStr(str);
@@ -191,18 +205,19 @@ pub const Command = union(CommandKind) {
                 var strList = std.ArrayList(u8).init(allocator);
                 errdefer strList.deinit();
                 try consumeConst(&iter, "name");
-                var name: ?[]u8 = null;
-                var value: ?[]u8 = null;
+                var name: ?std.ArrayList(u8) = null;
+                var value: ?std.ArrayList(u8) = null;
                 while (iter.next()) |s| {
                     if (std.ascii.eqlIgnoreCase(s, "value")) {
-                        name = try strList.toOwnedSlice();
+                        name = try strList.clone();
+                        strList.clearAndFree();
                     }
                     try strList.appendSlice(s);
                 }
                 if (name == null) {
-                    name = try strList.toOwnedSlice();
+                    name = strList;
                 } else {
-                    value = try strList.toOwnedSlice();
+                    value = strList;
                 }
 
                 break :blk Command{ .SetOption = .{ .name = name.?, .value = value } };
@@ -218,7 +233,7 @@ pub const Command = union(CommandKind) {
                 break :blk Command{ .Position = .{ .fen = fen, .moves = moves } };
             },
             .Go => blk: {
-                const args = try GoArgs.fromStr(allocator, iter.rest());
+                const args = try GoArg.fromStr(allocator, iter.rest());
                 break :blk Command{ .Go = args };
             },
         };
