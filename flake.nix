@@ -18,6 +18,8 @@
         xorgDeps = with pkgs.xorg; [ libXrandr libXinerama libXi ];
         runtimeDeps = with pkgs; [ raylib xorg.libXcursor pkg-config ] ++ xorgDeps;
 
+        fastChess = pkgs.callPackage ./fastchess.nix { };
+
       in
       {
         formatter = pkgs.nixpkgs-fmt;
@@ -32,12 +34,18 @@
 
                 pkgs.gdb
 
+
+                fastChess
+
                 # common
                 pkgs.just
               ];
           };
         };
 
-        packages = { default = pkgs.hello; };
+        packages = {
+          default = pkgs.hello;
+          fastChess = fastChess;
+        };
       });
 }
