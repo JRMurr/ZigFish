@@ -24,6 +24,7 @@ pub const Move = @This();
 pub const SimpleMove = struct {
     start: Position,
     end: Position,
+    promotion_kind: ?Kind = null,
 
     pub fn fromStr(str: []const u8) !SimpleMove {
         if (str.len != 4) {
@@ -33,6 +34,19 @@ pub const SimpleMove = struct {
         const start = Position.fromStr(str[0..2]);
         const end = Position.fromStr(str[2..4]);
         return .{ .start = start, .end = end };
+    }
+
+    pub fn toStr(self: SimpleMove) [5]u8 {
+        const from_str = self.start.toStr();
+        const to_str = self.end.toStr();
+        const promotion_symbol = if (self.promotion_kind) |k| k.toSymbol() else "";
+
+        var str = comptime utils.initStr(' ', 5);
+        _ = std.fmt.bufPrint(&str, "{s}{s}{s}", .{ from_str, to_str, promotion_symbol }) catch {
+            std.debug.panic("Bad move format for {any}", .{self});
+        };
+
+        return str;
     }
 };
 
@@ -179,16 +193,15 @@ pub fn fromSan(san: []const u8, valid_moves: []Move) Move {
 }
 
 pub fn toStrSimple(self: Move) [5]u8 {
-    const from_str = self.start.toStr();
-    const to_str = self.end.toStr();
-    const promotion_symbol = if (self.promotion_kind) |k| k.toSymbol() else "";
+    return self.toSimple().toStr();
+}
 
-    var str = comptime utils.initStr(' ', 5);
-    _ = std.fmt.bufPrint(&str, "{s}{s}{s}", .{ from_str, to_str, promotion_symbol }) catch {
-        std.debug.panic("Bad move format for {any}", .{self});
+pub fn toSimple(self: Move) SimpleMove {
+    return .{
+        .start = self.start,
+        .end = self.end,
+        .promotion_kind = self.promotion_kind,
     };
-
-    return str;
 }
 
 pub fn eql(self: Move, other: Move) bool {

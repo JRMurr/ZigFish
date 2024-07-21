@@ -31,6 +31,17 @@ pub const Kind = enum(u3) {
             .Pawn => "",
         };
     }
+
+    pub fn toSymbolLower(self: Kind) []const u8 {
+        return switch (self) {
+            .King => "k",
+            .Queen => "q",
+            .Bishop => "b",
+            .Knight => "n",
+            .Rook => "r",
+            .Pawn => "",
+        };
+    }
 };
 
 pub const NUM_KINDS = utils.enum_len(Kind);

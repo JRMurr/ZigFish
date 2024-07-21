@@ -102,6 +102,15 @@ pub const GameManager = struct {
         const validMoves = try self.getValidMovesAt(self.allocator, move.start);
         defer validMoves.deinit();
         for (validMoves.items) |m| {
+            if (move.promotion_kind) |pk| {
+                if (m.promotion_kind == null) {
+                    continue;
+                }
+                if (m.promotion_kind.? != pk) {
+                    continue;
+                }
+            }
+
             if (m.end.eql(move.end)) {
                 return try self.makeMove(m);
             }

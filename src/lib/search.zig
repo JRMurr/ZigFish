@@ -25,7 +25,7 @@ pub const GamePhase = enum { Opening, Middle, End };
 
 pub const SearchOpts = struct {
     max_depth: usize = 100,
-    time_limit_millis: usize = 1000,
+    time_limit_millis: ?usize = null,
     quiesce_depth: usize = 5,
     max_extensions: usize = 10,
 };
@@ -139,6 +139,7 @@ transposition: TranspostionTable,
 board: *Board,
 move_gen: MoveGen,
 stop_search: Thread.ResetEvent,
+search_done: Thread.ResetEvent,
 best_move: ?Move,
 best_score: Score,
 search_opts: SearchOpts,
@@ -149,16 +150,15 @@ pub fn init(allocator: Allocator, board: *Board, search_opts: SearchOpts) Alloca
     try transposition.ensureTotalCapacity(10_000);
     const move_gen = MoveGen{ .board = board };
 
-    const stop_search = Thread.ResetEvent{};
-
     return Self{
         .board = board,
         .move_gen = move_gen,
         .transposition = transposition,
-        .stop_search = stop_search,
+        .stop_search = Thread.ResetEvent{},
         .best_move = null,
         .best_score = MIN_SCORE,
         .search_opts = search_opts,
+        .search_done = Thread.ResetEvent{},
     };
 }
 
@@ -396,6 +396,7 @@ pub fn search(
 
 pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize) Allocator.Error!?Move {
     self.stop_search.reset();
+    self.search_done.reset();
     self.best_score = MIN_SCORE;
     self.best_move = null;
 
@@ -426,7 +427,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
         }
         std.log.debug("Checked this iteration: {}", .{self.diagnostics.num_nodes_analyzed});
     }
-
+    self.search_done.set();
     return self.best_move;
 }
 
@@ -448,14 +449,22 @@ fn monitorTimeLimit(stop_search: *Thread.ResetEvent, timeLimitMillis: u64) !void
     }
 }
 
-pub fn stopSearch(self: *Self) void {
+pub fn stopSearch(self: *Self) ?Move {
     self.stop_search.set();
+    self.search_done.wait();
+    return self.best_move;
+}
+
+pub fn startSearch(self: *Self, move_allocator: Allocator) !void {
+    _ = try self.iterativeSearch(move_allocator, self.search_opts.max_depth);
 }
 
 pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
-    var monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), self.search_opts.time_limit_millis });
+    if (self.search_opts.time_limit_millis) |time| {
+        const monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), time });
+        monitorThread.detach();
+    }
     const best = try self.iterativeSearch(move_allocator, self.search_opts.max_depth);
-    monitorThread.join();
     std.log.debug("eval: {}", .{self.best_score});
     return best;
 }

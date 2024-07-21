@@ -7,8 +7,6 @@ pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const gpa_allocator = gpa.allocator();
 
-    std.log.debug("Commands: {?}", .{Uci.Commands.CommandKind.IsReady});
-
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
@@ -20,7 +18,7 @@ pub fn main() anyerror!void {
     const out = std.io.getStdOut();
     var buf = std.io.bufferedWriter(out.writer());
 
-    const session = Uci.Session.init(arena, &game, buf.writer());
+    var session = Uci.Session.init(arena, &game, buf.writer());
 
     var msg_buf: [4096]u8 = undefined;
 
