@@ -1,6 +1,6 @@
 { stdenv, fetchFromGitHub }:
 
-
+# https://github.com/Disservin/fast-chess
 stdenv.mkDerivation rec {
   pname = "fast-chess";
   version = "v0.9.0";
