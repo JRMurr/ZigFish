@@ -303,8 +303,10 @@ pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures
     var moves = MoveList.init(move_allocator);
 
     const color_set = self.board.color_sets[@intFromEnum(color)];
+    // std.log.debug("board: {}", .{self.board});
     var color_iter = color_set.iterator();
     while (color_iter.next()) |pos| {
+        // std.log.debug("pos: {s}", .{pos.toStr()});
         const p = self.board.getPos(pos).?;
 
         try self.getValidMoves(&moves, &gen_info, pos, p, captures_only);

@@ -59,14 +59,16 @@ fn printLock(self: Self, comptime format: []const u8, args: anytype) !void {
 // }
 
 fn startInner(search: *Search, move_allocator: Allocator) !void {
-    return search.startSearch(move_allocator);
+    return search.startSearch(move_allocator) catch |e| {
+        std.debug.panic("error running search: {}", .{e});
+    };
 }
 
 fn startSearch(self: *Self, opts: Search.SearchOpts) !void {
-    var search = try self.game.getSearch(opts);
-    self.search = search;
     const move_allocator = self.arena.allocator();
-    const thread = try std.Thread.spawn(.{}, startInner, .{ &search, move_allocator });
+    self.search = try self.game.getSearch(opts);
+
+    const thread = try std.Thread.spawn(.{ .allocator = move_allocator, .stack_size = 100 * 1024 * 1024 }, startInner, .{ &self.search.?, move_allocator });
     thread.detach();
 }
 

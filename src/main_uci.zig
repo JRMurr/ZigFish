@@ -12,6 +12,9 @@ pub fn main() anyerror!void {
 
     var game = try ZigFish.GameManager.init(gpa_allocator);
 
+    // const tmp = try game.findBestMove(arena.allocator(), .{ .time_limit_millis = 100 });
+    // std.log.debug("best move: {?}", .{tmp});
+
     // TODO: should these be buffered?
     const stdin = std.io.getStdIn().reader();
 
