@@ -6,4 +6,5 @@ in {
   fastchess = callPackage ./fastchess.nix { };
   zigfish = callPackage ./zigfish { inherit zig; };
   buildAtCommit = callPackage ./buildAtCommit.nix { };
+  runFast = callPackage ./runFast.nix { inherit zig; };
 })

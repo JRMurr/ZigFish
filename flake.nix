@@ -44,6 +44,7 @@
 
                 myPkgs.fastchess
                 myPkgs.buildAtCommit
+                myPkgs.runFast
 
                 # common
                 pkgs.just
@@ -54,6 +55,7 @@
         packages = {
           default = myPkgs.zigfish;
           fastChess = myPkgs.fastchess;
+          runFast = myPkgs.runFast;
         };
       });
 }

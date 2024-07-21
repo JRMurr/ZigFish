@@ -15,6 +15,8 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
+  meta.mainProgram = "fast-chess";
+
   installPhase = ''
     ls -la
     mkdir -p $out/bin
