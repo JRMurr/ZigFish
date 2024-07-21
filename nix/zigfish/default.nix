@@ -29,12 +29,22 @@ stdenvNoCC.mkDerivation {
   # '';
 
   # langref = langref;
-  buildPhase = ''
-    mkdir -p .cache
-    ls -la
-    ln -s ${callPackage ./deps.nix { }} .cache/p
-    zig build install --cache-dir $(pwd)/.zig-cache --global-cache-dir $(pwd)/.cache -Doptimize=ReleaseSafe --prefix $out
-  '';
+  buildPhase =
+    let
+      buildArgs = [
+        "--cache-dir $(pwd)/.zig-cache"
+        "--global-cache-dir $(pwd)/.cache"
+        "-Doptimize=ReleaseSafe"
+        # "-Ddynamic-linker=$(cat $NIX_BINTOOLS/nix-support/dynamic-linker)"
+        "--prefix $out"
+      ];
+    in
+    ''
+      mkdir -p .cache
+      ls -la
+      ln -s ${callPackage ./deps.nix { }} .cache/p
+      zig build install ${builtins.concatStringsSep " " buildArgs}
+    '';
   # checkPhase = ''
   #   zig build test --cache-dir $(pwd)/.zig-cache --global-cache-dir $(pwd)/.cache -Dversion_data_path=$langref -Dcpu=baseline
   # '';
