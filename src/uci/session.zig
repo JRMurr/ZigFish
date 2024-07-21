@@ -87,6 +87,8 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
         if (currentTime >= endTime) {
             if (session.search) |*s| {
                 const move = s.stopSearch();
+                const score = s.best_score;
+                try session.printLock("info score cp {}\n", .{score});
                 if (move) |m| {
                     try session.printLock("bestmove {s}\n", .{m.toSimple().toStr()});
                 } else {

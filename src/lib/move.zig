@@ -27,14 +27,20 @@ pub const SimpleMove = struct {
     promotion_kind: ?Kind = null,
 
     pub fn fromStr(str: []const u8) !SimpleMove {
-        if (str.len != 4) {
-            std.log.debug("invalid move: {s}", .{str});
+        if (str.len < 4 or str.len > 5) {
+            std.log.debug("invalid move string: {s}\tlen: {}", .{ str, str.len });
             return error.InvalidMove;
         }
 
         const start = Position.fromStr(str[0..2]);
         const end = Position.fromStr(str[2..4]);
-        return .{ .start = start, .end = end };
+
+        var promotion_kind: ?Kind = null;
+        if (str.len == 5) {
+            promotion_kind = parsePieceType(std.ascii.toUpper(str[4]));
+        }
+
+        return .{ .start = start, .end = end, .promotion_kind = promotion_kind };
     }
 
     pub fn toStr(self: SimpleMove) [5]u8 {
