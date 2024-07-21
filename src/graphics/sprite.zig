@@ -50,6 +50,7 @@ pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
             const is_white_cell = @mod(rank + file, 2) == 0;
 
             var cell_color = if (is_white_cell) self.light_square_color else self.dark_sqaure_color;
+            const opposite_color = if (is_white_cell) self.dark_sqaure_color else self.light_square_color;
 
             if (last_move) |move| {
                 if (move.start.eql(pos) or move.end.eql(pos)) {
@@ -64,6 +65,20 @@ pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
                 @intCast(self.cell_size),
                 cell_color,
             );
+
+            if (flipped_rank == 0) {
+                const text_offset = (8 * @divFloor(self.cell_size, 9));
+                const char: u8 = @as(u8, @intCast(file)) + 'a';
+                const str = [1:0]u8{char};
+                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
+            }
+
+            if (file == 0) {
+                const text_offset = @divFloor(self.cell_size, 9);
+                const char: u8 = @as(u8, @intCast(flipped_rank)) + '1';
+                const str = [1:0]u8{char};
+                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
+            }
 
             if (self.game_manager.getPos(pos)) |p| {
                 self.draw_piece(
