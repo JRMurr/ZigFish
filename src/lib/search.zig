@@ -30,8 +30,9 @@ pub const SearchOpts = struct {
     max_extensions: usize = 10,
 };
 
-const MIN_SCORE = std.math.minInt(Score);
-const MAX_SCORE = std.math.maxInt(Score);
+// in centipawns
+const MIN_SCORE = -(500_000_000);
+const MAX_SCORE = 500_000_000;
 
 fn negate_score(x: Score) Score {
     return switch (x) {
