@@ -5,4 +5,5 @@ let inherit (self) callPackage;
 in {
   fastchess = callPackage ./fastchess.nix { };
   zigfish = callPackage ./zigfish { inherit zig; };
+  buildAtCommit = callPackage ./buildAtCommit.nix { };
 })

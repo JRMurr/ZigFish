@@ -23,6 +23,9 @@
 
         myPkgs = import ./nix { inherit (pkgs) lib newScope; zig = zigPkg; };
 
+
+
+
       in
       {
         formatter = pkgs.nixpkgs-fmt;
@@ -40,6 +43,7 @@
 
 
                 myPkgs.fastchess
+                myPkgs.buildAtCommit
 
                 # common
                 pkgs.just
