@@ -91,6 +91,7 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
                 } else {
                     try session.printLock("bestmove 0000\n", .{});
                 }
+                _ = session.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
                 break;
             }
         }
