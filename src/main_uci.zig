@@ -12,16 +12,28 @@ pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
-    // Used for move generation so we can reset after each move taken
-    const move_allocator = arena.allocator();
+    const game = try ZigFish.GameManager.init(gpa_allocator);
 
-    // var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
+    // TODO: should these be buffered?
+    const stdin = std.io.getStdIn().reader();
 
-    var game = try ZigFish.GameManager.init(gpa_allocator);
+    const out = std.io.getStdOut();
+    var buf = std.io.bufferedWriter(out.writer());
 
-    const move = try game.findBestMove(move_allocator, .{});
+    const session = Uci.Session{ .arena = arena, .game = game, .writer = buf.writer() };
 
-    std.log.debug("{}", .{move.?});
+    var msg_buf: [4096]u8 = undefined;
+
+    while (true) {
+        const msg = try stdin.readUntilDelimiterOrEof(&msg_buf, '\n') orelse continue;
+        const command_parsed = try Uci.Commands.Command.fromStr(gpa_allocator, msg);
+        try session.handleCommand(command_parsed.parsed);
+        try buf.flush();
+    }
+
+    // const move = try game.findBestMove(move_allocator, .{});
+
+    // std.log.debug("{}", .{move.?});
 }
 
 test {

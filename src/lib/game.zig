@@ -42,13 +42,25 @@ const HistoryStack = std.ArrayList(BoardMeta);
 
 pub const GameManager = struct {
     const Self = @This();
+    const start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     allocator: Allocator,
 
     board: Board,
     history: HistoryStack,
 
     pub fn init(allocator: Allocator) Allocator.Error!Self {
-        return Self.from_fen(allocator, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        return Self.from_fen(allocator, start_pos);
+    }
+
+    pub fn reinitFen(self: *Self, fen_str: []const u8) void {
+        self.history.clearAndFree();
+        const board = fen.parse(fen_str);
+
+        self.board = board;
+    }
+
+    pub fn reinit(self: *Self) void {
+        self.reinitFen(start_pos);
     }
 
     pub fn deinit(self: Self) void {

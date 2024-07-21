@@ -146,11 +146,13 @@ const GoArgs = union(enum) {
     }
 };
 
+pub const OptionArgs = struct { name: []const u8, value: ?[]const u8 };
+
 pub const Command = union(CommandKind) {
     Uci,
     Debug: bool,
     IsReady,
-    SetOption: ToDoArgs,
+    SetOption: OptionArgs,
     Register,
     UciNewGame,
     Position: PositionArgs,
@@ -185,10 +187,25 @@ pub const Command = union(CommandKind) {
                 break :blk Command{ .Debug = false };
             },
             // TODO: make UciOption parser
-            .SetOption => {
-                std.debug.panic("TODO:", .{});
-                // consumeConst(iter, "name");
-                // const id = iter.next() orelse return error.missingParam;
+            .SetOption => blk: {
+                var strList = std.ArrayList(u8).init(allocator);
+                errdefer strList.deinit();
+                try consumeConst(&iter, "name");
+                var name: ?[]u8 = null;
+                var value: ?[]u8 = null;
+                while (iter.next()) |s| {
+                    if (std.ascii.eqlIgnoreCase(s, "value")) {
+                        name = try strList.toOwnedSlice();
+                    }
+                    try strList.appendSlice(s);
+                }
+                if (name == null) {
+                    name = try strList.toOwnedSlice();
+                } else {
+                    value = try strList.toOwnedSlice();
+                }
+
+                break :blk Command{ .SetOption = .{ .name = name.?, .value = value } };
             },
             .Position => blk: {
                 const fenOrStartPos = iter.next() orelse return error.EndOfInput;
