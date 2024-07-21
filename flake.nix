@@ -18,7 +18,7 @@
         xorgDeps = with pkgs.xorg; [ libXrandr libXinerama libXi ];
         runtimeDeps = with pkgs; [ raylib xorg.libXcursor pkg-config ] ++ xorgDeps;
 
-        fastChess = pkgs.callPackage ./fastchess.nix { };
+        myPkgs = import ./nix { inherit (pkgs) lib newScope; };
 
       in
       {
@@ -31,11 +31,12 @@
                 # NOTE: these need to be roughly in sync
                 zigPkg
                 zlsPkg
+                pkgs.zon2nix
 
                 pkgs.gdb
 
 
-                fastChess
+                myPkgs.fastchess
 
                 # common
                 pkgs.just
@@ -45,7 +46,7 @@
 
         packages = {
           default = pkgs.hello;
-          fastChess = fastChess;
+          fastChess = myPkgs.fastchess;
         };
       });
 }
