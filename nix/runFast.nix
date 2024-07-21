@@ -49,6 +49,8 @@ let
 in
 writeShellScriptBin "runFast" ''
   set -euxo pipefail
+  DEFAULT_COMMIT="3d62d81a61e891f606bf8ce457dd9e4f2a5387ab"
+  COMMIT="''${1:-$DEFAULT_COMMIT}"
 
   REPO_ROOT=$(${getExe git} rev-parse --show-toplevel)
   cd $REPO_ROOT
@@ -59,7 +61,7 @@ writeShellScriptBin "runFast" ''
   rm -f $OUT_DIR/pgnout
 
   ${zig}/bin/zig build
-  OLD_ENGINE=$(${getExe buildAtCommit} "3d62d81a61e891f606bf8ce457dd9e4f2a5387ab")
+  OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
   ${getExe fastchess} ${fastArgs}
 ''
 
