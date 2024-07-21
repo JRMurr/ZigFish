@@ -18,6 +18,8 @@ sprite_w: f32,
 sprite_h: f32,
 cell_size: u32,
 scale: f32,
+dark_sqaure_color: rl.Color,
+light_square_color: rl.Color,
 
 pub fn init(texture: rl.Texture, game_manager: *GameManager, cell_size: u32) SpriteManager {
     const sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types)));
@@ -31,6 +33,8 @@ pub fn init(texture: rl.Texture, game_manager: *GameManager, cell_size: u32) Spr
         .sprite_h = sprite_h,
         .scale = scale,
         .cell_size = cell_size,
+        .dark_sqaure_color = rl.Color.init(140, 77, 42, 255),
+        .light_square_color = rl.Color.init(224, 186, 151, 255),
     };
 }
 
@@ -45,11 +49,11 @@ pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
 
             const is_white_cell = @mod(rank + file, 2) == 0;
 
-            var cell_color = if (is_white_cell) rl.Color.light_gray else rl.Color.dark_gray;
+            var cell_color = if (is_white_cell) self.light_square_color else self.dark_sqaure_color;
 
             if (last_move) |move| {
                 if (move.start.eql(pos) or move.end.eql(pos)) {
-                    cell_color = rl.Color.beige;
+                    cell_color = rl.Color.dark_gray;
                 }
             }
 
