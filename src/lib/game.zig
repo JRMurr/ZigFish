@@ -132,6 +132,10 @@ pub const GameManager = struct {
         return search.findBestMove(move_allocator);
     }
 
+    pub fn getSearch(self: *Self, search_opts: Search.SearchOpts) !Search {
+        return try Search.init(self.allocator, &self.board, search_opts);
+    }
+
     // https://www.chessprogramming.org/Perft
     pub fn perft(self: *Self, depth: usize, move_allocator: Allocator, print_count_per_move: bool) Allocator.Error!usize {
         var nodes: usize = 0;
