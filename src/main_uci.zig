@@ -12,7 +12,7 @@ pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
-    const game = try ZigFish.GameManager.init(gpa_allocator);
+    var game = try ZigFish.GameManager.init(gpa_allocator);
 
     // TODO: should these be buffered?
     const stdin = std.io.getStdIn().reader();
@@ -20,7 +20,7 @@ pub fn main() anyerror!void {
     const out = std.io.getStdOut();
     var buf = std.io.bufferedWriter(out.writer());
 
-    const session = Uci.Session{ .arena = arena, .game = game, .writer = buf.writer() };
+    const session = Uci.Session.init(arena, &game, buf.writer());
 
     var msg_buf: [4096]u8 = undefined;
 
