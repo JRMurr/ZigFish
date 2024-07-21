@@ -15,7 +15,7 @@ const Writer = std.fs.File.Writer; // std.io.BufferedWriter(4096, std.fs.File.Wr
 writer: Writer,
 arena: std.heap.ArenaAllocator,
 game: *ZigFish.GameManager,
-write_lock: *Thread.Mutex,
+write_lock: Thread.Mutex,
 search: ?ZigFish.Search = null,
 
 const Self = @This();
@@ -24,12 +24,12 @@ pub fn init(arena: std.heap.ArenaAllocator, game: *ZigFish.GameManager, writer: 
     // const thread = try std.Thread.spawn(.{}, searchMonitor, .{16});
     // thread.detach();
 
-    var mtx = Thread.Mutex{};
+    const mtx = Thread.Mutex{};
     return .{
         .arena = arena,
         .game = game,
         .writer = writer,
-        .write_lock = &mtx,
+        .write_lock = mtx,
     };
 }
 
@@ -37,14 +37,11 @@ pub fn deinit(self: Self) void {
     self.arena.deinit();
 }
 
-fn writeLn(self: Self, buf: []const u8) !void {
-    // lock so background monitor doesnt clobber...
-    self.write_lock.lock();
-    defer self.write_lock.unlock();
-    try self.writer.print("{s}\n", .{buf});
+fn writeLn(self: *Self, buf: []const u8) !void {
+    try self.printLock("{s}\n", .{buf});
 }
 
-fn printLock(self: Self, comptime format: []const u8, args: anytype) !void {
+fn printLock(self: *Self, comptime format: []const u8, args: anytype) !void {
     // lock so background monitor doesnt clobber...
     self.write_lock.lock();
     defer self.write_lock.unlock();
