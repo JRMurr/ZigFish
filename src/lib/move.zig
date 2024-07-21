@@ -28,6 +28,7 @@ pub const SimpleMove = struct {
 
     pub fn fromStr(str: []const u8) !SimpleMove {
         if (str.len != 4) {
+            std.log.debug("invalid move: {s}", .{str});
             return error.InvalidMove;
         }
 

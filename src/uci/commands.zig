@@ -70,6 +70,17 @@ fn consumeConst(iter: *TokenIter, val: []const u8) !void {
     return error.EndOfInput;
 }
 
+fn consumeMaybeConst(iter: *TokenIter, val: []const u8) !bool {
+    if (iter.next()) |next| {
+        if (!std.mem.eql(u8, next, val)) {
+            return error.MissingConst;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 const PositionArgs = struct {
     fen: []const u8,
     moves: SimpleMoveList,
@@ -228,7 +239,8 @@ pub const Command = union(CommandKind) {
                     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
                 else
                     fenOrStartPos;
-                const moves = try consumeIterToMoves(allocator, &iter);
+
+                const moves = if (try consumeMaybeConst(&iter, "moves")) try consumeIterToMoves(allocator, &iter) else SimpleMoveList.init(allocator);
 
                 break :blk Command{ .Position = .{ .fen = fen, .moves = moves } };
             },

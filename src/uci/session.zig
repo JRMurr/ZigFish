@@ -9,8 +9,10 @@ const Search = ZigFish.Search;
 
 // pub fn
 
+const Writer = std.fs.File.Writer; // std.io.BufferedWriter(4096, std.fs.File.Writer).Writer;
+
 // reader: std.io.Reader,
-writer: std.io.BufferedWriter(4096, std.fs.File.Writer).Writer,
+writer: Writer,
 arena: std.heap.ArenaAllocator,
 game: *ZigFish.GameManager,
 write_lock: *Thread.Mutex,
@@ -18,7 +20,7 @@ search: ?ZigFish.Search = null,
 
 const Self = @This();
 
-pub fn init(arena: std.heap.ArenaAllocator, game: *ZigFish.GameManager, writer: anytype) Self {
+pub fn init(arena: std.heap.ArenaAllocator, game: *ZigFish.GameManager, writer: Writer) Self {
     // const thread = try std.Thread.spawn(.{}, searchMonitor, .{16});
     // thread.detach();
 
@@ -39,14 +41,14 @@ fn writeLn(self: Self, buf: []const u8) !void {
     // lock so background monitor doesnt clobber...
     self.write_lock.lock();
     defer self.write_lock.unlock();
-    return self.writer.print("{s}\n", .{buf});
+    try self.writer.print("{s}\n", .{buf});
 }
 
 fn printLock(self: Self, comptime format: []const u8, args: anytype) !void {
     // lock so background monitor doesnt clobber...
     self.write_lock.lock();
     defer self.write_lock.unlock();
-    return self.writer.print(format, args);
+    try self.writer.print(format, args);
 }
 
 // fn searchMonitor(self: *Self, sleep_time_milli: u64) !void {
@@ -86,7 +88,9 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
             if (session.search) |*s| {
                 const move = s.stopSearch();
                 if (move) |m| {
-                    try session.printLock("bestmove {s}", .{m.toSimple().toStr()});
+                    try session.printLock("bestmove {s}\n", .{m.toSimple().toStr()});
+                } else {
+                    try session.printLock("bestmove 0000\n", .{});
                 }
                 break;
             }
@@ -100,7 +104,7 @@ pub fn handleCommand(self: *Self, command: Command) !void {
         .Uci => {
             // send id and option comamnds
             try self.writeLn("id name ZigFish");
-            try self.writeLn("id authort JRMurr");
+            try self.writeLn("id author JRMurr");
             // TODO: send options
             try self.writeLn("uciok");
         },

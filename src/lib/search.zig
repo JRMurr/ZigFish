@@ -422,6 +422,7 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
             }
             if (self.stop_search.isSet()) {
                 std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
+                self.search_done.set();
                 return self.best_move;
             }
         }

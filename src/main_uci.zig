@@ -19,9 +19,9 @@ pub fn main() anyerror!void {
     const stdin = std.io.getStdIn().reader();
 
     const out = std.io.getStdOut();
-    var buf = std.io.bufferedWriter(out.writer());
+    // var buf = std.io.bufferedWriter(out.writer());
 
-    var session = Uci.Session.init(arena, &game, buf.writer());
+    var session = Uci.Session.init(arena, &game, out.writer());
 
     var msg_buf: [4096]u8 = undefined;
 
@@ -31,7 +31,7 @@ pub fn main() anyerror!void {
         const command = command_parsed.parsed;
         defer command.deinit();
         try session.handleCommand(command);
-        try buf.flush();
+        // try buf.flush();
     }
 
     // const move = try game.findBestMove(move_allocator, .{});
