@@ -99,7 +99,8 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
     }
 }
 
-pub fn handleCommand(self: *Self, command: Command) !void {
+/// handles command, returns true if should exit
+pub fn handleCommand(self: *Self, command: Command) !bool {
     switch (command) {
         .Uci => {
             // send id and option comamnds
@@ -118,7 +119,9 @@ pub fn handleCommand(self: *Self, command: Command) !void {
             std.debug.panic("Option not supported: {s}", .{opts.name.items});
         },
         .Register => {},
-        .UciNewGame => {},
+        .UciNewGame => {
+            self.reset();
+        },
         .Position => |args| {
             const fen = args.fen;
             self.game.reinitFen(fen);
@@ -140,8 +143,20 @@ pub fn handleCommand(self: *Self, command: Command) !void {
             const monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ self, search_opts.time_limit_millis.? });
             monitorThread.detach();
         },
-        .Stop => {},
+        .Stop => {
+            if (self.search) |*s| {
+                _ = s.stopSearch();
+            }
+        },
         .PonderHit => {},
-        .Quit => {},
+        .Quit => {
+            if (self.search) |*s| {
+                _ = s.stopSearch();
+            }
+            std.time.sleep(10 * std.time.ns_per_ms); // wait for things to cleanup..
+            return true;
+        },
     }
+
+    return false;
 }

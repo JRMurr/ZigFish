@@ -30,7 +30,10 @@ pub fn main() anyerror!void {
         const command_parsed = try Uci.Commands.Command.fromStr(gpa_allocator, msg);
         const command = command_parsed.parsed;
         defer command.deinit();
-        try session.handleCommand(command);
+        const should_exit = try session.handleCommand(command);
+        if (should_exit) {
+            break;
+        }
         // try buf.flush();
     }
 

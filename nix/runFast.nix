@@ -2,15 +2,18 @@
 let
   getExe = lib.getExe;
 
+  pgnOutFile = "$OUT_DIR/pgnout.pgn";
+  logFile = "$OUT_DIR/log.txt";
+
   fastArgsMap = {
     maxmoves = "100";
-    concurrency = "20";
+    concurrency = "12";
     log = {
-      file = "$OUT_DIR/log";
+      file = logFile;
       level = "info";
       realtime = "true";
     };
-    pgnout = { file = "$OUT_DIR/pgnout"; };
+    pgnout = { file = pgnOutFile; };
     resign = { score = "500000"; };
     rounds = "100";
     draw = { movenumber = "30"; movecount = "8"; score = "80"; };
@@ -57,8 +60,8 @@ writeShellScriptBin "runFast" ''
   OUT_DIR=$(realpath ''${REPO_ROOT})/fastchess-out
 
   mkdir -p $OUT_DIR
-  rm -f $OUT_DIR/log
-  rm -f $OUT_DIR/pgnout
+  rm -f ${logFile}
+  rm -f ${pgnOutFile}
 
   ${zig}/bin/zig build -Doptimize=ReleaseSafe
   OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
