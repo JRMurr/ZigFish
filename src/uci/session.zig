@@ -38,7 +38,7 @@ fn reset(self: *Self) void {
     self.arena_lock.lock();
     defer self.arena_lock.unlock();
     _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
-
+    self.search.deinit();
     self.search = null;
 }
 
@@ -61,6 +61,14 @@ fn startInner(search: *Search, move_allocator: Allocator) !void {
     return search.startSearch(move_allocator) catch |e| {
         std.debug.panic("error running search: {}", .{e});
     };
+}
+
+fn waitForSearchToStop(self: *Self) void {
+    if (self.search) |*s| {
+        if (s.stop_search.isSet()) {
+            s.search_done.wait();
+        }
+    }
 }
 
 fn startSearch(self: *Self, opts: Search.SearchOpts) !void {
@@ -113,6 +121,7 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
             _ = enabled;
         },
         .IsReady => {
+            self.waitForSearchToStop();
             try self.writeLn("readyok");
         },
         .SetOption => |opts| {
@@ -123,6 +132,9 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
             self.reset();
         },
         .Position => |args| {
+            self.waitForSearchToStop();
+            // TODO: might only need to apply the last move if we have been initalized before
+            self.reset();
             const fen = args.fen;
             self.game.reinitFen(fen);
             for (args.moves.items) |m| {
