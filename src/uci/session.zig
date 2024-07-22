@@ -16,6 +16,7 @@ writer: Writer,
 arena: std.heap.ArenaAllocator,
 game: *ZigFish.GameManager,
 write_lock: Thread.Mutex,
+arena_lock: Thread.Mutex,
 search: ?ZigFish.Search = null,
 
 const Self = @This();
@@ -24,13 +25,21 @@ pub fn init(arena: std.heap.ArenaAllocator, game: *ZigFish.GameManager, writer: 
     // const thread = try std.Thread.spawn(.{}, searchMonitor, .{16});
     // thread.detach();
 
-    const mtx = Thread.Mutex{};
     return .{
         .arena = arena,
         .game = game,
         .writer = writer,
-        .write_lock = mtx,
+        .write_lock = Thread.Mutex{},
+        .arena_lock = Thread.Mutex{},
     };
+}
+
+fn reset(self: *Self) void {
+    self.arena_lock.lock();
+    defer self.arena_lock.unlock();
+    _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
+
+    self.search = null;
 }
 
 pub fn deinit(self: Self) void {
@@ -47,15 +56,6 @@ fn printLock(self: *Self, comptime format: []const u8, args: anytype) !void {
     defer self.write_lock.unlock();
     try self.writer.print(format, args);
 }
-
-// fn searchMonitor(self: *Self, sleep_time_milli: u64) !void {
-//     while (true) {
-//         if (self.search) |search| {
-//             if (search.search_done.isSet()) {}
-//         }
-//         std.time.sleep(sleep_time_milli * std.time.ns_per_ms); // Sleep for 1 millisecond to avoid busy waiting
-//     }
-// }
 
 fn startInner(search: *Search, move_allocator: Allocator) !void {
     return search.startSearch(move_allocator) catch |e| {
@@ -91,7 +91,7 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
                 } else {
                     try session.printLock("bestmove 0000\n", .{});
                 }
-                _ = session.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
+
                 break;
             }
         }
