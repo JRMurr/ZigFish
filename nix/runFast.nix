@@ -10,8 +10,8 @@ let
     concurrency = "12";
     log = {
       file = logFile;
-      level = "info";
-      realtime = "true";
+      level = "trace";
+      realtime = "false";
     };
     pgnout = { file = pgnOutFile; };
     resign = { score = "500000"; };

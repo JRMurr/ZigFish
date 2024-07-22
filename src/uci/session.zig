@@ -38,8 +38,10 @@ fn reset(self: *Self) void {
     self.arena_lock.lock();
     defer self.arena_lock.unlock();
     _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
-    self.search.deinit();
-    self.search = null;
+    if (self.search) |*s| {
+        s.deinit();
+        self.search = null;
+    }
 }
 
 pub fn deinit(self: Self) void {
