@@ -85,13 +85,13 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
             if (session.search) |*s| {
                 const move = s.stopSearch();
                 const score = s.best_score;
+                session.reset();
                 try session.printLock("info score cp {} multipv 1\n", .{score});
                 if (move) |m| {
                     try session.printLock("bestmove {s}\n", .{m.toSimple().toStr()});
                 } else {
                     try session.printLock("bestmove 0000\n", .{});
                 }
-
                 break;
             }
         }

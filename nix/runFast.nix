@@ -52,7 +52,7 @@ let
 in
 writeShellScriptBin "runFast" ''
   set -euxo pipefail
-  DEFAULT_COMMIT="ef2e4c6f7b600bcf2722552ec4c00f7459345a95"
+  DEFAULT_COMMIT="1711077a1e2a5923d2e358d75cd420fc583055c8"
   COMMIT="''${1:-$DEFAULT_COMMIT}"
 
   REPO_ROOT=$(${getExe git} rev-parse --show-toplevel)
