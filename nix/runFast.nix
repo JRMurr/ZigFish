@@ -6,8 +6,10 @@ let
   logFile = "$OUT_DIR/log.txt";
 
   fastArgsMap = {
-    maxmoves = "10";
-    concurrency = "1";
+    rounds = "100";
+    maxmoves = "100";
+    concurrency = "10";
+    recover = null;
     log = {
       file = logFile;
       level = "trace";
@@ -15,7 +17,6 @@ let
     };
     pgnout = { file = pgnOutFile; };
     resign = { score = "500000"; };
-    rounds = "100";
     draw = { movenumber = "30"; movecount = "8"; score = "80"; };
     openings = { file = "./test.pgn"; format = "pgn"; order = "random"; };
     engine = [
@@ -42,8 +43,7 @@ let
         )
       else if builtins.isString val then
         (toRootArgStr name val)
-      else
-        throw "invalid value for ${name}"
+      else "-${name}"
     )
     fastArgsMap;
 
