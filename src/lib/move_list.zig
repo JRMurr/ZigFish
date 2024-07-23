@@ -87,5 +87,63 @@ test "move items should only return valid moves" {
     const move_slice = moves.items();
 
     try std.testing.expectEqual(3, move_slice.len);
-    try std.testing.expectEqualDeep(&test_moves, move_slice);
+
+    for (move_slice, test_moves) |actual, expected| {
+        std.debug.print("move: {}\n", .{actual});
+        try std.testing.expect(actual.eql(expected));
+    }
 }
+
+// test "append inline" {
+//     var moves = MoveList.init();
+
+//     // const moveOne = Move{
+//     //     .start = Position.fromStr("e2"),
+//     //     .end = Position.fromStr("e4"),
+//     //     .kind = ZigFish.Kind.Pawn,
+//     //     .move_flags = MoveFlags{},
+//     // };
+
+//     // const moveTwo = Move{
+//     //     .start = Position.fromStr("b1"),
+//     //     .end = Position.fromStr("c3"),
+//     //     .kind = ZigFish.Kind.Knight,
+//     //     .move_flags = MoveFlags{},
+//     // };
+
+//     // const moveThree = Move{
+//     //     .start = Position.fromStr("f1"),
+//     //     .end = Position.fromStr("f4"),
+//     //     .kind = ZigFish.Kind.Pawn,
+//     //     .move_flags = MoveFlags{},
+//     // };
+
+//     moves.append(Move{
+//         .start = Position.fromStr("e2"),
+//         .end = Position.fromStr("e4"),
+//         .kind = ZigFish.Kind.Pawn,
+//         .move_flags = MoveFlags{},
+//     });
+
+//     moves.append(Move{
+//         .start = Position.fromStr("b1"),
+//         .end = Position.fromStr("c3"),
+//         .kind = ZigFish.Kind.Knight,
+//         .move_flags = MoveFlags{},
+//     });
+
+//     moves.append(Move{
+//         .start = Position.fromStr("f1"),
+//         .end = Position.fromStr("f4"),
+//         .kind = ZigFish.Kind.Pawn,
+//         .move_flags = MoveFlags{},
+//     });
+
+//     const move_slice = moves.items();
+
+//     try std.testing.expectEqual(3, move_slice.len);
+
+//     for (move_slice) |m| {
+//         std.debug.print("move: {}\n", .{m});
+//     }
+// }
