@@ -8,3 +8,6 @@ test-uci:
 # run zon2nix to refresh zig deps in nix build
 nix-gen:
   zon2nix > nix/zigfish/deps.nix
+
+run-fast:
+  nix run .#runFast

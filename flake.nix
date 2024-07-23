@@ -43,8 +43,8 @@
 
 
                 myPkgs.fastchess
-                myPkgs.buildAtCommit
-                myPkgs.runFast
+                # myPkgs.buildAtCommit
+                # myPkgs.runFast
 
                 # common
                 pkgs.just
