@@ -11,6 +11,21 @@ const Search = ZigFish.Search;
 
 const Writer = std.fs.File.Writer; // std.io.BufferedWriter(4096, std.fs.File.Writer).Writer;
 
+const Threads = struct {
+    search: Thread,
+    time: Thread,
+    joined: bool = false,
+
+    pub fn join(self: *Threads) void {
+        if (self.joined) {
+            return;
+        }
+        self.joined = true;
+        self.search.join();
+        self.time.join();
+    }
+};
+
 // reader: std.io.Reader,
 writer: Writer,
 arena: std.heap.ArenaAllocator,
@@ -18,6 +33,7 @@ game: *ZigFish.GameManager,
 write_lock: Thread.Mutex,
 arena_lock: Thread.Mutex,
 search: ?ZigFish.Search = null,
+threads: ?Threads = null,
 
 const Self = @This();
 
@@ -34,14 +50,22 @@ pub fn init(arena: std.heap.ArenaAllocator, game: *ZigFish.GameManager, writer: 
     };
 }
 
-fn reset(self: *Self) void {
+fn reset(self: *Self, join_threads: bool) void {
     self.arena_lock.lock();
     defer self.arena_lock.unlock();
-    _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
     if (self.search) |*s| {
+        _ = s.stopSearch();
         s.deinit();
         self.search = null;
     }
+    if (join_threads) {
+        if (self.threads) |*t| {
+            t.join();
+            self.threads = null;
+        }
+    }
+    _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
+
 }
 
 pub fn deinit(self: Self) void {
@@ -74,11 +98,16 @@ fn waitForSearchToStop(self: *Self) void {
 }
 
 fn startSearch(self: *Self, opts: Search.SearchOpts) !void {
+    self.reset(true);
     const move_allocator = self.arena.allocator();
     self.search = try self.game.getSearch(opts);
 
-    const thread = try std.Thread.spawn(.{ .allocator = move_allocator, .stack_size = 100 * 1024 * 1024 }, startInner, .{ &self.search.?, move_allocator });
-    thread.detach();
+    const search_thread = try std.Thread.spawn(.{}, startInner, .{ &self.search.?, move_allocator });
+    const monitor_thread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ self, opts.time_limit_millis.? });
+    self.threads = .{
+        .search = search_thread,
+        .time = monitor_thread,
+    };
 }
 
 fn getCurrTimeInMilli() u64 {
@@ -91,19 +120,21 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
 
     while (true) {
         const currentTime = getCurrTimeInMilli();
+        var search = session.search orelse return;
+        if (search.search_done.isSet()) {
+            return;
+        }
         if (currentTime >= endTime) {
-            if (session.search) |*s| {
-                const move = s.stopSearch();
-                const score = s.best_score;
-                session.reset();
-                try session.printLock("info score cp {} multipv 1\n", .{score});
-                if (move) |m| {
-                    try session.printLock("bestmove {s}\n", .{m.toSimple().toStr()});
-                } else {
-                    try session.printLock("bestmove 0000\n", .{});
-                }
-                break;
+            const move = search.stopSearch();
+            const score = search.best_score;
+            session.reset(false);
+            try session.printLock("info score cp {} multipv 1\n", .{score});
+            if (move) |m| {
+                try session.printLock("bestmove {s}\n", .{m.toSimple().toStr()});
+            } else {
+                try session.printLock("bestmove 0000\n", .{});
             }
+            break;
         }
         std.time.sleep(1 * std.time.ns_per_ms); // Sleep for 1 millisecond to avoid busy waiting
     }
@@ -123,7 +154,6 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
             _ = enabled;
         },
         .IsReady => {
-            self.waitForSearchToStop();
             try self.writeLn("readyok");
         },
         .SetOption => |opts| {
@@ -131,12 +161,11 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
         },
         .Register => {},
         .UciNewGame => {
-            self.reset();
+            self.reset(true);
         },
         .Position => |args| {
-            self.waitForSearchToStop();
             // TODO: might only need to apply the last move if we have been initalized before
-            self.reset();
+            self.reset(true);
             const fen = args.fen;
             self.game.reinitFen(fen);
             for (args.moves.items) |m| {
@@ -154,8 +183,6 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
                 }
             }
             try self.startSearch(search_opts);
-            const monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ self, search_opts.time_limit_millis.? });
-            monitorThread.detach();
         },
         .Stop => {
             if (self.search) |*s| {
@@ -173,4 +200,20 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
     }
 
     return false;
+}
+
+test "search for a move" {
+    var game = try ZigFish.GameManager.init(std.testing.allocator);
+    defer game.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const out = std.io.getStdOut();
+    var session = Uci.Session.init(arena, &game, out.writer());
+
+    const command_parsed = try Uci.Commands.Command.fromStr(std.testing.allocator, "go movetime 100");
+    const command = command_parsed.parsed;
+    defer command.deinit();
+    _ = try session.handleCommand(command);
+    session.waitForSearchToStop();
 }

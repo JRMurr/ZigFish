@@ -134,7 +134,7 @@ pub const GameManager = struct {
         const maybe_peice = self.getPos(pos);
         const move_gen = MoveGen{ .board = &self.board };
 
-        var moves = MoveList.init(move_allocator);
+        var moves = try MoveList.initCapacity(move_allocator, 27);
 
         const p = if (maybe_peice) |p| p else return moves;
 

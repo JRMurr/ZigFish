@@ -300,7 +300,7 @@ pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures
 
     const gen_info = self.getGenInfo();
 
-    var moves = MoveList.init(move_allocator);
+    var moves = try MoveList.initCapacity(move_allocator, 218);
 
     const color_set = self.board.color_sets[@intFromEnum(color)];
     // std.log.debug("board: {}", .{self.board});
@@ -330,7 +330,7 @@ pub fn getValidMoves(
         return;
     }
 
-    try out_moves.ensureUnusedCapacity(27); // TODO: better number based on piece type...
+    // try out_moves.ensureUnusedCapacity(27); // TODO: better number based on piece type...
     const start_idx = pos.toIndex();
     const pinned_pieces = gen_info.pinned_pieces;
     const is_pinned = pinned_pieces.isSet(start_idx);

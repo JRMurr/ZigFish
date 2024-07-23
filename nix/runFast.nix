@@ -6,8 +6,8 @@ let
   logFile = "$OUT_DIR/log.txt";
 
   fastArgsMap = {
-    maxmoves = "100";
-    concurrency = "12";
+    maxmoves = "10";
+    concurrency = "1";
     log = {
       file = logFile;
       level = "trace";
@@ -19,7 +19,7 @@ let
     draw = { movenumber = "30"; movecount = "8"; score = "80"; };
     openings = { file = "./test.pgn"; format = "pgn"; order = "random"; };
     engine = [
-      "cmd=./zig-out/bin/zigfish-uci name=new st=0.1 timemargin=100"
+      ''cmd="$NEW_ENGINE" name=new st=0.1 timemargin=100''
       ''cmd="$OLD_ENGINE" name=old st=0.1 timemargin=100''
     ];
   };
@@ -63,7 +63,8 @@ writeShellScriptBin "runFast" ''
   rm -f ${logFile}
   rm -f ${pgnOutFile}
 
-  ${zig}/bin/zig build -Doptimize=ReleaseSafe
+  # ${zig}/bin/zig build -Doptimize=ReleaseSafe
+  NEW_ENGINE=$(${getExe buildAtCommit} "curr")
   OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
   ${getExe fastchess} ${fastArgs}
 ''
