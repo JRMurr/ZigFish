@@ -21,7 +21,7 @@ pub fn main() anyerror!void {
     const out = std.io.getStdOut();
     // var buf = std.io.bufferedWriter(out.writer());
 
-    var session = Uci.Session.init(&game, out.writer());
+    var session = Uci.Session.init(gpa_allocator, &game, out.writer());
 
     var msg_buf: [4096]u8 = undefined;
 

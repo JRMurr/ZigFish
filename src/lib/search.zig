@@ -402,7 +402,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        std.log.debug("checking at depth: {}", .{depth});
+        // std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = try self.getAllValidMoves(false);
         const moves = generated_moves.moves;
@@ -421,7 +421,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
                 self.best_score = eval;
             }
             if (self.stop_search.isSet()) {
-                std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
+                // std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
                 self.search_done.set();
                 return self.best_move;
             }
