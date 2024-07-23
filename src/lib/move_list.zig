@@ -36,7 +36,6 @@ pub fn sort(
     context: anytype,
     comptime lessThanFn: fn (@TypeOf(context), lhs: Move, rhs: Move) bool,
 ) void {
-    // TODO: probs wrong for bounded array, ignoring for now
     std.mem.sort(Move, self.moves.slice(), context, lessThanFn);
 }
 
@@ -97,6 +96,54 @@ test "move items should only return valid moves" {
     try std.testing.expectEqual(3, move_slice.len);
 
     for (move_slice, test_moves) |actual, expected| {
+        // std.debug.print("move: {}\n", .{actual});
+        try std.testing.expectEqualStrings(&expected.toSan(), &actual.toSan());
+        try std.testing.expect(actual.eql(expected));
+    }
+}
+
+fn sortByStart(_: @TypeOf(.{}), a: Move, b: Move) bool {
+    return a.start.index < b.start.index;
+}
+
+test "sort" {
+    var moves = MoveList.init();
+
+    const moveOne = Move{
+        .start = Position.fromIndex(10),
+        .end = Position.fromStr("e4"),
+        .kind = ZigFish.Kind.Pawn,
+        .move_flags = MoveFlags{},
+    };
+
+    const moveTwo = Move{
+        .start = Position.fromIndex(3),
+        .end = Position.fromStr("c3"),
+        .kind = ZigFish.Kind.Knight,
+        .move_flags = MoveFlags{},
+    };
+
+    const moveThree = Move{
+        .start = Position.fromIndex(9),
+        .end = Position.fromStr("f4"),
+        .kind = ZigFish.Kind.Pawn,
+        .move_flags = MoveFlags{},
+    };
+
+    const test_moves = [_]Move{ moveOne, moveTwo, moveThree };
+
+    const sorted_moves = [_]Move{ moveTwo, moveThree, moveOne };
+
+    for (test_moves) |m| {
+        moves.append(m);
+    }
+
+    moves.sort(.{}, sortByStart);
+    const sorted_slice = moves.items();
+
+    try std.testing.expectEqual(3, sorted_slice.len);
+
+    for (sorted_slice, sorted_moves) |actual, expected| {
         // std.debug.print("move: {}\n", .{actual});
         try std.testing.expectEqualStrings(&expected.toSan(), &actual.toSan());
         try std.testing.expect(actual.eql(expected));
