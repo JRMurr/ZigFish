@@ -47,8 +47,8 @@ const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
 const Allocator = std.mem.Allocator;
 
-fn searchInBackground(move_allocator: Allocator, game: *GameManager, search_res: *SearchRes) !void {
-    const move = try game.findBestMove(move_allocator, .{
+fn searchInBackground(game: *GameManager, search_res: *SearchRes) !void {
+    const move = try game.findBestMove(.{
         .max_depth = MAX_DEPTH,
         .time_limit_millis = SEARCH_TIME,
     });
@@ -76,7 +76,7 @@ pub fn main() anyerror!void {
     defer arena.deinit();
 
     // Used for move generation so we can reset after each move taken
-    const move_allocator = arena.allocator();
+    // const move_allocator = arena.allocator();
 
     var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
     var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
@@ -108,10 +108,10 @@ pub fn main() anyerror!void {
     // test positon for debugging
     // var game = try GameManager.from_fen(gpa_allocator, "8/2p5/3p4/KP5r/6pk/8/4P1P1/8 w - - 1 1");
 
-    // const perf = try game.perft(6, move_allocator, true);
+    // const perf = try game.perft(6,  true);
     // std.log.debug("nodes: {}", .{perf});
 
-    // const best_move = (try game.findBestMove(move_allocator, 6)).?;
+    // const best_move = (try game.findBestMove( 6)).?;
     // std.log.debug("search_res: {}", .{best_move});
 
     // std.log.debug("score: {}", .{game.evaluate()});
@@ -139,7 +139,6 @@ pub fn main() anyerror!void {
             search_res.move = null;
             var cloned_game = try game.clone();
             search_thread = try std.Thread.spawn(.{}, searchInBackground, .{
-                move_allocator,
                 &cloned_game,
                 &search_res,
             });
@@ -155,7 +154,7 @@ pub fn main() anyerror!void {
             const maybe_piece = game.getPos(pos);
             if (maybe_piece) |p| {
                 if (p.color == game.board.active_color) {
-                    const moves = try game.getValidMovesAt(move_allocator, pos);
+                    const moves = try game.getValidMovesAt(pos);
                     moving_piece = MovingPiece{ .start = pos, .piece = p, .valid_moves = moves };
                     game.setPos(pos, null);
                 }
@@ -168,7 +167,7 @@ pub fn main() anyerror!void {
             // reset the piece so board can do its own moving logic
             game.setPos(mp.start, mp.piece);
 
-            for (mp.valid_moves.items) |move| {
+            for (mp.valid_moves.items()) |move| {
                 // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
                     std.log.debug("{s}", .{move.toSan()});
@@ -208,7 +207,7 @@ pub fn main() anyerror!void {
         // }
 
         if (moving_piece) |p| {
-            for (p.valid_moves.items) |move| {
+            for (p.valid_moves.items()) |move| {
                 sprite_manager.draw_move_marker(move.end, rl.Color.red);
             }
 

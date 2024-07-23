@@ -8,6 +8,7 @@ const ZigFish = @import("root.zig");
 const Board = ZigFish.Board;
 const Position = ZigFish.Position;
 const BoardMeta = ZigFish.BoardMeta;
+const MoveList = ZigFish.MoveList;
 
 const Move = @import("move.zig");
 const MoveType = Move.MoveType;
@@ -45,7 +46,7 @@ pub const MoveGenInfo = struct {
     attack_info: AttackedSqaureInfo,
 };
 
-pub const MoveList = std.ArrayList(Move);
+// pub const MoveList = std.ArrayList(Move);
 
 const GeneratedMoves = struct { moves: MoveList, gen_info: MoveGenInfo };
 
@@ -295,12 +296,12 @@ pub fn getGenInfo(self: Self) MoveGenInfo {
     return gen_info;
 }
 
-pub fn getAllValidMoves(self: Self, move_allocator: Allocator, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
+pub fn getAllValidMoves(self: Self, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
     const color = self.board.active_color;
 
     const gen_info = self.getGenInfo();
 
-    var moves = try MoveList.initCapacity(move_allocator, 218);
+    var moves = MoveList.init();
 
     const color_set = self.board.color_sets[@intFromEnum(color)];
     // std.log.debug("board: {}", .{self.board});
@@ -330,7 +331,6 @@ pub fn getValidMoves(
         return;
     }
 
-    // try out_moves.ensureUnusedCapacity(27); // TODO: better number based on piece type...
     const start_idx = pos.toIndex();
     const pinned_pieces = gen_info.pinned_pieces;
     const is_pinned = pinned_pieces.isSet(start_idx);
@@ -362,7 +362,7 @@ pub fn getValidMoves(
                     if (end_rank == 0 or end_rank == 7) {
                         for (PROMOTION_KINDS) |promotion_kind| {
                             const move_flags = MoveFlags.initOne(MoveType.Promotion);
-                            out_moves.appendAssumeCapacity(.{
+                            out_moves.append(Move{
                                 .start = pos,
                                 .end = to,
                                 .kind = p.kind,
@@ -371,7 +371,12 @@ pub fn getValidMoves(
                             });
                         }
                     } else {
-                        out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .move_flags = MoveFlags.initEmpty() });
+                        out_moves.append(Move{
+                            .start = pos,
+                            .end = to,
+                            .kind = p.kind,
+                            .move_flags = MoveFlags.initEmpty(),
+                        });
                     }
                 }
             }
@@ -390,7 +395,7 @@ pub fn getValidMoves(
                     for (PROMOTION_KINDS) |promotion_kind| {
                         const move_flags = MoveFlags.initMany(&[_]MoveType{ MoveType.Promotion, MoveType.Capture });
                         const captured_kind = self.board.getPos(to).?.kind;
-                        out_moves.appendAssumeCapacity(.{
+                        out_moves.append(Move{
                             .start = pos,
                             .end = to,
                             .kind = p.kind,
@@ -420,7 +425,7 @@ pub fn getValidMoves(
                         move.move_flags.setPresent(MoveType.EnPassant, true);
                     }
 
-                    out_moves.appendAssumeCapacity(move);
+                    out_moves.append(move);
                 }
             }
 
@@ -437,14 +442,14 @@ pub fn getValidMoves(
                 const end = Position.fromIndex(pos.index + 2);
                 const flags = MoveFlags.initOne(MoveType.Castling);
                 const move = Move{ .start = pos, .end = end, .kind = Kind.King, .move_flags = flags };
-                out_moves.appendAssumeCapacity(move);
+                out_moves.append(move);
             }
             if (!captures_only and self.castleAllowed(p.color, enemy_attacked_sqaures, false)) {
                 // queen side castle
                 const end = Position.fromIndex(pos.index - 2);
                 const flags = MoveFlags.initOne(MoveType.Castling);
                 const move = Move{ .start = pos, .end = end, .kind = Kind.King, .move_flags = flags };
-                out_moves.appendAssumeCapacity(move);
+                out_moves.append(move);
             }
 
             break :blk king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
@@ -472,6 +477,6 @@ pub fn getValidMoves(
         } else if (captures_only) {
             continue;
         }
-        out_moves.appendAssumeCapacity(.{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
+        out_moves.append(Move{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
     }
 }

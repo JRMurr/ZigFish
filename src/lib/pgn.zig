@@ -42,7 +42,6 @@ pub fn fromPgn(pgn: []const u8, allocator: Allocator) Allocator.Error!GameManage
 
         for (0..2) |_| {
             const moves = try game.getAllValidMoves(allocator);
-            defer moves.deinit();
 
             const move_str = it.next() orelse {
                 std.debug.panic("expected move but got nothing {s}\n", .{pgn});

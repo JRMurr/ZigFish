@@ -20,12 +20,12 @@ const Kind = Kind;
 const precompute = @import("precompute.zig");
 const Score = precompute.Score;
 
-const fen = @import("fen.zig");
+const fen = ZigFish.Fen;
 
-const Search = @import("search.zig");
+const Search = ZigFish.Search;
 
-const MoveGen = @import("move_gen.zig");
-pub const MoveList = MoveGen.MoveList;
+const MoveGen = ZigFish.MoveGen;
+pub const MoveList = ZigFish.MoveList;
 
 const Allocator = std.mem.Allocator;
 
@@ -99,9 +99,8 @@ pub const GameManager = struct {
     }
 
     pub fn makeSimpleMove(self: *Self, move: Move.SimpleMove) !void {
-        const validMoves = try self.getValidMovesAt(self.allocator, move.start);
-        defer validMoves.deinit();
-        for (validMoves.items) |m| {
+        const validMoves = try self.getValidMovesAt(move.start);
+        for (validMoves.items()) |m| {
             if (move.promotion_kind) |pk| {
                 if (m.promotion_kind == null) {
                     continue;
@@ -123,18 +122,20 @@ pub const GameManager = struct {
         self.board.unMakeMove(move, meta);
     }
 
-    pub fn getAllValidMoves(self: *Self, move_allocator: Allocator) Allocator.Error!MoveList {
+    pub fn getAllValidMoves(
+        self: *Self,
+    ) Allocator.Error!MoveList {
         const move_gen = MoveGen{ .board = &self.board };
-        const res = try move_gen.getAllValidMoves(move_allocator, false);
+        const res = try move_gen.getAllValidMoves(false);
 
         return res.moves;
     }
 
-    pub fn getValidMovesAt(self: *Self, move_allocator: Allocator, pos: Position) Allocator.Error!MoveList {
+    pub fn getValidMovesAt(self: *Self, pos: Position) Allocator.Error!MoveList {
         const maybe_peice = self.getPos(pos);
         const move_gen = MoveGen{ .board = &self.board };
 
-        var moves = try MoveList.initCapacity(move_allocator, 27);
+        var moves = MoveList.init();
 
         const p = if (maybe_peice) |p| p else return moves;
 
@@ -145,11 +146,11 @@ pub const GameManager = struct {
         return moves;
     }
 
-    pub fn findBestMove(self: *Self, move_allocator: Allocator, search_opts: Search.SearchOpts) !?Move {
+    pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts) !?Move {
         var search = try Search.init(self.allocator, &self.board, search_opts);
         defer search.deinit();
 
-        return search.findBestMove(move_allocator);
+        return search.findBestMove();
     }
 
     pub fn getSearch(self: *Self, search_opts: Search.SearchOpts) !Search {
@@ -157,7 +158,7 @@ pub const GameManager = struct {
     }
 
     // https://www.chessprogramming.org/Perft
-    pub fn perft(self: *Self, depth: usize, move_allocator: Allocator, print_count_per_move: bool) Allocator.Error!usize {
+    pub fn perft(self: *Self, depth: usize, print_count_per_move: bool) Allocator.Error!usize {
         var nodes: usize = 0;
         if (depth == 0) {
             return 1;
@@ -165,17 +166,16 @@ pub const GameManager = struct {
 
         const move_gen = MoveGen{ .board = &self.board };
 
-        const moves = (try move_gen.getAllValidMoves(move_allocator, false)).moves;
-        defer moves.deinit();
+        const moves = (try move_gen.getAllValidMoves(false)).moves;
 
         if (depth == 1 and !print_count_per_move) {
             // dont need to actually make these last ones
-            return moves.items.len;
+            return moves.count;
         }
 
-        for (moves.items) |move| {
+        for (moves.items()) |move| {
             try self.makeMove(move);
-            const num_leafs = try self.perft(depth - 1, move_allocator, false);
+            const num_leafs = try self.perft(depth - 1, false);
             if (print_count_per_move) {
                 std.log.debug("{s}: {d}", .{ move.toStrSimple(), num_leafs });
             }
@@ -190,10 +190,9 @@ pub const GameManager = struct {
 fn testZhashUnMake(game: *GameManager, print: bool) anyerror!void {
     const move_gen = MoveGen{ .board = &game.board };
 
-    const moves = (try move_gen.getAllValidMoves(std.testing.allocator, false)).moves;
-    defer moves.deinit();
+    const moves = (try move_gen.getAllValidMoves(false)).moves;
 
-    for (moves.items) |move| {
+    for (moves.items()) |move| {
         const start_hash = game.board.zhash;
         try game.makeMove(move);
         game.unMakeMove(move);
@@ -230,7 +229,7 @@ test "perft base" {
     var game = try GameManager.init(std.testing.allocator);
     defer game.deinit();
 
-    const perf = try game.perft(5, std.testing.allocator, false);
+    const perf = try game.perft(5, false);
 
     try std.testing.expectEqual(4_865_609, perf);
 }
@@ -239,7 +238,17 @@ test "perft pos 4" {
     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
     defer game.deinit();
 
-    try std.testing.expectEqual(62_379, try game.perft(3, std.testing.allocator, false));
+    try std.testing.expectEqual(62_379, try game.perft(3, false));
+}
+
+test "valid moves at pos" {
+    var game = try GameManager.from_fen(std.testing.allocator, "rnbqkbnr/1ppppppp/8/p7/8/N7/PPPPPPPP/1RBQKBNR b Kkq - 1 2");
+    defer game.deinit();
+
+    const moves = try game.getAllValidMoves();
+    for (moves.items()) |m| {
+        std.debug.print("move: {s}\n", .{m.toSan()});
+    }
 }
 
 // SLOW!!!!!

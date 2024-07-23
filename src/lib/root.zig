@@ -7,7 +7,7 @@ const game_types = @import("game.zig");
 pub const GameManager = game_types.GameManager;
 
 pub const MoveGen = @import("move_gen.zig");
-pub const MoveList = MoveGen.MoveList;
+pub const MoveList = @import("move_list.zig");
 pub const Piece = @import("piece.zig");
 pub const Kind = Piece.Kind;
 pub const Color = Piece.Color;

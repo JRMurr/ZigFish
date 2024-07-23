@@ -83,8 +83,10 @@ fn printLock(self: *Self, comptime format: []const u8, args: anytype) !void {
     try self.writer.print(format, args);
 }
 
-fn startInner(search: *Search, move_allocator: Allocator) !void {
-    return search.startSearch(move_allocator) catch |e| {
+fn startInner(
+    search: *Search,
+) !void {
+    return search.startSearch() catch |e| {
         std.debug.panic("error running search: {}", .{e});
     };
 }
@@ -99,10 +101,10 @@ fn waitForSearchToStop(self: *Self) void {
 
 fn startSearch(self: *Self, opts: Search.SearchOpts) !void {
     self.reset(true);
-    const move_allocator = self.arena.allocator();
+    // const move_allocator = self.arena.allocator();
     self.search = try self.game.getSearch(opts);
 
-    const search_thread = try std.Thread.spawn(.{}, startInner, .{ &self.search.?, move_allocator });
+    const search_thread = try std.Thread.spawn(.{}, startInner, .{&self.search.?});
     const monitor_thread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ self, opts.time_limit_millis.? });
     self.threads = .{
         .search = search_thread,

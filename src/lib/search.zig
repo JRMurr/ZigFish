@@ -10,7 +10,7 @@ const Position = ZigFish.Position;
 const Move = ZigFish.Move;
 const MoveType = ZigFish.MoveType;
 const MoveGen = ZigFish.MoveGen;
-const MoveList = MoveGen.MoveList;
+const MoveList = ZigFish.MoveList;
 const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 const Kind = Piece.Kind;
@@ -114,21 +114,21 @@ fn compareScored(_: @TypeOf(.{}), a: MoveScored, b: MoveScored) bool {
     return a.score > b.score;
 }
 
-fn scoreAndSort(movesList: *MoveList, move_allocator: Allocator, ctx: MoveCompareCtx) Allocator.Error![]MoveScored {
-    const moves = try movesList.toOwnedSlice();
+// fn scoreAndSort(movesList: *MoveList, ctx: MoveCompareCtx) Allocator.Error![]MoveScored {
+//     const moves = try movesList.toOwnedSlice();
 
-    var scored = try std.ArrayList(MoveScored).initCapacity(move_allocator, moves.len);
+//     var scored = try std.ArrayList(MoveScored).initCapacity(moves.len);
 
-    for (moves) |m| {
-        scored.appendAssumeCapacity(MoveScored.init(m, ctx));
-    }
+//     for (moves) |m| {
+//         scored.appendAssumeCapacity(MoveScored.init(m, ctx));
+//     }
 
-    const res = try scored.toOwnedSlice();
+//     const res = try scored.toOwnedSlice();
 
-    std.mem.sort(MoveScored, res, .{}, compareScored);
+//     std.mem.sort(MoveScored, res, .{}, compareScored);
 
-    return res;
-}
+//     return res;
+// }
 
 const Self = @This();
 
@@ -224,7 +224,6 @@ const SearchRes = struct {
 // https://www.chessprogramming.org/Quiescence_Search
 fn quiesceSearch(
     self: *Self,
-    move_allocator: Allocator,
     depth: usize,
     alpha_init: Score,
     beta: Score,
@@ -244,9 +243,8 @@ fn quiesceSearch(
     if (alpha < start_eval)
         alpha = start_eval;
 
-    const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, true);
+    const generated_moves = try self.move_gen.getAllValidMoves(true);
     var moves = generated_moves.moves;
-    defer moves.deinit();
 
     const gen_info = generated_moves.gen_info;
 
@@ -254,19 +252,20 @@ fn quiesceSearch(
         .gen_info = gen_info,
     };
 
-    const sorted = try scoreAndSort(&moves, move_allocator, sort_ctx);
+    // const sorted = try scoreAndSort(&moves, sort_ctx);
+    moves.sort(sort_ctx, compare_moves);
 
     var best_move: ?Move = null;
 
-    for (sorted) |move_score| {
-        const move = move_score.move;
+    for (moves.items()) |move| {
+        // const move = move_score.move;
         self.diagnostics.num_nodes_analyzed += 1;
         std.debug.assert(move.captured_kind != null);
 
         // make, score, unmake
         const meta = self.board.meta;
         self.board.makeMove(move);
-        var res = try self.quiesceSearch(move_allocator, depth - 1, negate_score(beta), negate_score(alpha));
+        var res = try self.quiesceSearch(depth - 1, negate_score(beta), negate_score(alpha));
         res.score = negate_score(res.score);
         self.board.unMakeMove(move, meta);
 
@@ -288,7 +287,6 @@ fn quiesceSearch(
 
 pub fn search(
     self: *Self,
-    move_allocator: Allocator,
     depth_from_root: usize,
     depth_remaing: usize,
     num_extensions: usize,
@@ -306,7 +304,7 @@ pub fn search(
         if (self.getFromTransposition(hash, 0)) |e| {
             return e.search_res;
         }
-        const score = try self.quiesceSearch(move_allocator, self.search_opts.quiesce_depth, alpha_int, beta);
+        const score = try self.quiesceSearch(self.search_opts.quiesce_depth, alpha_int, beta);
         if (self.stop_search.isSet()) {
             return score;
         }
@@ -314,13 +312,12 @@ pub fn search(
         return score;
     }
 
-    const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
+    const generated_moves = try self.move_gen.getAllValidMoves(false);
     var moves = generated_moves.moves;
-    defer moves.deinit();
 
     const gen_info = generated_moves.gen_info;
 
-    if (moves.items.len == 0) {
+    if (moves.items().len == 0) {
         if (gen_info.attack_info.king_attackers.count() > 0) {
             // checkmate
             return SearchRes.normal(MIN_SCORE);
@@ -343,12 +340,13 @@ pub fn search(
         .best_move = prev_best_move,
     };
 
-    const sorted = try scoreAndSort(&moves, move_allocator, sort_ctx);
+    // const sorted = try scoreAndSort(&moves, sort_ctx);
+    moves.sort(sort_ctx, compare_moves);
 
     var best_move: ?Move = null;
 
-    for (sorted) |move_scored| {
-        const move = move_scored.move;
+    for (moves.items()) |move| {
+        // const move = move_scored.move;
         const meta = self.board.meta;
         self.board.makeMove(move);
         const hash = self.board.zhash;
@@ -363,7 +361,6 @@ pub fn search(
             }
 
             var search_res = try self.search(
-                move_allocator,
                 depth_from_root + 1,
                 depth_remaing_updated,
                 num_extensions_updated,
@@ -395,7 +392,7 @@ pub fn search(
     return SearchRes.initBest(best_eval, best_move);
 }
 
-pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize) Allocator.Error!?Move {
+pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
     self.stop_search.reset();
     self.search_done.reset();
     self.best_score = MIN_SCORE;
@@ -404,16 +401,15 @@ pub fn iterativeSearch(self: *Self, move_allocator: Allocator, max_depth: usize)
     for (1..max_depth) |depth| {
         // std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
-        const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
+        const generated_moves = try self.move_gen.getAllValidMoves(false);
         const moves = generated_moves.moves;
-        defer moves.deinit();
 
-        for (moves.items) |move| {
+        for (moves.items()) |move| {
             self.diagnostics.num_nodes_analyzed += 1;
             const meta = self.board.meta;
             // std.log.debug("checking {s}", .{move.toStrSimple()});
             self.board.makeMove(move);
-            const enemy_score = try self.search(move_allocator, 0, depth - 1, 0, MIN_SCORE, negate_score(self.best_score));
+            const enemy_score = try self.search(0, depth - 1, 0, MIN_SCORE, negate_score(self.best_score));
             const eval = negate_score(enemy_score.score);
             self.board.unMakeMove(move, meta);
 
@@ -457,24 +453,28 @@ pub fn stopSearch(self: *Self) ?Move {
     return self.best_move;
 }
 
-pub fn startSearch(self: *Self, move_allocator: Allocator) !void {
-    _ = try self.iterativeSearch(move_allocator, self.search_opts.max_depth);
+pub fn startSearch(
+    self: *Self,
+) !void {
+    _ = try self.iterativeSearch(self.search_opts.max_depth);
 }
 
-pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
+pub fn findBestMove(
+    self: *Self,
+) !?Move {
     if (self.search_opts.time_limit_millis) |time| {
         const monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), time });
         monitorThread.detach();
     }
-    const best = try self.iterativeSearch(move_allocator, self.search_opts.max_depth);
+    const best = try self.iterativeSearch(self.search_opts.max_depth);
     std.log.debug("eval: {}", .{self.best_score});
     return best;
 }
 
-// pub fn findBestMove(self: *Self, move_allocator: Allocator, depth: usize) Allocator.Error!?Move {
+// pub fn findBestMove(self: *Self, depth: usize) Allocator.Error!?Move {
 //     var alpha: Score = MIN_SCORE;
 
-//     const generated_moves = try self.move_gen.getAllValidMoves(move_allocator, false);
+//     const generated_moves = try self.move_gen.getAllValidMoves( false);
 //     const moves = generated_moves.moves;
 //     defer moves.deinit();
 
@@ -484,7 +484,7 @@ pub fn findBestMove(self: *Self, move_allocator: Allocator) !?Move {
 //         const meta = self.board.meta;
 //         std.log.debug("checking {s}", .{move.toStrSimple()});
 //         self.board.makeMove(move);
-//         const enemy_score = try self.search(move_allocator, 0, depth - 1, MIN_SCORE, negate_score(alpha));
+//         const enemy_score = try self.search( 0, depth - 1, MIN_SCORE, negate_score(alpha));
 //         const eval = negate_score(enemy_score);
 //         self.board.unMakeMove(move, meta);
 

@@ -37,7 +37,7 @@ pub fn main() anyerror!void {
         // try buf.flush();
     }
 
-    // const move = try game.findBestMove(move_allocator, .{});
+    // const move = try game.findBestMove( .{});
 
     // std.log.debug("{}", .{move.?});
 }
