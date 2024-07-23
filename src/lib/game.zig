@@ -170,7 +170,7 @@ pub const GameManager = struct {
 
         if (depth == 1 and !print_count_per_move) {
             // dont need to actually make these last ones
-            return moves.count;
+            return moves.count();
         }
 
         for (moves.items()) |move| {
@@ -239,16 +239,6 @@ test "perft pos 4" {
     defer game.deinit();
 
     try std.testing.expectEqual(62_379, try game.perft(3, false));
-}
-
-test "valid moves at pos" {
-    var game = try GameManager.from_fen(std.testing.allocator, "rnbqkbnr/1ppppppp/8/p7/8/N7/PPPPPPPP/1RBQKBNR b Kkq - 1 2");
-    defer game.deinit();
-
-    const moves = try game.getAllValidMoves();
-    for (moves.items()) |m| {
-        std.debug.print("move: {s}\n", .{m.toSan()});
-    }
 }
 
 // SLOW!!!!!

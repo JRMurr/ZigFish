@@ -23,8 +23,12 @@ pub fn append(self: *MoveList, move: Move) void {
     self.moves.appendAssumeCapacity(move);
 }
 
-pub fn items(self: *MoveList) []const Move {
+pub fn items(self: *const MoveList) []const Move {
     return self.moves.constSlice();
+}
+
+pub fn count(self: *const MoveList) usize {
+    return self.moves.len;
 }
 
 pub fn sort(
