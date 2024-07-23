@@ -28,31 +28,31 @@ const Threads = struct {
 
 // reader: std.io.Reader,
 writer: Writer,
-arena: std.heap.ArenaAllocator,
+// arena: *std.heap.ArenaAllocator,
+// allocator: Allocator,
 game: *ZigFish.GameManager,
 write_lock: Thread.Mutex,
-arena_lock: Thread.Mutex,
+// arena_lock: Thread.Mutex,
 search: ?ZigFish.Search = null,
 threads: ?Threads = null,
 
 const Self = @This();
 
-pub fn init(arena: std.heap.ArenaAllocator, game: *ZigFish.GameManager, writer: Writer) Self {
-    // const thread = try std.Thread.spawn(.{}, searchMonitor, .{16});
-    // thread.detach();
-
+pub fn init(game: *ZigFish.GameManager, writer: Writer) Self {
     return .{
-        .arena = arena,
+        // .arena = arena,
+        // .allocator = arena.allocator(),
         .game = game,
         .writer = writer,
         .write_lock = Thread.Mutex{},
-        .arena_lock = Thread.Mutex{},
+        // .arena_lock = Thread.Mutex{},
     };
 }
 
 fn reset(self: *Self, join_threads: bool) void {
-    self.arena_lock.lock();
-    defer self.arena_lock.unlock();
+    // self.arena_lock.lock();
+    // defer self.arena_lock.unlock();
+    std.log.debug("calling reset", .{});
     if (self.search) |*s| {
         _ = s.stopSearch();
         s.deinit();
@@ -64,13 +64,13 @@ fn reset(self: *Self, join_threads: bool) void {
             self.threads = null;
         }
     }
-    _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
+    // _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
 
 }
 
-pub fn deinit(self: Self) void {
-    self.arena.deinit();
-}
+// pub fn deinit(self: Self) void {
+//     // self.arena.deinit();
+// }
 
 fn writeLn(self: *Self, buf: []const u8) !void {
     try self.printLock("{s}\n", .{buf});
@@ -83,10 +83,9 @@ fn printLock(self: *Self, comptime format: []const u8, args: anytype) !void {
     try self.writer.print(format, args);
 }
 
-fn startInner(
-    search: *Search,
-) !void {
-    return search.startSearch() catch |e| {
+fn startInner(self: *Self) !void {
+    std.log.debug("starting search", .{});
+    return self.search.?.startSearch() catch |e| {
         std.debug.panic("error running search: {}", .{e});
     };
 }
@@ -101,10 +100,9 @@ fn waitForSearchToStop(self: *Self) void {
 
 fn startSearch(self: *Self, opts: Search.SearchOpts) !void {
     self.reset(true);
-    // const move_allocator = self.arena.allocator();
-    self.search = try self.game.getSearch(opts);
+    self.search = try self.game.getSearch(.{});
 
-    const search_thread = try std.Thread.spawn(.{}, startInner, .{&self.search.?});
+    const search_thread = try std.Thread.spawn(.{}, startInner, .{self});
     const monitor_thread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ self, opts.time_limit_millis.? });
     self.threads = .{
         .search = search_thread,
@@ -122,7 +120,7 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
 
     while (true) {
         const currentTime = getCurrTimeInMilli();
-        var search = session.search orelse return;
+        var search = &(session.search orelse return);
         if (search.search_done.isSet()) {
             return;
         }
@@ -138,7 +136,7 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
             }
             break;
         }
-        std.time.sleep(1 * std.time.ns_per_ms); // Sleep for 1 millisecond to avoid busy waiting
+        std.time.sleep(10 * std.time.ns_per_ms); // Sleep for 1 millisecond to avoid busy waiting
     }
 }
 
@@ -207,11 +205,11 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
 test "search for a move" {
     var game = try ZigFish.GameManager.init(std.testing.allocator);
     defer game.deinit();
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
+    // var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    // defer arena.deinit();
 
     const out = std.io.getStdOut();
-    var session = Uci.Session.init(arena, &game, out.writer());
+    var session = Uci.Session.init(&game, out.writer());
 
     const command_parsed = try Uci.Commands.Command.fromStr(std.testing.allocator, "go movetime 100");
     const command = command_parsed.parsed;

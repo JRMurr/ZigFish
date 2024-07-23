@@ -48,7 +48,7 @@ pub const MoveGenInfo = struct {
 
 // pub const MoveList = std.ArrayList(Move);
 
-const GeneratedMoves = struct { moves: MoveList, gen_info: MoveGenInfo };
+pub const GeneratedMoves = struct { moves: MoveList, gen_info: MoveGenInfo };
 
 const NUM_DIRS = utils.enum_len(Dir);
 
@@ -60,7 +60,7 @@ pub const MoveGen = Self;
 board: *Board,
 
 /// given the position of a pinned piece, get the ray of the attack
-pub fn pinAttacker(self: Self, pin_pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
+pub fn pinAttacker(self: *const Self, pin_pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
     const pin_piece = if (self.board.getPos(pin_pos)) |p| p else return BoardBitSet.initEmpty();
 
     const color = pin_piece.color;
@@ -100,7 +100,7 @@ pub fn pinAttacker(self: Self, pin_pos: Position, ignore_sqaures: BoardBitSet) B
     return BoardBitSet.initEmpty();
 }
 
-pub fn findPinnedPieces(self: Self, color: Color) PinInfo {
+pub fn findPinnedPieces(self: *const Self, color: Color) PinInfo {
     const king_board = self.board.getPieceSet(Piece{ .color = color, .kind = Kind.King });
     const king_square = king_board.bitScanForward();
 
@@ -149,7 +149,7 @@ pub fn findPinnedPieces(self: Self, color: Color) PinInfo {
     return .{ .pinned_pieces = pinned, .king_attack_ray = king_attack_ray };
 }
 
-pub fn slidingMoves(board: Board, p: Piece, pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
+pub fn slidingMoves(board: *const Board, p: Piece, pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
     // TODO: debug assert pos has the piece?
     const start_idx = pos.toIndex();
 
@@ -178,7 +178,7 @@ pub fn slidingMoves(board: Board, p: Piece, pos: Position, ignore_sqaures: Board
     return attacks;
 }
 
-pub fn castleAllowed(self: Self, color: Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
+pub fn castleAllowed(self: *const Self, color: Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
     const castle_rights = self.board.meta.castling_rights[@intFromEnum(color)];
     if (king_side and castle_rights.king_side == false) {
         return false;
@@ -213,7 +213,7 @@ pub fn castleAllowed(self: Self, color: Color, attacked_sqaures: BoardBitSet, ki
     return rooks.isSet(maybe_rook_idx);
 }
 
-pub fn allAttackedSqaures(board: Board) AttackedSqaureInfo {
+pub fn allAttackedSqaures(board: *const Board) AttackedSqaureInfo {
     var attackInfo: AttackedSqaureInfo = undefined;
     var attacks = BoardBitSet.initEmpty();
 
@@ -281,11 +281,11 @@ pub fn allAttackedSqaures(board: Board) AttackedSqaureInfo {
     return attackInfo;
 }
 
-pub fn getGenInfo(self: Self) MoveGenInfo {
+pub fn getGenInfo(self: *const Self) MoveGenInfo {
     const color = self.board.active_color;
 
     const pin_info = self.findPinnedPieces(color);
-    const attack_info = allAttackedSqaures(self.board.*);
+    const attack_info = allAttackedSqaures(self.board);
 
     const gen_info = MoveGenInfo{
         .pinned_pieces = pin_info.pinned_pieces,
@@ -296,7 +296,7 @@ pub fn getGenInfo(self: Self) MoveGenInfo {
     return gen_info;
 }
 
-pub fn getAllValidMoves(self: Self, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
+pub fn getAllValidMoves(self: *const Self, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
     const color = self.board.active_color;
 
     const gen_info = self.getGenInfo();
@@ -317,7 +317,7 @@ pub fn getAllValidMoves(self: Self, comptime captures_only: bool) Allocator.Erro
 }
 
 pub fn getValidMoves(
-    self: Self,
+    self: *const Self,
     out_moves: *MoveList,
     gen_info: *const MoveGenInfo,
     pos: Position,
@@ -457,7 +457,7 @@ pub fn getValidMoves(
         Kind.Bishop,
         Kind.Queen,
         Kind.Rook,
-        => slidingMoves(self.board.*, p, pos, BoardBitSet.initEmpty()).intersectWith(allowed_sqaures),
+        => slidingMoves(self.board, p, pos, BoardBitSet.initEmpty()).intersectWith(allowed_sqaures),
     };
 
     possible_moves.remove(freinds);

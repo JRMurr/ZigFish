@@ -12,7 +12,7 @@ const Kind = Piece.Kind;
 const precompute = @import("precompute.zig");
 const Score = precompute.Score;
 
-pub fn evaluate(board: Board) Score {
+pub fn evaluate(board: *const Board) Score {
     const white_eval = getMaterialScore(board, Color.White);
     const black_eval = getMaterialScore(board, Color.Black);
     const score = white_eval - black_eval;
@@ -22,7 +22,7 @@ pub fn evaluate(board: Board) Score {
     return score * perspective;
 }
 
-fn getMaterialScore(board: Board, color: Color) Score {
+fn getMaterialScore(board: *const Board, color: Color) Score {
     var score: Score = 0;
     inline for (utils.enum_fields(Kind)) |f| {
         const kind_idx = f.value;

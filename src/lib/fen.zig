@@ -12,6 +12,10 @@ const Board = ZigFish.Board;
 const Position = ZigFish.Position;
 const PositionRankFile = ZigFish.PositionRankFile;
 
+pub const START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+pub const START_BOARD = parse(START_POS);
+
 fn parseInt(comptime T: type, buf: []const u8) T {
     return std.fmt.parseInt(T, buf, 10) catch |err| {
         std.debug.panic("erroring parsing {s} as {s}. Err: {}", .{ buf, @typeName(T), err });
@@ -19,6 +23,7 @@ fn parseInt(comptime T: type, buf: []const u8) T {
 }
 
 pub fn parse(str: []const u8) Board {
+    @setEvalBranchQuota(10_000);
     var splits = std.mem.tokenizeScalar(u8, str, ' ');
 
     const pieces_str = splits.next().?;

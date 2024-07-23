@@ -20,7 +20,7 @@ const Kind = Kind;
 const precompute = @import("precompute.zig");
 const Score = precompute.Score;
 
-const fen = ZigFish.Fen;
+const Fen = ZigFish.Fen;
 
 const Search = ZigFish.Search;
 
@@ -42,25 +42,25 @@ const HistoryStack = std.ArrayList(BoardMeta);
 
 pub const GameManager = struct {
     const Self = @This();
-    const start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
     allocator: Allocator,
 
     board: Board,
     history: HistoryStack,
 
     pub fn init(allocator: Allocator) Allocator.Error!Self {
-        return Self.from_fen(allocator, start_pos);
+        return Self.from_fen(allocator, Fen.START_POS);
     }
 
     pub fn reinitFen(self: *Self, fen_str: []const u8) void {
         self.history.clearAndFree();
-        const board = fen.parse(fen_str);
+        const board = Fen.parse(fen_str);
 
         self.board = board;
     }
 
     pub fn reinit(self: *Self) void {
-        self.reinitFen(start_pos);
+        self.reinitFen(Fen.START_POS);
     }
 
     pub fn deinit(self: Self) void {
@@ -75,7 +75,7 @@ pub const GameManager = struct {
     }
 
     pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
-        const board = fen.parse(fen_str);
+        const board = Fen.parse(fen_str);
         const history = try HistoryStack.initCapacity(allocator, 30);
 
         return Self{
@@ -147,14 +147,14 @@ pub const GameManager = struct {
     }
 
     pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts) !?Move {
-        var search = try Search.init(self.allocator, &self.board, search_opts);
+        var search = try Search.init(self.allocator, self.board, search_opts);
         defer search.deinit();
 
         return search.findBestMove();
     }
 
     pub fn getSearch(self: *Self, search_opts: Search.SearchOpts) !Search {
-        return try Search.init(self.allocator, &self.board, search_opts);
+        return try Search.init(self.allocator, self.board, search_opts);
     }
 
     // https://www.chessprogramming.org/Perft

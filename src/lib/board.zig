@@ -489,7 +489,7 @@ pub const Board = struct {
         }
     }
 
-    pub fn king_in_check(self: Self) bool {
+    pub fn king_in_check(self: *const Self) bool {
         const attack_info = ZigFish.MoveGen.allAttackedSqaures(self);
 
         return attack_info.king_attackers.count() > 0;

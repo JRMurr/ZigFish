@@ -137,8 +137,7 @@ const Diagnostics = struct {
 };
 
 transposition: TranspostionTable,
-board: *Board,
-move_gen: MoveGen,
+board: Board,
 stop_search: Thread.ResetEvent,
 search_done: Thread.ResetEvent,
 best_move: ?Move,
@@ -146,14 +145,12 @@ best_score: Score,
 search_opts: SearchOpts,
 diagnostics: Diagnostics = .{},
 
-pub fn init(allocator: Allocator, board: *Board, search_opts: SearchOpts) Allocator.Error!Self {
+pub fn init(allocator: Allocator, board: Board, search_opts: SearchOpts) Allocator.Error!Self {
     var transposition = TranspostionTable.init(allocator);
     try transposition.ensureTotalCapacity(10_000);
-    const move_gen = MoveGen{ .board = board };
 
     return Self{
         .board = board,
-        .move_gen = move_gen,
         .transposition = transposition,
         .stop_search = Thread.ResetEvent{},
         .best_move = null,
@@ -161,6 +158,12 @@ pub fn init(allocator: Allocator, board: *Board, search_opts: SearchOpts) Alloca
         .search_opts = search_opts,
         .search_done = Thread.ResetEvent{},
     };
+}
+
+fn getAllValidMoves(self: *Self, comptime captures_only: bool) !ZigFish.MoveGen.GeneratedMoves {
+    const move_gen = MoveGen{ .board = &self.board };
+
+    return move_gen.getAllValidMoves(captures_only);
 }
 
 pub fn deinit(self: *Self) void {
@@ -228,7 +231,7 @@ fn quiesceSearch(
     alpha_init: Score,
     beta: Score,
 ) Allocator.Error!SearchRes {
-    const start_eval = evaluate(self.board.*);
+    const start_eval = evaluate(&self.board);
     if (self.stop_search.isSet()) {
         return SearchRes.canceled(start_eval);
     }
@@ -243,7 +246,7 @@ fn quiesceSearch(
     if (alpha < start_eval)
         alpha = start_eval;
 
-    const generated_moves = try self.move_gen.getAllValidMoves(true);
+    const generated_moves = try self.getAllValidMoves(true);
     var moves = generated_moves.moves;
 
     const gen_info = generated_moves.gen_info;
@@ -312,7 +315,7 @@ pub fn search(
         return score;
     }
 
-    const generated_moves = try self.move_gen.getAllValidMoves(false);
+    const generated_moves = try self.getAllValidMoves(false);
     var moves = generated_moves.moves;
 
     const gen_info = generated_moves.gen_info;
@@ -399,9 +402,9 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        // std.log.debug("checking at depth: {}", .{depth});
+        std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
-        const generated_moves = try self.move_gen.getAllValidMoves(false);
+        const generated_moves = try self.getAllValidMoves(false);
         const moves = generated_moves.moves;
 
         for (moves.items()) |move| {
@@ -418,7 +421,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
                 self.best_score = eval;
             }
             if (self.stop_search.isSet()) {
-                // std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
+                std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
                 self.search_done.set();
                 return self.best_move;
             }
@@ -474,7 +477,7 @@ pub fn findBestMove(
 // pub fn findBestMove(self: *Self, depth: usize) Allocator.Error!?Move {
 //     var alpha: Score = MIN_SCORE;
 
-//     const generated_moves = try self.move_gen.getAllValidMoves( false);
+//     const generated_moves = try self.getAllValidMoves( false);
 //     const moves = generated_moves.moves;
 //     defer moves.deinit();
 
@@ -504,4 +507,15 @@ pub fn findBestMove(
 
 test "all" {
     std.testing.refAllDecls(@This());
+}
+
+test "find best move" {
+    const board = ZigFish.Fen.START_BOARD;
+
+    var test_search = try Self.init(std.testing.allocator, board, .{ .time_limit_millis = 100 });
+    defer test_search.deinit();
+
+    const move = try test_search.findBestMove();
+
+    try std.testing.expect(move != null);
 }
