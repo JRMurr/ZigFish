@@ -10,19 +10,18 @@ const Position = ZigFish.Position;
 const BoardMeta = ZigFish.BoardMeta;
 const MoveList = ZigFish.MoveList;
 
-const Move = @import("move.zig");
-const MoveType = Move.MoveType;
-const MoveFlags = Move.MoveFlags;
+const Move = ZigFish.Move;
+const MoveType = ZigFish.MoveType;
+const MoveFlags = ZigFish.MoveFlags;
 
-const bit_set_types = @import("bitset.zig");
-const BoardBitSet = bit_set_types.BoardBitSet;
-const Dir = bit_set_types.Dir;
+const BoardBitSet = ZigFish.BoardBitSet;
+const Dir = ZigFish.Dir;
 
-const Piece = @import("piece.zig");
+const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 const Kind = Piece.Kind;
 
-const precompute = @import("precompute.zig");
+const precompute = ZigFish.Precompute;
 const Score = precompute.Score;
 
 const PinInfo = struct {

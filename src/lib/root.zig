@@ -12,10 +12,15 @@ pub const Piece = @import("piece.zig");
 pub const Kind = Piece.Kind;
 pub const Color = Piece.Color;
 
-pub usingnamespace @import("move.zig");
+const move_types = @import("move.zig");
+pub const Move = move_types.Move;
+pub const SimpleMove = move_types.SimpleMove;
+pub const MoveFlags = move_types.MoveFlags;
+pub const MoveType = move_types.MoveType;
 
 pub const BitSet = @import("bitset.zig");
 pub const BoardBitSet = BitSet.BoardBitSet;
+pub const Dir = BitSet.Dir;
 
 pub const Fen = @import("fen.zig");
 // pub const Piece = @import("piece.zig");

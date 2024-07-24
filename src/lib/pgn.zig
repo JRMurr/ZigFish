@@ -1,11 +1,12 @@
 const std = @import("std");
 
-const game_types = @import("game.zig");
-const GameManager = game_types.GameManager;
+const ZigFish = @import("root.zig");
+
+const GameManager = ZigFish.GameManager;
 
 const Allocator = std.mem.Allocator;
 
-pub const Move = @import("move.zig");
+pub const Move = ZigFish.Move;
 
 fn isResult(str: []const u8) bool {
     if (std.mem.eql(u8, str, "1/2-1/2")) {

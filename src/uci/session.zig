@@ -92,10 +92,10 @@ fn startInner(self: *Self) !void {
     };
 }
 
-fn waitForSearchToStop(self: *Self) void {
+fn waitForSearchToStop(self: *Self) !void {
     if (self.search) |s| {
         if (s.stop_search.isSet()) {
-            s.search_done.wait();
+            try s.search_done.timedWait(10 * std.time.ns_per_ms);
         }
     }
 }
@@ -218,8 +218,8 @@ test "search for a move" {
     const command = command_parsed.parsed;
     defer command.deinit();
     _ = try session.handleCommand(command);
-    std.time.sleep(10 * std.time.ns_per_ms);
-    session.waitForSearchToStop();
+    std.time.sleep(100 * std.time.ns_per_ms);
+    try session.waitForSearchToStop();
 
     try std.testing.expect(session.search.?.best_move != null);
 
@@ -247,7 +247,7 @@ test "search from sad position move" {
     defer command.deinit();
     _ = try session.handleCommand(command);
     std.time.sleep(10 * std.time.ns_per_ms);
-    session.waitForSearchToStop();
+    try session.waitForSearchToStop();
 
     try std.testing.expect(session.search.?.best_move != null);
 

@@ -98,7 +98,7 @@ pub const GameManager = struct {
         self.board.makeMove(move);
     }
 
-    pub fn makeSimpleMove(self: *Self, move: Move.SimpleMove) !void {
+    pub fn makeSimpleMove(self: *Self, move: ZigFish.SimpleMove) !void {
         const validMoves = try self.getValidMovesAt(move.start);
         for (validMoves.items()) |m| {
             if (move.promotion_kind) |pk| {

@@ -1,7 +1,7 @@
 const std = @import("std");
 const ZigFish = @import("zigfish");
 const Utils = ZigFish.Utils;
-const SimpleMove = ZigFish.Move.SimpleMove;
+const SimpleMove = ZigFish.SimpleMove;
 
 const TokenIter = std.mem.TokenIterator(u8, .scalar);
 
