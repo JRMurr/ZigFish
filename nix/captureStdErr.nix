@@ -11,5 +11,5 @@ writeShellScriptBin "captrueStderr" ''
 
   OUT_FILE=$OUT_DIR/err_log.txt
 
-  ${zigfish}/bin/zigfish-uci 2> >(tee "$OUT_FILE" >&2)
+  ${zigfish}/bin/zigfish-uci 2> >(tee --append "$OUT_FILE" >&2)
 ''

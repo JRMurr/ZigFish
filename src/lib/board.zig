@@ -147,7 +147,7 @@ pub const BoardMeta = struct {
     }
 };
 
-fn get_diff_dir(move: Move) std.meta.Tuple(&.{ u8, Dir }) {
+fn get_diff_dir(move: *const Move) std.meta.Tuple(&.{ u8, Dir }) {
     const start_rank = move.start.toRankFile().rank;
     const end_rank = move.end.toRankFile().rank;
 
@@ -252,14 +252,14 @@ pub const Board = struct {
         self.zhash = zhash;
     }
 
-    pub fn getPieceSet(self: Self, p: Piece) BoardBitSet {
+    pub fn getPieceSet(self: *const Self, p: Piece) BoardBitSet {
         const color = self.color_sets[@intFromEnum(p.color)];
         const kind = self.kind_sets[@intFromEnum(p.kind)];
 
         return color.intersectWith(kind);
     }
 
-    pub fn makeMove(self: *Self, move: Move) void {
+    pub fn makeMove(self: *Self, move: *const Move) void {
         const start_peice = self.getPos(move.start) orelse {
             std.debug.panic("attempted to play move: {s} but start piece was not found\nfen: {s}\nmove: {?}\nboard: {?}", .{ move.toSan(), ZigFish.Fen.toFen(self.*), move, self });
         };
@@ -366,7 +366,7 @@ pub const Board = struct {
         self.zhash ^= HASHER.black_to_move;
     }
 
-    pub fn unMakeMove(self: *Self, move: Move, meta: BoardMeta) void {
+    pub fn unMakeMove(self: *Self, move: *const Move, meta: BoardMeta) void {
         const old_meta = self.meta;
         if (old_meta.en_passant_pos) |ep| {
             self.zhash ^= HASHER.getEnPassant(ep);
@@ -444,7 +444,7 @@ pub const Board = struct {
         self.zhash ^= HASHER.black_to_move;
     }
 
-    pub fn getPos(self: Self, pos: Position) ?Piece {
+    pub fn getPos(self: *const Self, pos: Position) ?Piece {
         const pos_idx = pos.toIndex();
 
         if (!self.occupied_set.isSet(pos_idx)) {

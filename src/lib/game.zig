@@ -93,7 +93,7 @@ pub const GameManager = struct {
         self.board.setPos(pos, maybe_piece);
     }
 
-    pub fn makeMove(self: *Self, move: Move) Allocator.Error!void {
+    pub fn makeMove(self: *Self, move: *const Move) Allocator.Error!void {
         try self.history.append(self.board.meta);
         self.board.makeMove(move);
     }
@@ -111,13 +111,13 @@ pub const GameManager = struct {
             }
 
             if (m.end.eql(move.end)) {
-                return try self.makeMove(m);
+                return try self.makeMove(&m);
             }
         }
         std.debug.panic("could not make simple move {}", .{move});
     }
 
-    pub fn unMakeMove(self: *Self, move: Move) void {
+    pub fn unMakeMove(self: *Self, move: *const Move) void {
         const meta = self.history.pop();
         self.board.unMakeMove(move, meta);
     }
@@ -126,7 +126,7 @@ pub const GameManager = struct {
         self: *Self,
     ) Allocator.Error!MoveList {
         const move_gen = MoveGen{ .board = &self.board };
-        const res = try move_gen.getAllValidMoves(false);
+        const res = move_gen.getAllValidMoves(false);
 
         return res.moves;
     }
@@ -141,20 +141,20 @@ pub const GameManager = struct {
 
         const gen_info = move_gen.getGenInfo();
 
-        try move_gen.getValidMoves(&moves, &gen_info, pos, p, false);
+        move_gen.getValidMoves(&moves, &gen_info, pos, p, false);
 
         return moves;
     }
 
     pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts) !?Move {
-        var search = try Search.init(self.allocator, self.board, search_opts);
+        var search = try Search.init(self.allocator, &self.board, search_opts);
         defer search.deinit();
 
         return search.findBestMove();
     }
 
     pub fn getSearch(self: *Self, search_opts: Search.SearchOpts) !Search {
-        return try Search.init(self.allocator, self.board, search_opts);
+        return try Search.init(self.allocator, &self.board, search_opts);
     }
 
     // https://www.chessprogramming.org/Perft
@@ -166,14 +166,14 @@ pub const GameManager = struct {
 
         const move_gen = MoveGen{ .board = &self.board };
 
-        const moves = (try move_gen.getAllValidMoves(false)).moves;
+        const moves = (move_gen.getAllValidMoves(false)).moves;
 
         if (depth == 1 and !print_count_per_move) {
             // dont need to actually make these last ones
             return moves.count();
         }
 
-        for (moves.items()) |move| {
+        for (moves.items()) |*move| {
             try self.makeMove(move);
             const num_leafs = try self.perft(depth - 1, false);
             if (print_count_per_move) {
@@ -190,9 +190,9 @@ pub const GameManager = struct {
 fn testZhashUnMake(game: *GameManager, print: bool) anyerror!void {
     const move_gen = MoveGen{ .board = &game.board };
 
-    const moves = (try move_gen.getAllValidMoves(false)).moves;
+    const moves = (move_gen.getAllValidMoves(false)).moves;
 
-    for (moves.items()) |move| {
+    for (moves.items()) |*move| {
         const start_hash = game.board.zhash;
         try game.makeMove(move);
         game.unMakeMove(move);

@@ -67,7 +67,9 @@ writeShellScriptBin "runFast" ''
   # ${zig}/bin/zig build -Doptimize=ReleaseSafe
   # NEW_ENGINE=$(${getExe buildAtCommit} "curr")
   NEW_ENGINE=${getExe captureStdErr}
-  OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
+  # OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
+  OLD_ENGINE=${getExe captureStdErr}
+
   ${getExe fastchess} ${fastArgs}
 ''
 

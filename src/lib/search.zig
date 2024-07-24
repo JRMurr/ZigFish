@@ -137,19 +137,22 @@ const Diagnostics = struct {
 };
 
 transposition: TranspostionTable,
-board: Board,
+allocator: Allocator,
+board: *Board,
 stop_search: Thread.ResetEvent,
 search_done: Thread.ResetEvent,
+move_gen: *MoveGen,
 best_move: ?Move,
 best_score: Score,
 search_opts: SearchOpts,
 diagnostics: Diagnostics = .{},
 
-pub fn init(allocator: Allocator, board: Board, search_opts: SearchOpts) Allocator.Error!Self {
+pub fn init(allocator: Allocator, board: *Board, search_opts: SearchOpts) Allocator.Error!Self {
     var transposition = TranspostionTable.init(allocator);
     try transposition.ensureTotalCapacity(10_000);
 
     return Self{
+        .allocator = allocator,
         .board = board,
         .transposition = transposition,
         .stop_search = Thread.ResetEvent{},
@@ -157,17 +160,17 @@ pub fn init(allocator: Allocator, board: Board, search_opts: SearchOpts) Allocat
         .best_score = MIN_SCORE,
         .search_opts = search_opts,
         .search_done = Thread.ResetEvent{},
+        .move_gen = try MoveGen.init(allocator, board),
     };
 }
 
-fn getAllValidMoves(self: *Self, comptime captures_only: bool) !ZigFish.MoveGen.GeneratedMoves {
-    const move_gen = MoveGen{ .board = &self.board };
-
-    return move_gen.getAllValidMoves(captures_only);
+fn getAllValidMoves(self: *Self, comptime captures_only: bool) ZigFish.MoveGen.GeneratedMoves {
+    return self.move_gen.getAllValidMoves(captures_only);
 }
 
 pub fn deinit(self: *Self) void {
     self.transposition.deinit();
+    self.allocator.destroy(self.move_gen);
 }
 
 /// update entry only if the passed in depth is greater than the stored
@@ -231,7 +234,7 @@ fn quiesceSearch(
     alpha_init: Score,
     beta: Score,
 ) Allocator.Error!SearchRes {
-    const start_eval = evaluate(&self.board);
+    const start_eval = evaluate(self.board);
     if (self.stop_search.isSet()) {
         return SearchRes.canceled(start_eval);
     }
@@ -246,7 +249,7 @@ fn quiesceSearch(
     if (alpha < start_eval)
         alpha = start_eval;
 
-    const generated_moves = try self.getAllValidMoves(true);
+    const generated_moves = &(self.getAllValidMoves(true));
     var moves = generated_moves.moves;
 
     const gen_info = generated_moves.gen_info;
@@ -260,7 +263,7 @@ fn quiesceSearch(
 
     var best_move: ?Move = null;
 
-    for (moves.items()) |move| {
+    for (moves.items()) |*move| {
         // const move = move_score.move;
         self.diagnostics.num_nodes_analyzed += 1;
         std.debug.assert(move.captured_kind != null);
@@ -274,11 +277,11 @@ fn quiesceSearch(
 
         if (res.score >= beta) {
             //  fail hard beta-cutoff
-            return SearchRes.initCut(beta, move);
+            return SearchRes.initCut(beta, move.*);
         }
         if (res.score > alpha) {
             alpha = res.score;
-            best_move = move;
+            best_move = move.*;
         }
 
         if (self.stop_search.isSet()) {
@@ -315,7 +318,7 @@ pub fn search(
         return score;
     }
 
-    const generated_moves = try self.getAllValidMoves(false);
+    const generated_moves = &(self.getAllValidMoves(false));
     var moves = generated_moves.moves;
 
     const gen_info = generated_moves.gen_info;
@@ -347,8 +350,8 @@ pub fn search(
     moves.sort(sort_ctx, compare_moves);
 
     var best_move: ?Move = null;
-
-    for (moves.items()) |move| {
+    const move_slice = moves.items();
+    for (move_slice) |*move| {
         // const move = move_scored.move;
         const meta = self.board.meta;
         self.board.makeMove(move);
@@ -377,12 +380,12 @@ pub fn search(
 
         if (res.score >= beta) {
             //  fail hard beta-cutoff
-            return SearchRes.initCut(beta, move);
+            return SearchRes.initCut(beta, move.*);
         }
 
         if (res.score > best_eval) {
             best_eval = res.score;
-            best_move = move;
+            best_move = move.*;
         }
 
         if (self.stop_search.isSet()) {
@@ -402,12 +405,16 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        // std.log.debug("checking at depth: {}", .{depth});
+        std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
-        const generated_moves = try self.getAllValidMoves(false);
+        const generated_moves = &(self.getAllValidMoves(false));
         const moves = generated_moves.moves;
 
-        for (moves.items()) |move| {
+        if (moves.count() == 0) {
+            break;
+        }
+
+        for (moves.items()) |*move| {
             self.diagnostics.num_nodes_analyzed += 1;
             const meta = self.board.meta;
             // std.log.debug("checking {s}", .{move.toStrSimple()});
@@ -417,7 +424,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
             self.board.unMakeMove(move, meta);
 
             if (eval > self.best_score) {
-                self.best_move = move;
+                self.best_move = move.*;
                 self.best_score = eval;
             }
             if (self.stop_search.isSet()) {
@@ -450,9 +457,9 @@ fn monitorTimeLimit(stop_search: *Thread.ResetEvent, timeLimitMillis: u64) !void
     }
 }
 
-pub fn stopSearch(self: *Self) ?Move {
+pub fn stopSearch(self: *Self) !?Move {
     self.stop_search.set();
-    self.search_done.wait();
+    try self.search_done.timedWait(10 * std.time.ns_per_ms);
     return self.best_move;
 }
 
@@ -474,45 +481,14 @@ pub fn findBestMove(
     return best;
 }
 
-// pub fn findBestMove(self: *Self, depth: usize) Allocator.Error!?Move {
-//     var alpha: Score = MIN_SCORE;
-
-//     const generated_moves = try self.getAllValidMoves( false);
-//     const moves = generated_moves.moves;
-//     defer moves.deinit();
-
-//     var bestMove: ?Move = null;
-
-//     for (moves.items) |move| {
-//         const meta = self.board.meta;
-//         std.log.debug("checking {s}", .{move.toStrSimple()});
-//         self.board.makeMove(move);
-//         const enemy_score = try self.search( 0, depth - 1, MIN_SCORE, negate_score(alpha));
-//         const eval = negate_score(enemy_score);
-//         self.board.unMakeMove(move, meta);
-
-//         if (eval > alpha) {
-//             bestMove = move;
-//             alpha = eval;
-//         }
-//     }
-//     if (bestMove) |move| {
-//         std.log.debug("best move: {s}", .{move.toStrSimple()});
-//     } else {
-//         std.log.debug("NO MOVE FOUND", .{});
-//     }
-
-//     return bestMove;
-// }
-
 test "all" {
     std.testing.refAllDecls(@This());
 }
 
 test "find best move" {
-    const board = ZigFish.Fen.START_BOARD;
+    var board = ZigFish.Fen.START_BOARD;
 
-    var test_search = try Self.init(std.testing.allocator, board, .{ .time_limit_millis = 100 });
+    var test_search = try Self.init(std.testing.allocator, &board, .{ .time_limit_millis = 100 });
     defer test_search.deinit();
 
     const move = try test_search.findBestMove();

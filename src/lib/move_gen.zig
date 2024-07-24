@@ -57,7 +57,13 @@ const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook
 const Self = @This();
 pub const MoveGen = Self;
 
-board: *Board,
+board: *const Board,
+
+pub fn init(allocator: Allocator, board: *const Board) !*MoveGen {
+    const move_gen = try allocator.create(MoveGen);
+    move_gen.* = MoveGen{ .board = board };
+    return move_gen;
+}
 
 /// given the position of a pinned piece, get the ray of the attack
 pub fn pinAttacker(self: *const Self, pin_pos: Position, ignore_sqaures: BoardBitSet) BoardBitSet {
@@ -296,7 +302,7 @@ pub fn getGenInfo(self: *const Self) MoveGenInfo {
     return gen_info;
 }
 
-pub fn getAllValidMoves(self: *const Self, comptime captures_only: bool) Allocator.Error!GeneratedMoves {
+pub fn getAllValidMoves(self: *const Self, comptime captures_only: bool) GeneratedMoves {
     const color = self.board.active_color;
 
     const gen_info = self.getGenInfo();
@@ -310,7 +316,7 @@ pub fn getAllValidMoves(self: *const Self, comptime captures_only: bool) Allocat
         // std.log.debug("pos: {s}", .{pos.toStr()});
         const p = self.board.getPos(pos).?;
 
-        try self.getValidMoves(&moves, &gen_info, pos, p, captures_only);
+        self.getValidMoves(&moves, &gen_info, pos, p, captures_only);
     }
 
     return .{ .moves = moves, .gen_info = gen_info };
@@ -323,7 +329,7 @@ pub fn getValidMoves(
     pos: Position,
     p: Piece,
     comptime captures_only: bool,
-) Allocator.Error!void {
+) void {
     const attack_info = gen_info.attack_info;
 
     if (attack_info.king_attackers.count() >= 2 and !p.is_king()) {
@@ -479,4 +485,8 @@ pub fn getValidMoves(
         }
         out_moves.append(Move{ .start = pos, .end = to, .kind = p.kind, .captured_kind = captured_kind, .move_flags = flags });
     }
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

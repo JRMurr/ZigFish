@@ -146,7 +146,7 @@ pub fn main() anyerror!void {
             search_thread.?.join();
             search_thread = null;
             if (search_res.move) |m| {
-                try game.makeMove(m);
+                try game.makeMove(&m);
                 try move_history.append(m);
             }
         } else if (is_player_turn and moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
@@ -167,12 +167,12 @@ pub fn main() anyerror!void {
             // reset the piece so board can do its own moving logic
             game.setPos(mp.start, mp.piece);
 
-            for (mp.valid_moves.items()) |move| {
+            for (mp.valid_moves.items()) |*move| {
                 // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
                     std.log.debug("{s}", .{move.toSan()});
                     try game.makeMove(move);
-                    try move_history.append(move);
+                    try move_history.append(move.*);
 
                     // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;
@@ -186,7 +186,7 @@ pub fn main() anyerror!void {
             // undo move
             const maybe_move = move_history.popOrNull();
             if (maybe_move) |move| {
-                game.unMakeMove(move);
+                game.unMakeMove(&move);
                 std.log.debug("unmake hash: {d}", .{game.board.zhash});
             }
         }
