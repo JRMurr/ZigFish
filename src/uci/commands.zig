@@ -235,8 +235,6 @@ pub const Command = union(CommandKind) {
             },
             .Position => blk: {
                 const fenOrStartPos = iter.next() orelse return error.EndOfInput;
-                // TODO: this won't actually parse a fen string since its multiple tokens
-                // maybe do consume until "moves" or end of inter
                 var fen_tokens = try std.BoundedArray(u8, ZigFish.Fen.MAX_FEN_LEN).init(0);
 
                 if (std.mem.eql(u8, fenOrStartPos, "fen")) {
@@ -248,6 +246,7 @@ pub const Command = union(CommandKind) {
                         try fen_tokens.append(' ');
                     }
                 } else {
+                    _ = try consumeMaybeConst(&iter, "moves");
                     try fen_tokens.appendSlice(ZigFish.Fen.START_POS);
                 }
                 const moves = try consumeIterToMoves(allocator, &iter);
@@ -294,6 +293,16 @@ test "parse position fen" {
     try std.testing.expectStringStartsWith(fen.slice(), "3qk2r/3bnp2/7p/1P1B4/3Q4/2N3P1/PP2PP1P/R2K3R b k - 2 22");
 
     try std.testing.expectEqual(SimpleMove.fromStr("e2e4"), moves.pop());
+}
 
-    // try std.testing.expectEqual(Command{ .Position = true }, parsed.parsed);
+test "parse position startpos" {
+    const parsed = try Command.fromStr(std.testing.allocator, "position startpos moves e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 f3g5 d7d5 e4d5 c6a5 d2d3 a5c4 d3c4 h7h6 g5f3 e5e4");
+    defer parsed.parsed.deinit();
+    const fen = parsed.parsed.Position.fen;
+
+    var moves = parsed.parsed.Position.moves;
+
+    try std.testing.expectStringStartsWith(fen.slice(), ZigFish.Fen.START_POS);
+
+    try std.testing.expectEqual(SimpleMove.fromStr("e5e4"), moves.pop());
 }
