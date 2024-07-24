@@ -261,7 +261,10 @@ pub const Board = struct {
 
     pub fn makeMove(self: *Self, move: *const Move) void {
         const start_peice = self.getPos(move.start) orelse {
-            std.debug.panic("attempted to play move: {s} but start piece was not found\nfen: {s}\nmove: {?}\nboard: {?}", .{ move.toSan(), ZigFish.Fen.toFen(self.*), move, self });
+            std.debug.panic(
+                "attempted to play move: {s} but start piece was not found\nfen: {s}\nmove: {?}",
+                .{ move.toSan(), ZigFish.Fen.toFen(self.*), move },
+            );
         };
 
         const color = self.active_color;

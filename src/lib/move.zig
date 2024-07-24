@@ -41,7 +41,7 @@ pub const SimpleMove = struct {
         return .{ .start = start, .end = end, .promotion_kind = promotion_kind };
     }
 
-    pub fn toStr(self: SimpleMove) [5]u8 {
+    pub fn toStr(self: *const SimpleMove) [5]u8 {
         const from_str = self.start.toStr();
         const to_str = self.end.toStr();
         const promotion_symbol = if (self.promotion_kind) |k| k.toSymbol() else "";
@@ -65,7 +65,7 @@ pub const Move = struct {
     captured_kind: ?Kind = null,
     promotion_kind: ?Kind = null,
 
-    pub fn toSan(self: Move) [SAN_LEN]u8 {
+    pub fn toSan(self: *const Move) [SAN_LEN]u8 {
         // https://www.chessprogramming.org/Algebraic_Chess_Notation#SAN
         // TODO: san can omit info depening on if the move is unambiguous.
         // for now duing "full"
@@ -198,11 +198,11 @@ pub const Move = struct {
         });
     }
 
-    pub fn toStrSimple(self: Move) [5]u8 {
+    pub fn toStrSimple(self: *const Move) [5]u8 {
         return self.toSimple().toStr();
     }
 
-    pub fn toSimple(self: Move) SimpleMove {
+    pub fn toSimple(self: *const Move) SimpleMove {
         return .{
             .start = self.start,
             .end = self.end,
@@ -228,4 +228,40 @@ pub const Move = struct {
 
 test "no static erros" {
     std.testing.refAllDecls(Move);
+}
+
+test "eql" {
+    const moveOne = Move{
+        .start = Position.fromIndex(10),
+        .end = Position.fromStr("e4"),
+        .kind = ZigFish.Kind.Pawn,
+        .move_flags = MoveFlags.initOne(MoveType.Capture),
+    };
+
+    const moveTwo = Move{
+        .start = Position.fromIndex(3),
+        .end = Position.fromStr("c3"),
+        .kind = ZigFish.Kind.Knight,
+        .move_flags = MoveFlags{},
+    };
+
+    try std.testing.expect(moveOne.eql(moveTwo) == false);
+
+    const moveThree = Move{
+        .start = Position.fromIndex(10),
+        .end = Position.fromStr("e4"),
+        .kind = ZigFish.Kind.Pawn,
+        .move_flags = MoveFlags{},
+    };
+
+    try std.testing.expect(moveOne.eql(moveThree) == false);
+
+    const moveFour = Move{
+        .start = Position.fromIndex(10),
+        .end = Position.fromStr("e4"),
+        .kind = ZigFish.Kind.Pawn,
+        .move_flags = MoveFlags.initOne(MoveType.Capture),
+    };
+
+    try std.testing.expect(moveOne.eql(moveFour) == true);
 }
