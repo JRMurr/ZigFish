@@ -171,6 +171,7 @@ fn getAllValidMoves(self: *Self, comptime captures_only: bool) ZigFish.MoveGen.G
 pub fn deinit(self: *Self) void {
     self.transposition.deinit();
     self.allocator.destroy(self.move_gen);
+    self.* = undefined;
 }
 
 /// update entry only if the passed in depth is greater than the stored
@@ -341,13 +342,13 @@ pub fn search(
         prev_best_move = prev_res.best_move orelse prev_res.refutation;
     }
 
-    const sort_ctx = MoveCompareCtx{
-        .gen_info = gen_info,
-        .best_move = prev_best_move,
-    };
+    // const sort_ctx = MoveCompareCtx{
+    //     .gen_info = gen_info,
+    //     .best_move = prev_best_move,
+    // };
 
     // const sorted = try scoreAndSort(&moves, sort_ctx);
-    moves.sort(sort_ctx, compare_moves);
+    // moves.sort(sort_ctx, compare_moves);
 
     var best_move: ?Move = null;
     const move_slice = moves.items();

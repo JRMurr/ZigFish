@@ -50,8 +50,6 @@ pub fn init(allocator: Allocator, game: *ZigFish.GameManager, writer: Writer) Se
 }
 
 fn reset(self: *Self, join_threads: bool) !void {
-    // self.arena_lock.lock();
-    // defer self.arena_lock.unlock();
     if (self.search) |s| {
         _ = try s.stopSearch();
         s.deinit();
@@ -64,8 +62,6 @@ fn reset(self: *Self, join_threads: bool) !void {
             self.threads = null;
         }
     }
-    // _ = self.arena.reset(.{ .retain_with_limit = 1024 * 1000 * 50 }); // save 50 mb...
-
 }
 
 pub fn deinit(self: Self) void {
@@ -135,7 +131,7 @@ fn monitorTimeLimit(session: *Self, timeLimitMillis: u64) !void {
             }
             break;
         }
-        std.time.sleep(10 * std.time.ns_per_ms); // Sleep for 1 millisecond to avoid busy waiting
+        std.time.sleep(10 * std.time.ns_per_ms);
     }
 }
 

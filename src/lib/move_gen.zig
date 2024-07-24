@@ -313,7 +313,9 @@ pub fn getAllValidMoves(self: *const Self, comptime captures_only: bool) Generat
     var color_iter = color_set.iterator();
     while (color_iter.next()) |pos| {
         // std.log.debug("pos: {s}", .{pos.toStr()});
-        const p = self.board.getPos(pos).?;
+        const p = self.board.getPos(pos) orelse {
+            std.debug.panic("Position not set when iterating over color set: {}", .{pos});
+        };
 
         self.getValidMoves(&moves, &gen_info, pos, p, captures_only);
     }
@@ -356,7 +358,7 @@ pub fn getValidMoves(
     const occupied = self.board.occupied_set;
 
     var possible_moves = switch (p.kind) {
-        Kind.Pawn => {
+        Kind.Pawn => blk: {
             const start_bs = BoardBitSet.initWithIndex(start_idx);
 
             if (!captures_only) {
@@ -434,7 +436,7 @@ pub fn getValidMoves(
                 }
             }
 
-            return;
+            break :blk BoardBitSet.initEmpty();
         },
         Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(allowed_sqaures).differenceWith(freinds),
         Kind.King => blk: {
