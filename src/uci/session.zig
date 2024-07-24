@@ -165,6 +165,7 @@ pub fn handleCommand(self: *Self, command: *const Command) !bool {
             try self.reset(true);
         },
         .Position => |args| {
+            try self.waitForSearchToStop();
             // TODO: might only need to apply the last move if we have been initalized before
             try self.reset(true);
             const fen = args.fen;

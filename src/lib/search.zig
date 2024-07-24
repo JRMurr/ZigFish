@@ -320,7 +320,7 @@ pub fn search(
     }
 
     const generated_moves = &(self.getAllValidMoves(false));
-    var moves = generated_moves.moves;
+    var moves = &generated_moves.moves;
 
     const gen_info = generated_moves.gen_info;
 
@@ -347,12 +347,24 @@ pub fn search(
     //     .best_move = prev_best_move,
     // };
 
-    // const sorted = try scoreAndSort(&moves, sort_ctx);
     // moves.sort(sort_ctx, compare_moves);
 
     var best_move: ?Move = null;
     const move_slice = moves.items();
-    for (move_slice) |*move| {
+    const start_hash = self.board.zhash;
+
+    for (move_slice, 0..) |*move, idx| {
+        if (start_hash != self.board.zhash) {
+            std.debug.panic(
+                "start_hash: {}\tboard_hash {}\tmove_idx: {}\nmove {}\n",
+                .{ start_hash, self.board.zhash, idx, move },
+            );
+        }
+
+        if (self.stop_search.isSet()) {
+            return SearchRes.canceledWithBest(best_eval, best_move);
+        }
+
         // const move = move_scored.move;
         const meta = self.board.meta;
         self.board.makeMove(move);
