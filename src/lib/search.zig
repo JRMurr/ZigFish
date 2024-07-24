@@ -398,14 +398,14 @@ pub fn search(
     return SearchRes.initBest(best_eval, best_move);
 }
 
-pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
+pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
     self.stop_search.reset();
     self.search_done.reset();
     self.best_score = MIN_SCORE;
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        std.log.debug("checking at depth: {}", .{depth});
+        // std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = &(self.getAllValidMoves(false));
         const moves = generated_moves.moves;
@@ -430,13 +430,12 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!?Move {
             if (self.stop_search.isSet()) {
                 // std.log.debug("Check before stopping: {}", .{self.diagnostics.num_nodes_analyzed});
                 self.search_done.set();
-                return self.best_move;
+                return;
             }
         }
         // std.log.debug("Checked this iteration: {}", .{self.diagnostics.num_nodes_analyzed});
     }
     self.search_done.set();
-    return self.best_move;
 }
 
 fn getCurrTimeInMilli() u64 {
@@ -466,7 +465,7 @@ pub fn stopSearch(self: *Self) !?Move {
 pub fn startSearch(
     self: *Self,
 ) !void {
-    _ = try self.iterativeSearch(self.search_opts.max_depth);
+    try self.iterativeSearch(self.search_opts.max_depth);
 }
 
 pub fn findBestMove(
@@ -476,9 +475,9 @@ pub fn findBestMove(
         const monitorThread = try std.Thread.spawn(.{}, monitorTimeLimit, .{ &(self.stop_search), time });
         monitorThread.detach();
     }
-    const best = try self.iterativeSearch(self.search_opts.max_depth);
+    try self.iterativeSearch(self.search_opts.max_depth);
     std.log.debug("eval: {}", .{self.best_score});
-    return best;
+    return self.best_move;
 }
 
 test "all" {

@@ -241,6 +241,13 @@ test "perft pos 4" {
     try std.testing.expectEqual(62_379, try game.perft(3, false));
 }
 
+test "perft test debug" {
+    var game = try GameManager.from_fen(std.testing.allocator, "8/p1p1k2p/4b1p1/P7/2P1q3/4P1P1/1P5P/R3K3 w Q - 0 27");
+    defer game.deinit();
+
+    try std.testing.expectEqual(7139288, try game.perft(5, false));
+}
+
 // SLOW!!!!!
 // test "perft pos 5 depth 5" {
 //     var game = try GameManager.from_fen(std.testing.allocator, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");

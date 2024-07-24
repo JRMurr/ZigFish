@@ -35,6 +35,7 @@ stdenvNoCC.mkDerivation {
         "--cache-dir $(pwd)/.zig-cache"
         "--global-cache-dir $(pwd)/.cache"
         "-Doptimize=ReleaseSafe"
+        #"-Doptimize=Debug" 
         # "-Ddynamic-linker=$(cat $NIX_BINTOOLS/nix-support/dynamic-linker)"
         "--prefix $out"
       ];

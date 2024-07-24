@@ -249,8 +249,6 @@ test "search from sad position move" {
     std.time.sleep(10 * std.time.ns_per_ms);
     session.waitForSearchToStop();
 
-    std.debug.print("move {?}\n", .{session.search.?.best_move});
-
     try std.testing.expect(session.search.?.best_move != null);
 
     try session.reset(true);
