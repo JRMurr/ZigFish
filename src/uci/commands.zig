@@ -82,7 +82,7 @@ fn consumeMaybeConst(iter: *TokenIter, val: []const u8) !bool {
 }
 
 const PositionArgs = struct {
-    fen: []const u8,
+    fen: std.BoundedArray(u8, ZigFish.Fen.MAX_FEN_LEN),
     moves: SimpleMoveList,
 };
 
@@ -235,14 +235,24 @@ pub const Command = union(CommandKind) {
             },
             .Position => blk: {
                 const fenOrStartPos = iter.next() orelse return error.EndOfInput;
-                const fen = if (std.mem.eql(u8, fenOrStartPos, "startpos"))
-                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-                else
-                    fenOrStartPos;
+                // TODO: this won't actually parse a fen string since its multiple tokens
+                // maybe do consume until "moves" or end of inter
+                var fen_tokens = try std.BoundedArray(u8, ZigFish.Fen.MAX_FEN_LEN).init(0);
 
-                const moves = if (try consumeMaybeConst(&iter, "moves")) try consumeIterToMoves(allocator, &iter) else SimpleMoveList.init(allocator);
+                if (std.mem.eql(u8, fenOrStartPos, "fen")) {
+                    while (iter.next()) |tok| {
+                        if (std.mem.eql(u8, tok, "moves")) {
+                            break;
+                        }
+                        try fen_tokens.appendSlice(tok);
+                        try fen_tokens.append(' ');
+                    }
+                } else {
+                    try fen_tokens.appendSlice(ZigFish.Fen.START_POS);
+                }
+                const moves = try consumeIterToMoves(allocator, &iter);
 
-                break :blk Command{ .Position = .{ .fen = fen, .moves = moves } };
+                break :blk Command{ .Position = .{ .fen = fen_tokens, .moves = moves } };
             },
             .Go => blk: {
                 const args = try GoArg.fromStr(allocator, iter.rest());
@@ -272,4 +282,18 @@ test "parse EmptyCommandArgs" {
 test "parse debug on" {
     const parsed = try Command.fromStr(std.testing.allocator, "debug on");
     try std.testing.expectEqual(Command{ .Debug = true }, parsed.parsed);
+}
+
+test "parse position fen" {
+    const parsed = try Command.fromStr(std.testing.allocator, "position fen 3qk2r/3bnp2/7p/1P1B4/3Q4/2N3P1/PP2PP1P/R2K3R b k - 2 22 moves e2e4");
+    defer parsed.parsed.deinit();
+    const fen = parsed.parsed.Position.fen;
+
+    var moves = parsed.parsed.Position.moves;
+
+    try std.testing.expectStringStartsWith(fen.slice(), "3qk2r/3bnp2/7p/1P1B4/3Q4/2N3P1/PP2PP1P/R2K3R b k - 2 22");
+
+    try std.testing.expectEqual(SimpleMove.fromStr("e2e4"), moves.pop());
+
+    // try std.testing.expectEqual(Command{ .Position = true }, parsed.parsed);
 }

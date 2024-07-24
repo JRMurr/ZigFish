@@ -175,7 +175,7 @@ pub fn handleCommand(self: *Self, command: Command) !bool {
             // TODO: might only need to apply the last move if we have been initalized before
             self.reset(true);
             const fen = args.fen;
-            self.game.reinitFen(fen);
+            self.game.reinitFen(fen.constSlice());
             for (args.moves.items) |m| {
                 try self.game.makeSimpleMove(m);
             }

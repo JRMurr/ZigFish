@@ -1,19 +1,20 @@
-{ writeShellScriptBin, buildAtCommit, lib, git, zig, fastchess }:
+{ writeShellScriptBin, buildAtCommit, lib, git, zig, fastchess, captureStdErr }:
 let
   getExe = lib.getExe;
 
   pgnOutFile = "$OUT_DIR/pgnout.pgn";
   logFile = "$OUT_DIR/log.txt";
-
+  # https://github.com/Disservin/fast-chess/blob/master/man
   fastArgsMap = {
     rounds = "100";
     maxmoves = "100";
     concurrency = "10";
     recover = null;
+    "use-affinity" = null;
     log = {
       file = logFile;
-      level = "trace";
-      realtime = "false";
+      level = "warn";
+      realtime = "true";
     };
     pgnout = { file = pgnOutFile; };
     resign = { score = "500000"; };
@@ -64,7 +65,8 @@ writeShellScriptBin "runFast" ''
   rm -f ${pgnOutFile}
 
   # ${zig}/bin/zig build -Doptimize=ReleaseSafe
-  NEW_ENGINE=$(${getExe buildAtCommit} "curr")
+  # NEW_ENGINE=$(${getExe buildAtCommit} "curr")
+  NEW_ENGINE=${getExe captureStdErr}
   OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
   ${getExe fastchess} ${fastArgs}
 ''

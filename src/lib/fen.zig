@@ -90,7 +90,7 @@ pub fn parse(str: []const u8) Board {
     return board;
 }
 
-const MAX_FEN_LEN = 90; // probably could reduce this but who cares
+pub const MAX_FEN_LEN = 90; // probably could reduce this but who cares
 
 const digitToChar = std.fmt.digitToChar;
 
