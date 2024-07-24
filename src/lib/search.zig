@@ -352,12 +352,14 @@ pub fn search(
     var best_move: ?Move = null;
     const move_slice = moves.items();
     const start_hash = self.board.zhash;
+    const start_fen = ZigFish.Fen.toFen(self.board);
 
     for (move_slice, 0..) |*move, idx| {
+        std.log.debug("move: {s}\n", .{move.toStrSimple()});
         if (start_hash != self.board.zhash) {
             std.debug.panic(
-                "start_hash: {}\tboard_hash {}\tmove_idx: {}\nmove {}\n",
-                .{ start_hash, self.board.zhash, idx, move },
+                "start_hash: {}\tboard_hash {}\tmove_idx: {}\nmove {}\nstart_fen: {s}\n  end_fen: {s}\n",
+                .{ start_hash, self.board.zhash, idx, move, start_fen, ZigFish.Fen.toFen(self.board) },
             );
         }
 

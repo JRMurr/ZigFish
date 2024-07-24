@@ -225,6 +225,13 @@ test "zhash updates correctly - could promote" {
     try testZhashUnMake(&game, false);
 }
 
+test "zhash updates correctly - sad???" {
+    var game = try GameManager.from_fen(std.testing.allocator, "rnbqkbnr/1ppppppp/8/P7/8/8/P1PPPPPP/RNBQKBNR b KQkq - 0 2");
+    defer game.deinit();
+
+    try testZhashUnMake(&game, false);
+}
+
 test "perft base" {
     var game = try GameManager.init(std.testing.allocator);
     defer game.deinit();

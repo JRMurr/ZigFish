@@ -263,7 +263,7 @@ pub const Board = struct {
         const start_peice = self.getPos(move.start) orelse {
             std.debug.panic(
                 "attempted to play move: {s} but start piece was not found\nfen: {s}\nmove: {?}",
-                .{ move.toSan(), ZigFish.Fen.toFen(self.*), move },
+                .{ move.toSan(), ZigFish.Fen.toFen(self), move },
             );
         };
 

@@ -94,7 +94,7 @@ pub const MAX_FEN_LEN = 90; // probably could reduce this but who cares
 
 const digitToChar = std.fmt.digitToChar;
 
-pub fn toFen(board: Board) [MAX_FEN_LEN]u8 {
+pub fn toFen(board: *const Board) [MAX_FEN_LEN]u8 {
     // TOOD: see if i can do a sentil terminated slice
     var str = comptime utils.initStr(' ', MAX_FEN_LEN);
     var idx: usize = 0;
@@ -194,7 +194,7 @@ test "no static erros" {
 fn toAndFromFen(str: []const u8) anyerror!void {
     const board = parse(str);
 
-    const fen = toFen(board);
+    const fen = toFen(&board);
 
     try std.testing.expectStringStartsWith(&fen, str);
 }
