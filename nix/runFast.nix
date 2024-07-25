@@ -53,7 +53,7 @@ let
 in
 writeShellScriptBin "runFast" ''
   set -euxo pipefail
-  DEFAULT_COMMIT="1711077a1e2a5923d2e358d75cd420fc583055c8"
+  DEFAULT_COMMIT="2f327523e2afa9cdc73c7d5186088c2e29d881db"
   COMMIT="''${1:-$DEFAULT_COMMIT}"
 
   REPO_ROOT=$(${getExe git} rev-parse --show-toplevel)
@@ -65,10 +65,10 @@ writeShellScriptBin "runFast" ''
   rm -f ${pgnOutFile}
 
   # ${zig}/bin/zig build -Doptimize=ReleaseSafe
-  # NEW_ENGINE=$(${getExe buildAtCommit} "curr")
-  NEW_ENGINE=${getExe captureStdErr}
-  # OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
-  OLD_ENGINE=${getExe captureStdErr}
+  NEW_ENGINE=$(${getExe buildAtCommit} "curr")
+  # NEW_ENGINE=${getExe captureStdErr}
+  OLD_ENGINE=$(${getExe buildAtCommit} "$COMMIT")
+  # OLD_ENGINE=${getExe captureStdErr}
 
   ${getExe fastchess} ${fastArgs}
 ''
