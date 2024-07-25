@@ -430,7 +430,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        std.log.debug("checking at depth: {}", .{depth});
+        // std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = &(self.getAllValidMoves(false));
         const moves = generated_moves.moves;
