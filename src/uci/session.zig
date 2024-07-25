@@ -88,12 +88,29 @@ fn startInner(self: *Self) !void {
     };
 }
 
+fn runPerf(self: *Self, depth: usize) !void {
+    const total = self.search.?.perft(depth, true) catch |e| {
+        std.debug.panic("error running perf: {}", .{e});
+    };
+    std.log.debug("total nodes: {}", .{total});
+}
+
 fn waitForSearchToStop(self: *Self) !void {
     if (self.search) |s| {
         if (s.stop_search.isSet()) {
             try s.search_done.timedWait(10 * std.time.ns_per_ms);
         }
     }
+}
+
+fn startPerf(self: *Self, depth: usize) !void {
+    try self.reset(true);
+    self.search = try self.allocator.create(Search);
+    self.search.?.* = try self.game.getSearch(.{});
+
+    const search_thread = try std.Thread.spawn(.{}, runPerf, .{ self, depth });
+
+    search_thread.join();
 }
 
 fn startSearch(self: *Self, opts: Search.SearchOpts) !void {
@@ -180,6 +197,10 @@ pub fn handleCommand(self: *Self, command: *const Command) !bool {
                 switch (arg) {
                     .Movetime => |t| {
                         search_opts.time_limit_millis = t;
+                    },
+                    .Perft => |d| {
+                        try self.startPerf(d);
+                        return false;
                     },
                     else => std.debug.panic("go arg {any} not supported", .{arg}),
                 }

@@ -207,7 +207,8 @@ pub fn castleAllowed(self: *const Self, color: Color, attacked_sqaures: BoardBit
     }
 
     const occupied_ray = ray.intersectWith(self.board.occupied_set);
-    if (occupied_ray.bit_set.mask == 0) {
+
+    if (occupied_ray.bit_set.mask != 0) {
         return false;
     }
 

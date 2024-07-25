@@ -104,6 +104,7 @@ const GoArgs = std.ArrayList(GoArg);
 
 const GoArg = union(enum) {
     SearchMoves: SimpleMoveList,
+    Perft: usize, // non standard, perft deptch
     Ponder,
     Wtime: usize,
     Btime: usize,

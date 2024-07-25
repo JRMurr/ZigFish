@@ -84,7 +84,7 @@ pub fn main() anyerror!void {
 
     // var game = try GameManager.init(gpa_allocator);
 
-    var game = try GameManager.from_fen(gpa_allocator, "rnbqkbnr/1ppppppp/8/P7/8/8/P1PPPPPP/RNBQKBNR b KQkq - 0 2");
+    var game = try GameManager.from_fen(gpa_allocator, "4kr1r/p6p/6p1/8/2P1n3/5NP1/P3PPBP/R3K1R1 b k - 4 26");
 
     // an italian opening
     // var game = try GameManager.from_fen(gpa_allocator, "r1bq1rk1/bpp2ppp/p2p1nn1/4p3/P1BPP3/2P2N1P/1P3PP1/RNBQR1K1 w - - 1 11");

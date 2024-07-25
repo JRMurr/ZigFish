@@ -506,6 +506,37 @@ pub fn findBestMove(
     return self.best_move;
 }
 
+// TODO: copied from game, should probably live here anyway
+pub fn perft(self: *Self, depth: usize, print_count_per_move: bool) Allocator.Error!usize {
+    var nodes: usize = 0;
+    if (depth == 0) {
+        return 1;
+    }
+
+    const moves = (self.getAllValidMoves(false)).moves;
+
+    if (depth == 1 and !print_count_per_move) {
+        // dont need to actually make these last ones
+        return moves.count();
+    }
+
+    for (moves.items()) |*move| {
+        // if (print_count_per_move) {
+        std.log.debug("depth: {} {s}", .{ depth, move.toStrSimple() });
+        // }
+        const meta = self.board.meta;
+        self.board.makeMove(move);
+        const num_leafs = try self.perft(depth - 1, false);
+        if (print_count_per_move) {
+            std.log.debug("{s}: {d}", .{ move.toStrSimple(), num_leafs });
+        }
+        nodes += num_leafs;
+        self.board.unMakeMove(move, meta);
+    }
+
+    return nodes;
+}
+
 test "all" {
     std.testing.refAllDecls(@This());
 }
