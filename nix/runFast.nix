@@ -8,7 +8,7 @@ let
   fastArgsMap = {
     rounds = "100";
     maxmoves = "100";
-    concurrency = "1";
+    concurrency = "20";
     recover = null;
     "use-affinity" = null;
     log = {

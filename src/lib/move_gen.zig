@@ -208,7 +208,8 @@ pub fn castleAllowed(self: *const Self, color: Color, attacked_sqaures: BoardBit
 
     const occupied_ray = ray.intersectWith(self.board.occupied_set);
 
-    if (occupied_ray.bit_set.mask != 0) {
+    // should only hit rook
+    if (occupied_ray.bit_set.count() != 1) {
         return false;
     }
 

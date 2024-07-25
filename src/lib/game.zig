@@ -255,6 +255,13 @@ test "perft pos 4" {
     try std.testing.expectEqual(62_379, try game.perft(3, false));
 }
 
+test "perft weird castling spot" {
+    var game = try GameManager.from_fen(std.testing.allocator, "4kr1r/p6p/6p1/8/2P1n3/5NP1/P3PPBP/R3K1R1 b k - 4 26");
+    defer game.deinit();
+
+    try std.testing.expectEqual(13315, try game.perft(3, false));
+}
+
 test "perft test debug" {
     var game = try GameManager.from_fen(std.testing.allocator, "8/p1p1k2p/4b1p1/P7/2P1q3/4P1P1/1P5P/R3K3 w Q - 0 27");
     defer game.deinit();
