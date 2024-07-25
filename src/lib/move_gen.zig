@@ -208,16 +208,17 @@ pub fn castleAllowed(self: *const Self, color: Color, attacked_sqaures: BoardBit
 
     const occupied_ray = ray.intersectWith(self.board.occupied_set);
 
+    occupied_ray.debug();
+
     // should only hit rook
-    if (occupied_ray.bit_set.count() != 1) {
+    const rook_idx = castle_info.rook_start.toIndex();
+    const valid_set = BoardBitSet.initWithIndex(rook_idx);
+    if (!occupied_ray.eql(valid_set)) {
         return false;
     }
 
-    const maybe_rook_idx = dir.first_hit_on_ray(occupied_ray);
-
     const rooks = self.board.getPieceSet(Piece{ .color = color, .kind = Kind.Rook });
-
-    return rooks.isSet(maybe_rook_idx);
+    return rooks.isSet(rook_idx);
 }
 
 pub fn allAttackedSqaures(board: *const Board) AttackedSqaureInfo {

@@ -521,9 +521,6 @@ pub fn perft(self: *Self, depth: usize, print_count_per_move: bool) Allocator.Er
     }
 
     for (moves.items()) |*move| {
-        // if (print_count_per_move) {
-        std.log.debug("depth: {} {s}", .{ depth, move.toStrSimple() });
-        // }
         const meta = self.board.meta;
         self.board.makeMove(move);
         const num_leafs = try self.perft(depth - 1, false);

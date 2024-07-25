@@ -250,6 +250,10 @@ pub const BoardBitSet = packed struct {
         std.log.debug("-------------", .{});
     }
 
+    pub fn eql(self: Self, other: Self) bool {
+        return self.bit_set.eql(other.bit_set);
+    }
+
     /// Returns true if the bit at the specified index
     /// is present in the set, false otherwise.
     pub fn isSet(self: Self, index: usize) bool {
