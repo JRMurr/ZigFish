@@ -41,7 +41,7 @@ const MAX_DEPTH = 100;
 const SEARCH_TIME = 5000; // milli seconds
 const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
-const AI_ON: bool = true;
+const AI_ON: bool = false;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
@@ -82,9 +82,9 @@ pub fn main() anyerror!void {
     var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
     var search_thread: ?Thread = null;
 
-    var game = try GameManager.init(gpa_allocator);
+    // var game = try GameManager.init(gpa_allocator);
 
-    // var game = try GameManager.from_fen(gpa_allocator, "r3kb1r/pp3p2/2p2n1p/4p1p1/2B1P3/2P2PB1/PP1K1P1P/nN5R b kq - 0 15");
+    var game = try GameManager.from_fen(gpa_allocator, "rnbqkbnr/1ppppppp/8/P7/8/8/P1PPPPPP/RNBQKBNR b KQkq - 0 2");
 
     // an italian opening
     // var game = try GameManager.from_fen(gpa_allocator, "r1bq1rk1/bpp2ppp/p2p1nn1/4p3/P1BPP3/2P2N1P/1P3PP1/RNBQR1K1 w - - 1 11");
@@ -173,6 +173,7 @@ pub fn main() anyerror!void {
                     std.log.debug("{s}", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move.*);
+                    std.log.debug("make hash: {d}", .{game.board.zhash});
 
                     // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;

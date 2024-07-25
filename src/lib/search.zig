@@ -264,7 +264,16 @@ fn quiesceSearch(
 
     var best_move: ?Move = null;
 
+    // const start_hash = self.board.zhash;
+    // const start_fen = ZigFish.Fen.toFen(self.board);
+
     for (moves.items()) |*move| {
+        // if (start_hash != self.board.zhash) {
+        //     std.debug.panic(
+        //         "Q start_hash: {}\tboard_hash {}\tmove_idx: {}\nmove {}\nstart_fen: {s}\n  end_fen: {s}\n",
+        //         .{ start_hash, self.board.zhash, idx, move, start_fen, ZigFish.Fen.toFen(self.board) },
+        //     );
+        // }
         // const move = move_score.move;
         self.diagnostics.num_nodes_analyzed += 1;
         std.debug.assert(move.captured_kind != null);
@@ -351,17 +360,18 @@ pub fn search(
 
     var best_move: ?Move = null;
     const move_slice = moves.items();
-    const start_hash = self.board.zhash;
-    const start_fen = ZigFish.Fen.toFen(self.board);
+    // const start_hash = self.board.zhash;
+    // const start_fen = ZigFish.Fen.toFen(self.board);
 
-    for (move_slice, 0..) |*move, idx| {
-        std.log.debug("move: {s}\n", .{move.toStrSimple()});
-        if (start_hash != self.board.zhash) {
-            std.debug.panic(
-                "start_hash: {}\tboard_hash {}\tmove_idx: {}\nmove {}\nstart_fen: {s}\n  end_fen: {s}\n",
-                .{ start_hash, self.board.zhash, idx, move, start_fen, ZigFish.Fen.toFen(self.board) },
-            );
-        }
+    for (move_slice) |*move| {
+
+        // std.debug.print("move: {s}\n", .{move.toStrSimple()});
+        // if (start_hash != self.board.zhash) {
+        //     std.debug.panic(
+        //         "start_hash: {}\tboard_hash {}\tmove_idx: {}\nmove {}\nstart_fen: {s}\n  end_fen: {s}\n",
+        //         .{ start_hash, self.board.zhash, idx, move, start_fen, ZigFish.Fen.toFen(self.board) },
+        //     );
+        // }
 
         if (self.stop_search.isSet()) {
             return SearchRes.canceledWithBest(best_eval, best_move);
@@ -420,7 +430,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        // std.log.debug("checking at depth: {}", .{depth});
+        std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = &(self.getAllValidMoves(false));
         const moves = generated_moves.moves;
@@ -430,6 +440,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
         }
 
         for (moves.items()) |*move| {
+            // std.debug.print("move: {s}\n", .{move.toStrSimple()});
             self.diagnostics.num_nodes_analyzed += 1;
             const meta = self.board.meta;
             // std.log.debug("checking {s}", .{move.toStrSimple()});

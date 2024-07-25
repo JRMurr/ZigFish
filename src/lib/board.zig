@@ -407,15 +407,20 @@ pub const Board = struct {
             .kind = k,
         } else null;
 
-        const end_pos = if (move.move_flags.contains(MoveType.EnPassant)) blk: {
+        var captured_pos: Position = undefined;
+
+        if (move.move_flags.contains(MoveType.EnPassant)) {
             // clear the pawn that took
             self.setPos(move.end, null);
 
             // get pos of the peice taken
             const diff_dir = get_diff_dir(move);
             const dir = diff_dir[1];
-            break :blk move.end.move_dir(dir.opposite());
-        } else move.end;
+            captured_pos = move.end.move_dir(dir.opposite());
+            // self.zhash ^= HASHER.getPieceNum(, end_pos);
+        } else {
+            captured_pos = move.end;
+        }
 
         if (move.move_flags.contains(MoveType.Castling)) {
             const color_idx = @intFromEnum(piece_color);
@@ -434,9 +439,9 @@ pub const Board = struct {
             self.setPos(castling_info.rook_start, rook);
         }
 
-        self.setPos(end_pos, maybe_captured_piece);
+        self.setPos(captured_pos, maybe_captured_piece);
         if (maybe_captured_piece) |captured| {
-            self.zhash ^= HASHER.getPieceNum(captured, move.end);
+            self.zhash ^= HASHER.getPieceNum(captured, captured_pos);
         }
 
         if (self.active_color == Color.White) {
