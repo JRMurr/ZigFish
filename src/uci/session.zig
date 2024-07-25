@@ -98,7 +98,7 @@ fn runPerf(self: *Self, depth: usize) !void {
 fn waitForSearchToStop(self: *Self) !void {
     if (self.search) |s| {
         if (s.stop_search.isSet()) {
-            try s.search_done.timedWait(10 * std.time.ns_per_ms);
+            try s.search_done.timedWait(1000 * std.time.ns_per_ms);
         }
     }
 }

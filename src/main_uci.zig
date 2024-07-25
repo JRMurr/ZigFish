@@ -30,7 +30,9 @@ pub fn main() anyerror!void {
         const command_parsed = try Uci.Commands.Command.fromStr(gpa_allocator, msg);
         const command = command_parsed.parsed;
         defer command.deinit();
-        const should_exit = try session.handleCommand(&command);
+        const should_exit = session.handleCommand(&command) catch |e| {
+            std.debug.panic("error handling command: {}", .{e});
+        };
         if (should_exit) {
             break;
         }

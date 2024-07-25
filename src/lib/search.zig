@@ -484,7 +484,7 @@ fn monitorTimeLimit(stop_search: *Thread.ResetEvent, timeLimitMillis: u64) !void
 
 pub fn stopSearch(self: *Self) !?Move {
     self.stop_search.set();
-    try self.search_done.timedWait(10 * std.time.ns_per_ms);
+    try self.search_done.timedWait(1000 * std.time.ns_per_ms);
     return self.best_move;
 }
 
