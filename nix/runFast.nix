@@ -1,6 +1,18 @@
-{ writeShellScriptBin, buildAtCommit, lib, git, zig, fastchess, captureStdErr }:
+{ writeShellScriptBin
+, buildAtCommit
+, lib
+, git
+, zig
+, fastchess
+, captureStdErr
+, books
+,
+}:
 let
   getExe = lib.getExe;
+
+
+  bookPath = name: "${books.${name}}/${name}";
 
   pgnOutFile = "$OUT_DIR/pgnout.pgn";
   logFile = "$OUT_DIR/log.txt";
@@ -16,10 +28,22 @@ let
       level = "warn";
       realtime = "true";
     };
-    pgnout = { file = pgnOutFile; };
-    resign = { score = "500000"; };
-    draw = { movenumber = "30"; movecount = "8"; score = "80"; };
-    openings = { file = "./test.pgn"; format = "pgn"; order = "random"; };
+    pgnout = {
+      file = pgnOutFile;
+    };
+    resign = {
+      score = "500000";
+    };
+    draw = {
+      movenumber = "30";
+      movecount = "8";
+      score = "80";
+    };
+    openings = {
+      file = bookPath "popularpos_lichess.epd";
+      format = "epd";
+      order = "random";
+    };
     engine = [
       ''cmd="$NEW_ENGINE" name=new st=0.1 timemargin=100''
       ''cmd="$OLD_ENGINE" name=old st=0.1 timemargin=100''
@@ -32,19 +56,21 @@ let
   toSubArgStr = name: val: "${name}=${val}";
 
   fastArgsLst = lib.mapAttrsToList
-    (name: val:
-      if builtins.isList val then
-        (lib.concatMapStringsSep " " (toRootArgStr name) val)
-      else if builtins.isAttrs val then
-        (
-          let
-            vals = lib.concatStringsSep " " (lib.mapAttrsToList toSubArgStr val);
-          in
-          toRootArgStr name vals
-        )
-      else if builtins.isString val then
-        (toRootArgStr name val)
-      else "-${name}"
+    (
+      name: val:
+        if builtins.isList val then
+          (lib.concatMapStringsSep " " (toRootArgStr name) val)
+        else if builtins.isAttrs val then
+          (
+            let
+              vals = lib.concatStringsSep " " (lib.mapAttrsToList toSubArgStr val);
+            in
+            toRootArgStr name vals
+          )
+        else if builtins.isString val then
+          (toRootArgStr name val)
+        else
+          "-${name}"
     )
     fastArgsMap;
 
@@ -72,4 +98,3 @@ writeShellScriptBin "runFast" ''
 
   ${getExe fastchess} ${fastArgs}
 ''
-

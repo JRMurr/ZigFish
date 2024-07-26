@@ -57,6 +57,7 @@
           fastChess = myPkgs.fastchess;
           runFast = myPkgs.runFast;
           books = myPkgs.books.all;
+          popularBook = myPkgs.books."popularpos_lichess.epd";
         };
       });
 }
