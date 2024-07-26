@@ -11,7 +11,7 @@ writeShellScriptBin "buildAtCommit" ''
     FLAKREF="$REPO_ROOT"/.
   fi
 
-  PATH=$(${getExe nix} build $FLAKREF --json | ${getExe jq} --raw-output '.[0].outputs.out')
+  PATH=$(${getExe nix} build --no-link $FLAKREF --json | ${getExe jq} --raw-output '.[0].outputs.out')
 
   echo $PATH/bin/zigfish-uci
 ''
