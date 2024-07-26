@@ -9,8 +9,13 @@ const Piece = @import("piece.zig");
 const Color = Piece.Color;
 const Kind = Piece.Kind;
 
-const precompute = @import("precompute.zig");
-const Score = precompute.Score;
+const Precompute = ZigFish.Precompute;
+
+pub const Score = i64;
+
+// in centipawns
+pub const MAX_SCORE = 500_000_000;
+pub const MIN_SCORE = -1 * MAX_SCORE;
 
 pub fn evaluate(board: *const Board) Score {
     const white_eval = getMaterialScore(board, Color.White);
@@ -34,8 +39,8 @@ fn getMaterialScore(board: *const Board, color: Color) Score {
         const pieces = board.getPieceSet(p);
         const piece_count = pieces.count();
 
-        score += @as(Score, @intCast(piece_count)) * precompute.PIECE_SCORES.get(kind);
-        score += precompute.PieceSquareScore.scorePieces(p, .Opening, pieces);
+        score += @as(Score, @intCast(piece_count)) * Precompute.PIECE_SCORES.get(kind);
+        score += Precompute.PieceSquareScore.scorePieces(p, .Opening, pieces);
     }
 
     return score;

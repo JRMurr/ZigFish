@@ -1,24 +1,25 @@
 const std = @import("std");
+const ZigFish = @import("root.zig");
 const utils = ZigFish.Utils;
 
-const ZigFish = @import("root.zig");
 const Position = ZigFish.Position;
 
-const Piece = @import("piece.zig");
+const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 const Kind = Piece.Kind;
 const NUM_KINDS = utils.enum_len(Kind);
 const NUM_COLOR = utils.enum_len(Color);
 
-const bitset = @import("bitset.zig");
+const bitset = ZigFish.BitSet;
 const BoardBitSet = bitset.BoardBitSet;
 const Dir = bitset.Dir;
 const Line = bitset.Line;
 const NUM_DIRS = bitset.NUM_DIRS;
 const NUM_LINES = bitset.NUM_LINES;
 
-const search_types = @import("search.zig");
-const GamePhase = search_types.GamePhase;
+const GamePhase = ZigFish.GamePhase;
+
+const Score = ZigFish.Score;
 
 fn computeNumCellsToEdge() [64][8]u8 {
     const all_positon = Position.all_positions();
@@ -90,6 +91,17 @@ pub fn computeLines() Lines {
 }
 
 pub const LINES = computeLines();
+
+/// indexed by file num
+pub const NeighborFiles = [8]BoardBitSet;
+fn computeNeighorFiles() NeighborFiles {
+    var neighbors: NeighborFiles = undefined;
+    inline for (0..8) |idx| {
+        const file_bs = BoardBitSet.initFile(idx);
+        neighbors[idx] = file_bs.pawnAttacks(Color.White, null);
+    }
+    return neighbors;
+}
 
 pub const Rays = [64][NUM_DIRS]BoardBitSet;
 
@@ -187,8 +199,6 @@ fn compute_castling_info() [2]CastlingInfo {
 }
 
 pub const CASTLING_INFO = compute_castling_info();
-
-pub const Score = i64;
 
 pub const PIECE_SCORES = std.EnumArray(Kind, Score).init(.{
     .King = 200000,

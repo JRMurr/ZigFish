@@ -16,8 +16,12 @@ const Color = Piece.Color;
 const Kind = Piece.Kind;
 const Precompute = ZigFish.Precompute;
 const Score = ZigFish.Score;
+const Eval = ZigFish.Eval;
 
-const evaluate = @import("eval.zig").evaluate;
+const MIN_SCORE = Eval.MIN_SCORE;
+const MAX_SCORE = Eval.MAX_SCORE;
+
+const evaluate = Eval.evaluate;
 
 const Allocator = std.mem.Allocator;
 
@@ -29,10 +33,6 @@ pub const SearchOpts = struct {
     quiesce_depth: usize = 5,
     max_extensions: usize = 10,
 };
-
-// in centipawns
-const MIN_SCORE = -(500_000_000);
-const MAX_SCORE = 500_000_000;
 
 fn negate_score(x: Score) Score {
     return switch (x) {

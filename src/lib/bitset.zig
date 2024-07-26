@@ -232,6 +232,11 @@ pub const BoardBitSet = packed struct {
         return .{ .bit_set = bs };
     }
 
+    pub fn initFile(file: usize) Self {
+        const mask = fileMask(file);
+        return Self.fromMask(mask);
+    }
+
     pub fn fromMask(mask: MaskInt) Self {
         return .{ .bit_set = BitSet{ .mask = mask } };
     }

@@ -18,7 +18,7 @@ let
   logFile = "$OUT_DIR/log.txt";
   # https://github.com/Disservin/fast-chess/blob/master/man
   fastArgsMap = {
-    rounds = "100";
+    rounds = "1000";
     maxmoves = "100";
     concurrency = "20";
     recover = null;

@@ -2,6 +2,7 @@ const std = @import("std");
 const testing = std.testing;
 
 pub usingnamespace @import("board.zig");
+pub usingnamespace @import("position.zig");
 
 const game_types = @import("game.zig");
 pub const GameManager = game_types.GameManager;
@@ -27,11 +28,14 @@ pub const Fen = @import("fen.zig");
 // pub const Kind = @import("piece.zig");
 
 pub const Precompute = @import("precompute.zig");
-pub const Score = Precompute.Score;
 
 pub const Search = @import("search.zig");
+pub const GamePhase = Search.GamePhase;
 pub const Utils = @import("utils.zig");
 pub const Zhasing = @import("zhash.zig");
+
+pub const Eval = @import("eval.zig");
+pub const Score = Eval.Score;
 
 test {
     testing.refAllDecls(@This());
