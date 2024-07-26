@@ -3,9 +3,10 @@
 lib.makeScope newScope (self:
 let inherit (self) callPackage;
 in {
-  fastchess = callPackage ./fastchess.nix { };
-  zigfish = callPackage ./zigfish { inherit zig; };
-  captureStdErr = callPackage ./captureStdErr.nix { };
+  books = callPackage ./books.nix { };
   buildAtCommit = callPackage ./buildAtCommit.nix { };
+  captureStdErr = callPackage ./captureStdErr.nix { };
+  fastchess = callPackage ./fastchess.nix { };
   runFast = callPackage ./runFast.nix { inherit zig; };
+  zigfish = callPackage ./zigfish { inherit zig; };
 })

@@ -56,6 +56,7 @@
           default = myPkgs.zigfish;
           fastChess = myPkgs.fastchess;
           runFast = myPkgs.runFast;
+          books = myPkgs.books.all;
         };
       });
 }
