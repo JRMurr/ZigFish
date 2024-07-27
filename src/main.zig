@@ -38,10 +38,10 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
 }
 
 const MAX_DEPTH = 100;
-const SEARCH_TIME = 5000; // milli seconds
+const SEARCH_TIME = 1000; // milli seconds
 const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
-const AI_ON: bool = false;
+const AI_ON: bool = true;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
@@ -82,9 +82,9 @@ pub fn main() anyerror!void {
     var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
     var search_thread: ?Thread = null;
 
-    // var game = try GameManager.init(gpa_allocator);
+    var game = try GameManager.init(gpa_allocator);
 
-    var game = try GameManager.from_fen(gpa_allocator, "4kr1r/p6p/6p1/8/2P1n3/5NP1/P3PPBP/R3K1R1 b k - 4 26");
+    // var game = try GameManager.from_fen(gpa_allocator, "4kr1r/p6p/6p1/8/2P1n3/5NP1/P3PPBP/R3K1R1 b k - 4 26");
 
     // an italian opening
     // var game = try GameManager.from_fen(gpa_allocator, "r1bq1rk1/bpp2ppp/p2p1nn1/4p3/P1BPP3/2P2N1P/1P3PP1/RNBQR1K1 w - - 1 11");
@@ -170,10 +170,10 @@ pub fn main() anyerror!void {
             for (mp.valid_moves.items()) |*move| {
                 // TODO: select promotion if possible, should always be queen right now
                 if (move.end.eql(pos)) {
-                    std.log.debug("{s}", .{move.toSan()});
+                    // std.log.debug("{s}", .{move.toSan()});
                     try game.makeMove(move);
                     try move_history.append(move.*);
-                    std.log.debug("make hash: {d}", .{game.board.zhash});
+                    // std.log.debug("make hash: {d}", .{game.board.zhash});
 
                     // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
                     break;
@@ -188,7 +188,7 @@ pub fn main() anyerror!void {
             const maybe_move = move_history.popOrNull();
             if (maybe_move) |move| {
                 game.unMakeMove(&move);
-                std.log.debug("unmake hash: {d}", .{game.board.zhash});
+                // std.log.debug("unmake hash: {d}", .{game.board.zhash});
             }
         }
 
