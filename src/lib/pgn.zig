@@ -9,19 +9,17 @@ const Allocator = std.mem.Allocator;
 
 pub const Move = ZigFish.Move;
 
-const zig_str = []const u8;
-
 pub const Pgn = struct {
     const FullMove = struct {
-        white: zig_str,
-        black: ?zig_str,
+        white: []const u8,
+        black: ?[]const u8,
     };
 
     const Tag = struct { name: []const u8, value: []const u8 };
 
     tags: []Tag,
     moves: []FullMove,
-    result: zig_str,
+    result: []const u8,
 
     /// need to parse in the allocator used to parse
     pub fn deinit(self: Pgn, allocator: Allocator) void {
@@ -39,6 +37,8 @@ const PgnParser = struct {
         result,
         ws.discard(),
     }).map(mecha.toStruct(Pgn));
+
+    pub const many_pgn = mecha.many(pgn, .{ .separator = ws });
 
     // based slightly on https://github.com/Hejsil/mecha/blob/master/example/json.zig
 
@@ -296,7 +296,7 @@ test "parse pgn many moves" {
     try anyParser(PgnParser.many_moves, "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4");
 }
 
-test "parse pgn mecha" {
+test "parse pgn" {
     const pgn_str =
         \\ [Event "Balsa 110221"]
         \\ [Site "?"]
@@ -334,6 +334,53 @@ test "parse pgn mecha" {
     try testing.expectEqual(null, last_move.black);
 
     try testing.expectEqualStrings("*", parsed.result);
+}
+
+test "parse many pgn" {
+    const pgn_str =
+        \\ [Event "Balsa 110221"]
+        \\ [Site "?"]
+        \\ [Date "2019.09.06"]
+        \\ [Round "2.11"]
+        \\ [White "X"]
+        \\ [Black "X"]
+        \\ [Result "*"]
+        \\ [ECO "A28"]
+        \\ [PlyCount "17"]
+        \\ [EventDate "2021.01.17"]
+        \\ [EventType "simul"]
+        \\ [Source "Sedat Canbaz"]
+        \\ 
+        \\ 1. c4 e5 2. Nc3 Nf6 3. Nf3 Nc6 4. e4 Bb4 5. d3 d6 6. a3 Bc5 7. b4 Bb6 8. Be3
+        \\ Bxe3 9. fxe3 *
+        \\ 
+        \\ [Event "Balsa 110221"]
+        \\ [Site "?"]
+        \\ [Date "2019.09.06"]
+        \\ [Round "2.11"]
+        \\ [White "X"]
+        \\ [Black "X"]
+        \\ [Result "*"]
+        \\ [ECO "C89"]
+        \\ [PlyCount "22"]
+        \\ [EventDate "2021.01.17"]
+        \\ [EventType "simul"]
+        \\ [Source "Sedat Canbaz"]
+        \\ 
+        \\ 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 O-O 8. c3
+        \\ d5 9. exd5 Nxd5 10. Nxe5 Nxe5 11. Rxe5 c6 *
+    ;
+
+    var buffer: [6000]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const allocator = fba.allocator();
+    const a = (try PgnParser.many_pgn.parse(allocator, pgn_str));
+
+    const pgns = a.value;
+
+    try testing.expectEqual(2, pgns.len);
+
+    try testing.expectEqualStrings("c6", pgns[1].moves[10].black.?);
 }
 
 fn isResult(str: []const u8) bool {
