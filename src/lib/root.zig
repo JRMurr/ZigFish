@@ -37,6 +37,8 @@ pub const Zhasing = @import("zhash.zig");
 pub const Eval = @import("eval.zig");
 pub const Score = Eval.Score;
 
+pub const Pgn = @import("pgn.zig");
+
 test {
     testing.refAllDecls(@This());
 }

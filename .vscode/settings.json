@@ -1,4 +1,4 @@
 {
-  "zig.zls.buildOnSaveStep": "check",
+  "zig.zls.buildOnSaveStep": "test",
   "zig.zls.enableBuildOnSave": true
 }
