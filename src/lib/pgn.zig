@@ -13,23 +13,23 @@ const zig_str = []u8;
 // based on https://github.com/Hejsil/mecha/blob/master/example/json.zig
 const Parser = struct {
     pub const Pgn = struct {
-        tags: []Tag,
+        // tags: []Tag,
         moves: []zig_str,
-        result: zig_str,
+        // result: zig_str,
     };
 
     pub const pgn = mecha.combine(.{
-        many_tags,
+        many_tags.discard(),
         new_line.discard(),
         many_moves,
         ws.discard(),
         result,
-    }).map(mecha.toStruct(Pgn));
+    }).asStr();
 
-    const space = mecha.utf8.char(0x0020);
-    const new_line = mecha.utf8.char(0x000A);
-    const carriage_return = mecha.utf8.char(0x000D);
-    const tab = mecha.utf8.char(0x0009);
+    const space = mecha.ascii.char(0x0020);
+    const new_line = mecha.ascii.char(0x000A);
+    const carriage_return = mecha.ascii.char(0x000D);
+    const tab = mecha.ascii.char(0x0009);
     const ws = mecha.oneOf(.{
         space,
         new_line,
@@ -40,43 +40,43 @@ const Parser = struct {
     const chars = char.many(.{ .collect = false });
 
     const char = mecha.oneOf(.{
-        mecha.utf8.range(0x0020, '"' - 1),
-        mecha.utf8.range('"' + 1, '\\' - 1),
-        mecha.utf8.range('\\' + 1, 0x10FFFF),
+        mecha.ascii.range(0x0020, '"' - 1),
+        mecha.ascii.range('"' + 1, '\\' - 1),
+        // mecha.ascii.range('\\' + 1, 0x10FFFF),
         mecha.combine(.{
-            mecha.utf8.char('\\').discard(),
+            mecha.ascii.char('\\').discard(),
             escape,
         }),
     });
 
     const escape = mecha.oneOf(.{
-        mecha.utf8.char('"'),
-        mecha.utf8.char('\\'),
-        mecha.utf8.char('/'),
-        mecha.utf8.char('b'),
-        mecha.utf8.char('f'),
-        mecha.utf8.char('n'),
-        mecha.utf8.char('r'),
-        mecha.utf8.char('t'),
-        // mecha.combine(.{ mecha.utf8.char('u'), hex, hex, hex, hex }),
+        mecha.ascii.char('"'),
+        mecha.ascii.char('\\'),
+        mecha.ascii.char('/'),
+        mecha.ascii.char('b'),
+        mecha.ascii.char('f'),
+        mecha.ascii.char('n'),
+        mecha.ascii.char('r'),
+        mecha.ascii.char('t'),
+        // mecha.combine(.{ mecha.ascii.char('u'), hex, hex, hex, hex }),
     });
 
     fn token(comptime parser: anytype) mecha.Parser(void) {
         return mecha.combine(.{ parser.discard(), ws });
     }
 
-    const lbracket = token(mecha.utf8.char('['));
-    const rbracket = token(mecha.utf8.char(']'));
+    const lbracket = token(mecha.ascii.char('['));
+    const rbracket = token(mecha.ascii.char(']'));
 
     const quote_string = mecha.combine(.{
-        mecha.utf8.char('"').discard(),
+        mecha.ascii.char('"').discard(),
         chars,
-        mecha.utf8.char('"').discard(),
+        mecha.ascii.char('"').discard(),
     });
 
     const Tag = struct { name: []const u8, value: []const u8 };
 
-    const tag = mecha.combine(.{
+    pub const tag = mecha.combine(.{
         lbracket.discard(),
         chars,
         space.discard(),
@@ -92,44 +92,56 @@ const Parser = struct {
     });
 
     const piece_char = mecha.oneOf(.{
-        mecha.utf8.char('K'),
-        mecha.utf8.char('N'),
-        mecha.utf8.char('B'),
-        mecha.utf8.char('R'),
-    });
+        mecha.ascii.char('K'),
+        mecha.ascii.char('N'),
+        mecha.ascii.char('B'),
+        mecha.ascii.char('R'),
+    }).asStr();
 
-    const file = mecha.utf8.range('a', 'h');
-    const rank = mecha.utf8.range('1', '8');
+    const file = mecha.ascii.range('a', 'h');
+    const rank = mecha.ascii.range('1', '8');
 
-    const square = mecha.combine(.{ file, rank });
+    const square = mecha.combine(.{ file, rank }).asStr();
 
-    const promotion = mecha.combine(.{ mecha.utf8.char('='), piece_char });
+    const promotion = mecha.combine(.{ mecha.ascii.char('='), piece_char }).asStr();
 
-    const check_or_mate = mecha.oneOf(.{ mecha.utf8.char('+'), mecha.utf8.char('#') });
-    const move_start = mecha.combine(.{ mecha.opt(piece_char), mecha.opt(file), mecha.opt(rank) });
-    const non_castle = mecha.combine(.{ move_start, square, mecha.opt(promotion) });
+    const check_or_mate = mecha.oneOf(.{ mecha.ascii.char('+'), mecha.ascii.char('#') }).asStr();
+
+    // const MoveStart = struct {
+    //     kind: ZigFish.Kind,
+    //     file: ?u8,
+    //     rank: ?u8,
+
+    //     // pub fn fromParser()
+    // };
+
+    const move_start = mecha.combine(.{ mecha.opt(piece_char), mecha.opt(file), mecha.opt(rank) }).asStr();
+
+    const non_castle = mecha.combine(.{ move_start, square, mecha.opt(promotion) }).asStr();
     const move_no_check = mecha.oneOf(.{
         non_castle,
         castle,
-    });
+    }).asStr();
 
-    const move = mecha.combine(.{ move_no_check, mecha.opt(check_or_mate) });
+    const move = mecha.combine(.{ move_no_check, mecha.opt(check_or_mate) }).asStr();
+
+    // mecha.ascii.
 
     const result = mecha.oneOf(.{
         mecha.string("1/2-1/2"),
         mecha.string("1-0"),
         mecha.string("0-1"),
         mecha.string("*"),
-    });
+    }).asStr();
 
     const digits = mecha.intToken(.{ .base = 10, .parse_sign = false });
-    const move_num = mecha.combine(.{ digits, mecha.utf8.char('.') });
+    const move_num = mecha.combine(.{ digits, mecha.ascii.char('.') }).asStr();
 
     const full_move = mecha.combine(.{
         move_num.discard(),
         move,
         ws.discard(),
-        mecha.oneOf(.{ move, result }),
+        mecha.opt(move),
     });
 
     const many_moves = mecha.many(full_move, .{ .separator = ws });
@@ -191,6 +203,18 @@ pub fn fromPgn(pgn: []const u8, allocator: Allocator) Allocator.Error!GameManage
 
 const fen = @import("fen.zig");
 
+test "parse pgn tag" {
+    const pgn_str = "[Event \"Balsa 110221\"]";
+
+    const testing = std.testing;
+    const allocator = testing.allocator;
+    const a = (try (comptime Parser.tag.asStr()).parse(allocator, pgn_str)).value;
+
+    std.debug.print("res: {s}\n", .{a});
+
+    try testing.expectEqualStrings(a, "e4");
+}
+
 test "parse pgn mecha" {
     const pgn_str =
         \\ [Event "Balsa 110221"]
@@ -214,9 +238,9 @@ test "parse pgn mecha" {
     const allocator = testing.allocator;
     const a = (try Parser.pgn.parse(allocator, pgn_str)).value;
 
-    std.debug.print("res: {}\n", .{a});
+    std.debug.print("res: {s}\n", .{a});
 
-    try testing.expectEqualStrings(a.moves[0], "e4");
+    try testing.expectEqualStrings(a, "e4");
 }
 
 // test "parse pgn" {
