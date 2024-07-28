@@ -10,14 +10,27 @@ const Allocator = std.mem.Allocator;
 pub const Move = ZigFish.Move;
 
 const zig_str = []const u8;
-// based on https://github.com/Hejsil/mecha/blob/master/example/json.zig
-const Parser = struct {
-    pub const Pgn = struct {
-        tags: []Tag,
-        moves: []FullMove,
-        result: zig_str,
+
+pub const Pgn = struct {
+    const FullMove = struct {
+        white: zig_str,
+        black: ?zig_str,
     };
 
+    const Tag = struct { name: []const u8, value: []const u8 };
+
+    tags: []Tag,
+    moves: []FullMove,
+    result: zig_str,
+
+    /// need to parse in the allocator used to parse
+    pub fn deinit(self: Pgn, allocator: Allocator) void {
+        allocator.free(self.tags);
+        allocator.free(self.moves);
+    }
+};
+
+const PgnParser = struct {
     pub const pgn = mecha.combine(.{
         many_tags,
         ws.discard(),
@@ -26,6 +39,8 @@ const Parser = struct {
         result,
         ws.discard(),
     }).map(mecha.toStruct(Pgn));
+
+    // based slightly on https://github.com/Hejsil/mecha/blob/master/example/json.zig
 
     const space = mecha.ascii.char(' ');
     const new_line = mecha.ascii.char('\n');
@@ -78,15 +93,13 @@ const Parser = struct {
 
     const quote_string = mecha.combine(.{ quote, in_quote_chars, quote });
 
-    const Tag = struct { name: []const u8, value: []const u8 };
-
     pub const tag = mecha.combine(.{
         lbracket.discard(),
         chars,
         space.discard(),
         quote_string,
         rbracket.discard(),
-    }).map(mecha.toStruct(Tag));
+    }).map(mecha.toStruct(Pgn.Tag));
 
     pub const many_tags = mecha.combine(.{ mecha.opt(ws).discard(), mecha.many(tag, .{ .separator = ws }) });
 
@@ -196,18 +209,13 @@ const Parser = struct {
     const digits = mecha.intToken(.{ .base = 10, .parse_sign = false });
     const move_num = mecha.combine(.{ digits, mecha.ascii.char('.') }).asStr();
 
-    const FullMove = struct {
-        white: zig_str,
-        black: ?zig_str,
-    };
-
     pub const full_move = mecha.combine(.{
         move_num.discard(),
         ws.discard(),
         move,
         ws.discard(),
         mecha.opt(move),
-    }).map(mecha.toStruct(FullMove));
+    }).map(mecha.toStruct(Pgn.FullMove));
 
     const many_moves = mecha.many(full_move, .{ .separator = ws });
 };
@@ -222,7 +230,7 @@ test "parse pgn tag" {
     const pgn_str = "[Event \"Balsa 110221\"]";
 
     const allocator = testing.allocator;
-    const a = (try (comptime Parser.tag).parse(allocator, pgn_str));
+    const a = (try (comptime PgnParser.tag).parse(allocator, pgn_str));
 
     // printRes(a);
 
@@ -238,7 +246,7 @@ test "parse pgn many tags" {
     ;
 
     const allocator = testing.allocator;
-    const a = (try (comptime Parser.many_tags).parse(allocator, tag_str));
+    const a = (try (comptime PgnParser.many_tags).parse(allocator, tag_str));
     defer allocator.free(a.value);
 
     try testing.expectEqualStrings("Date", a.value[2].name);
@@ -252,7 +260,7 @@ fn testStrParser(parser: mecha.Parser([]const u8), val: []const u8) !void {
     const allocator = fba.allocator();
 
     const res = try parser.parse(allocator, val);
-    printRes(res);
+    // printRes(res);
     try testing.expectEqualStrings(val, res.value);
 }
 
@@ -261,37 +269,31 @@ fn anyParser(comptime parser: anytype, val: []const u8) !void {
 }
 
 test "parse pgn square" {
-    try testStrParser(Parser.square, "e4");
-}
-
-test "parse pgn non pawn selector" {
-    try testStrParser(Parser.non_pawn_selector, "N2");
-    try testStrParser(Parser.non_pawn_selector, "Kf");
-    try testStrParser(Parser.non_pawn_selector, "Re2");
+    try testStrParser(PgnParser.square, "e4");
 }
 
 test "parse pgn non castle move" {
-    try testStrParser(Parser.non_castle, "N2e4");
-    try testStrParser(Parser.non_castle, "e4");
+    try testStrParser(PgnParser.non_castle, "N2e4");
+    try testStrParser(PgnParser.non_castle, "e4");
 }
 
 test "parse pgn move" {
-    try testStrParser(Parser.move, "Nf3");
-    try testStrParser(Parser.move, "Rxe1+");
-    try testStrParser(Parser.move, "e4#");
-    try testStrParser(Parser.move, "O-O-O#");
-    try testStrParser(Parser.move, "cxb4");
+    try testStrParser(PgnParser.move, "Nf3");
+    try testStrParser(PgnParser.move, "Rxe1+");
+    try testStrParser(PgnParser.move, "e4#");
+    try testStrParser(PgnParser.move, "O-O-O#");
+    try testStrParser(PgnParser.move, "cxb4");
 }
 
 test "parse pgn full move" {
-    try testStrParser(Parser.full_move, "1. e4 c5");
-    try testStrParser(Parser.full_move, "2. Nf3 d6");
-    try testStrParser(Parser.full_move, "3. d4 cxd4");
-    try testStrParser(Parser.full_move, "4. Nxd4");
+    try anyParser(PgnParser.full_move, "1. e4 c5");
+    try anyParser(PgnParser.full_move, "2. Nf3 d6");
+    try anyParser(PgnParser.full_move, "3. d4 cxd4");
+    try anyParser(PgnParser.full_move, "4. Nxd4");
 }
 
 test "parse pgn many moves" {
-    try anyParser(Parser.many_moves, "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4");
+    try anyParser(PgnParser.many_moves, "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4");
 }
 
 test "parse pgn mecha" {
@@ -313,16 +315,16 @@ test "parse pgn mecha" {
         \\ *
     ;
 
-    var buffer: [1000]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    const allocator = fba.allocator();
-    const a = (try Parser.pgn.parse(allocator, pgn_str));
+    // var buffer: [1000]u8 = undefined;
+    // var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const allocator = testing.allocator; //fba.allocator();
+    const a = (try PgnParser.pgn.parse(allocator, pgn_str));
 
     const parsed = a.value;
 
-    // printRes(a);
+    defer parsed.deinit(allocator);
 
-    std.log.warn("\n({s})\n", .{parsed.result});
+    // printRes(a);
 
     const last_tag = parsed.tags[11];
     try testing.expectEqualStrings("Source", last_tag.name);

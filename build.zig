@@ -137,6 +137,7 @@ pub fn build(b: *std.Build) void {
     exe_check.root_module.addImport("raygui", raygui);
     exe_check.root_module.addImport("zigfish", zigfish);
     exe_check.root_module.addImport("uci", uciModule);
+    lib_unit_tests.root_module.addImport("mecha", mecha);
 
     // Any other code to define dependencies would
     // probably be here.
