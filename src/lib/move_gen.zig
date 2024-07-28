@@ -31,7 +31,7 @@ const PinInfo = struct {
     king_attack_ray: ?BoardBitSet,
 };
 
-const NUM_KINDS = utils.enum_len(Kind);
+const NUM_KINDS = utils.enumLen(Kind);
 
 const AttackedSqaureInfo = struct {
     attackers: [NUM_KINDS]BoardBitSet,
@@ -49,7 +49,7 @@ pub const MoveGenInfo = struct {
 
 pub const GeneratedMoves = struct { moves: MoveList, gen_info: MoveGenInfo };
 
-const NUM_DIRS = utils.enum_len(Dir);
+const NUM_DIRS = utils.enumLen(Dir);
 
 const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook };
 

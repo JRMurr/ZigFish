@@ -44,8 +44,8 @@ pub const Kind = enum(u3) {
     }
 };
 
-pub const NUM_KINDS = utils.enum_len(Kind);
-pub const NUM_COLOR = utils.enum_len(Color);
+pub const NUM_KINDS = utils.enumLen(Kind);
+pub const NUM_COLOR = utils.enumLen(Color);
 
 pub const Piece = @This();
 

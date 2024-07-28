@@ -46,7 +46,7 @@ pub const CommandKind = enum {
             return error.EmptyInput;
         };
 
-        inline for (Utils.enum_fields(CommandKind)) |f| {
+        inline for (Utils.enumFields(CommandKind)) |f| {
             const kind: CommandKind = @enumFromInt(f.value);
             if (std.mem.eql(u8, command_str, kind.asStr())) {
                 return .{ .parsed = kind, .rest = iter };

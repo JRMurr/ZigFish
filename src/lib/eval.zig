@@ -29,7 +29,7 @@ pub fn evaluate(board: *const Board) Score {
 
 fn getMaterialScore(board: *const Board, color: Color) Score {
     var score: Score = 0;
-    inline for (utils.enum_fields(Kind)) |f| {
+    inline for (utils.enumFields(Kind)) |f| {
         const kind_idx = f.value;
         const kind: Kind = @enumFromInt(kind_idx);
         if (kind == Kind.King) {

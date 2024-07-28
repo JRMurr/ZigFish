@@ -7,8 +7,8 @@ const Position = ZigFish.Position;
 const Piece = ZigFish.Piece;
 const Color = Piece.Color;
 const Kind = Piece.Kind;
-const NUM_KINDS = utils.enum_len(Kind);
-const NUM_COLOR = utils.enum_len(Color);
+const NUM_KINDS = utils.enumLen(Kind);
+const NUM_COLOR = utils.enumLen(Color);
 
 const bitset = ZigFish.BitSet;
 const BoardBitSet = bitset.BoardBitSet;
@@ -80,7 +80,7 @@ pub fn computeLines() Lines {
 
     inline for (0..64) |idx| {
         const start_bs = BoardBitSet.initWithIndex(idx);
-        inline for (utils.enum_fields(Line)) |f| {
+        inline for (utils.enumFields(Line)) |f| {
             const line_idx = f.value;
             const line: Line = @enumFromInt(line_idx);
 
@@ -111,7 +111,7 @@ pub fn computeRays() Rays {
 
     inline for (0..64) |idx| {
         const start_bs = BoardBitSet.initWithIndex(idx);
-        inline for (utils.enum_fields(Dir)) |f| {
+        inline for (utils.enumFields(Dir)) |f| {
             const dir_idx = f.value;
             const dir: Dir = @enumFromInt(dir_idx);
 

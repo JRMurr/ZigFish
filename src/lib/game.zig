@@ -29,7 +29,7 @@ pub const MoveList = ZigFish.MoveList;
 
 const Allocator = std.mem.Allocator;
 
-const NUM_DIRS = utils.enum_len(Dir);
+const NUM_DIRS = utils.enumLen(Dir);
 
 const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook };
 

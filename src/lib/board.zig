@@ -40,8 +40,8 @@ pub const CastlingRights = struct {
     }
 };
 
-const NUM_KINDS = ZigFish.Utils.enum_len(ZigFish.Kind);
-const NUM_COLOR = ZigFish.Utils.enum_len(ZigFish.Color);
+const NUM_KINDS = ZigFish.Utils.enumLen(ZigFish.Kind);
+const NUM_COLOR = ZigFish.Utils.enumLen(ZigFish.Color);
 
 /// Metadata about the board that is irreversible
 /// Need to store copies of this for move unmaking

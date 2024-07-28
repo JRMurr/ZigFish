@@ -105,7 +105,7 @@ pub const Line = enum {
     }
 };
 
-pub const NUM_LINES = utils.enum_len(Line);
+pub const NUM_LINES = utils.enumLen(Line);
 
 pub const Dir = enum(u3) {
     North = 0,
@@ -203,7 +203,7 @@ pub const Dir = enum(u3) {
     }
 };
 
-pub const NUM_DIRS = utils.enum_len(Dir);
+pub const NUM_DIRS = utils.enumLen(Dir);
 
 pub const BoardBitSet = packed struct {
     const Self = @This();
