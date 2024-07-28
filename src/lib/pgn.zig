@@ -55,25 +55,11 @@ const PgnParser = struct {
 
     const chars = char.many(.{ .collect = false, .min = 1 });
 
-    // const char = mecha.ascii.alphanumeric; // TODO: esacpes?
-
     // https://www.asciitable.com/
     const char = mecha.oneOf(.{
         mecha.ascii.range(35, 126), // most normal chars expect ! and quote
         mecha.ascii.char('!'),
     }).asStr();
-
-    const escape = mecha.oneOf(.{
-        mecha.ascii.char('"'),
-        mecha.ascii.char('\\'),
-        mecha.ascii.char('/'),
-        mecha.ascii.char('b'),
-        mecha.ascii.char('f'),
-        mecha.ascii.char('n'),
-        mecha.ascii.char('r'),
-        mecha.ascii.char('t'),
-        // mecha.combine(.{ mecha.ascii.char('u'), hex, hex, hex, hex }),
-    });
 
     fn token(comptime parser: anytype) mecha.Parser(void) {
         return mecha.combine(.{ parser.discard(), ws });
@@ -103,6 +89,9 @@ const PgnParser = struct {
 
     pub const many_tags = mecha.combine(.{ mecha.opt(ws).discard(), mecha.many(tag, .{ .separator = ws }) });
 
+    // TODO: could replace the manual san parsing with this
+    // mecha.noop will probably be needed to make the many different paths have the same parse type
+
     const castle = mecha.oneOf(.{
         mecha.string("O-O-O"),
         mecha.string("O-O"),
@@ -123,14 +112,6 @@ const PgnParser = struct {
     const promotion = mecha.combine(.{ mecha.ascii.char('='), piece_char }).asStr();
 
     const check_or_mate = mecha.oneOf(.{ mecha.ascii.char('+'), mecha.ascii.char('#') }).asStr();
-
-    // const MoveStart = struct {
-    //     kind: ZigFish.Kind,
-    //     file: ?u8,
-    //     rank: ?u8,
-
-    //     // pub fn fromParser()
-    // };
 
     const capture_char = mecha.ascii.char('x');
 
@@ -178,8 +159,6 @@ const PgnParser = struct {
         move_end,
     }).asStr();
 
-    // pub const non_pawn_move = mecha.combine(.{ all_selectors, square }).asStr();
-
     const move_start = mecha.oneOf(.{
         non_pawn_move,
         pawn_move,
@@ -196,8 +175,6 @@ const PgnParser = struct {
     }).asStr();
 
     pub const move = mecha.combine(.{ move_no_check, mecha.opt(check_or_mate) }).asStr();
-
-    // mecha.ascii.
 
     const result = mecha.oneOf(.{
         mecha.string("1/2-1/2"),
