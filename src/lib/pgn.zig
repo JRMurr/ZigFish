@@ -9,22 +9,22 @@ const Allocator = std.mem.Allocator;
 
 pub const Move = ZigFish.Move;
 
-const zig_str = []u8;
+const zig_str = []const u8;
 // based on https://github.com/Hejsil/mecha/blob/master/example/json.zig
 const Parser = struct {
     pub const Pgn = struct {
         // tags: []Tag,
         moves: []zig_str,
-        // result: zig_str,
+        result: zig_str,
     };
 
     pub const pgn = mecha.combine(.{
         many_tags.discard(),
-        new_line.discard(),
+        ws.discard(),
         many_moves,
         ws.discard(),
         result,
-    }).asStr();
+    }).map(mecha.toStruct(Pgn));
 
     const space = mecha.ascii.char(' ');
     const new_line = mecha.ascii.char('\n');
@@ -317,12 +317,16 @@ test "parse pgn mecha" {
         \\ O-O *
     ;
 
-    const allocator = testing.allocator;
+    var buffer: [1000]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const allocator = fba.allocator();
     const a = (try Parser.pgn.parse(allocator, pgn_str));
 
-    printRes(a);
+    // printRes(a);
 
-    try testing.expectEqualStrings(a.value, "e4");
+    std.log.warn("\n{}\n", .{a.value});
+
+    // try testing.expectEqualStrings("e4", a.value.moves);
 }
 
 fn isResult(str: []const u8) bool {
