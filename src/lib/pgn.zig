@@ -13,17 +13,18 @@ const zig_str = []const u8;
 // based on https://github.com/Hejsil/mecha/blob/master/example/json.zig
 const Parser = struct {
     pub const Pgn = struct {
-        // tags: []Tag,
-        moves: []zig_str,
+        tags: []Tag,
+        moves: []FullMove,
         result: zig_str,
     };
 
     pub const pgn = mecha.combine(.{
-        many_tags.discard(),
+        many_tags,
         ws.discard(),
         many_moves,
         ws.discard(),
         result,
+        ws.discard(),
     }).map(mecha.toStruct(Pgn));
 
     const space = mecha.ascii.char(' ');
@@ -195,13 +196,18 @@ const Parser = struct {
     const digits = mecha.intToken(.{ .base = 10, .parse_sign = false });
     const move_num = mecha.combine(.{ digits, mecha.ascii.char('.') }).asStr();
 
+    const FullMove = struct {
+        white: zig_str,
+        black: ?zig_str,
+    };
+
     pub const full_move = mecha.combine(.{
         move_num.discard(),
         ws.discard(),
         move,
         ws.discard(),
         mecha.opt(move),
-    }).asStr();
+    }).map(mecha.toStruct(FullMove));
 
     const many_moves = mecha.many(full_move, .{ .separator = ws });
 };
@@ -209,16 +215,6 @@ const Parser = struct {
 fn printRes(val: mecha.Result([]const u8)) void {
     std.log.warn("\nval: ({s})\nrest: ({s})\n", .{ val.value, val.rest });
 }
-
-// test "parse quote" {
-//     const test_str = "\"";
-
-//
-//     const allocator = testing.allocator;
-//     const a = (try (comptime Parser.quote.asStr()).parse(allocator, test_str));
-
-//     printRes(a);
-// }
 
 const testing = std.testing;
 
@@ -314,7 +310,7 @@ test "parse pgn mecha" {
         \\ [Source "Sedat Canbaz"]
         \\ 
         \\ 1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5 7. Nb3 Be7 8. O-O
-        \\ O-O *
+        \\ *
     ;
 
     var buffer: [1000]u8 = undefined;
@@ -322,11 +318,20 @@ test "parse pgn mecha" {
     const allocator = fba.allocator();
     const a = (try Parser.pgn.parse(allocator, pgn_str));
 
+    const parsed = a.value;
+
     // printRes(a);
 
-    std.log.warn("\n{}\n", .{a.value});
+    std.log.warn("\n({s})\n", .{parsed.result});
 
-    // try testing.expectEqualStrings("e4", a.value.moves);
+    const last_tag = parsed.tags[11];
+    try testing.expectEqualStrings("Source", last_tag.name);
+
+    const last_move = parsed.moves[7];
+    try testing.expectEqualStrings("O-O", last_move.white);
+    try testing.expectEqual(null, last_move.black);
+
+    try testing.expectEqualStrings("*", parsed.result);
 }
 
 fn isResult(str: []const u8) bool {
