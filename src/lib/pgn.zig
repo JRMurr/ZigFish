@@ -118,15 +118,57 @@ const Parser = struct {
     //     // pub fn fromParser()
     // };
 
-    pub const non_pawn_selector = mecha.combine(.{
-        piece_char,
-        mecha.opt(file),
-        mecha.opt(rank),
+    const capture_char = mecha.ascii.char('x');
+
+    const move_end = mecha.combine(.{
+        mecha.opt(capture_char),
+        square,
     }).asStr();
 
-    const move_start = mecha.combine(.{
-        mecha.opt(non_pawn_selector),
+    const maxium_selector = mecha.combine(.{
+        piece_char,
+        file,
+        rank,
+        move_end,
+    }).asStr();
+
+    const file_selector = mecha.combine(.{
+        piece_char,
+        file,
+        move_end,
+    }).asStr();
+
+    const rank_selector = mecha.combine(.{
+        piece_char,
+        rank,
+        move_end,
+    }).asStr();
+
+    const no_selector = mecha.combine(.{ piece_char, move_end }).asStr();
+
+    const non_pawn_move = mecha.oneOf(.{
+        maxium_selector,
+        no_selector,
+        rank_selector,
+        file_selector,
+    }).asStr();
+
+    const pawn_capture = mecha.combine(.{
+        file,
+        capture_char,
         square,
+    }).asStr();
+
+    const pawn_move = mecha.oneOf(.{
+        pawn_capture,
+        move_end,
+    }).asStr();
+
+    // pub const non_pawn_move = mecha.combine(.{ all_selectors, square }).asStr();
+
+    const move_start = mecha.oneOf(.{
+        non_pawn_move,
+        pawn_move,
     }).asStr();
 
     pub const non_castle = mecha.combine(.{
@@ -153,12 +195,13 @@ const Parser = struct {
     const digits = mecha.intToken(.{ .base = 10, .parse_sign = false });
     const move_num = mecha.combine(.{ digits, mecha.ascii.char('.') }).asStr();
 
-    const full_move = mecha.combine(.{
+    pub const full_move = mecha.combine(.{
         move_num.discard(),
+        ws.discard(),
         move,
         ws.discard(),
         mecha.opt(move),
-    });
+    }).asStr();
 
     const many_moves = mecha.many(full_move, .{ .separator = ws });
 };
@@ -207,10 +250,18 @@ test "parse pgn many tags" {
 }
 
 fn testStrParser(parser: mecha.Parser([]const u8), val: []const u8) !void {
-    const allocator = testing.allocator;
+    // To ignore leaks in the helper just used a stack alloactor
+    var buffer: [1000]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    const allocator = fba.allocator();
+
     const res = try parser.parse(allocator, val);
     printRes(res);
     try testing.expectEqualStrings(val, res.value);
+}
+
+fn anyParser(comptime parser: anytype, val: []const u8) !void {
+    return testStrParser(parser.asStr(), val);
 }
 
 test "parse pgn square" {
@@ -226,6 +277,25 @@ test "parse pgn non pawn selector" {
 test "parse pgn non castle move" {
     try testStrParser(Parser.non_castle, "N2e4");
     try testStrParser(Parser.non_castle, "e4");
+}
+
+test "parse pgn move" {
+    try testStrParser(Parser.move, "Nf3");
+    try testStrParser(Parser.move, "Rxe1+");
+    try testStrParser(Parser.move, "e4#");
+    try testStrParser(Parser.move, "O-O-O#");
+    try testStrParser(Parser.move, "cxb4");
+}
+
+test "parse pgn full move" {
+    try testStrParser(Parser.full_move, "1. e4 c5");
+    try testStrParser(Parser.full_move, "2. Nf3 d6");
+    try testStrParser(Parser.full_move, "3. d4 cxd4");
+    try testStrParser(Parser.full_move, "4. Nxd4");
+}
+
+test "parse pgn many moves" {
+    try anyParser(Parser.many_moves, "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4");
 }
 
 test "parse pgn mecha" {
