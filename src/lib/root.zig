@@ -4,8 +4,7 @@ const testing = std.testing;
 pub usingnamespace @import("board.zig");
 pub usingnamespace @import("position.zig");
 
-const game_types = @import("game.zig");
-pub const GameManager = game_types.GameManager;
+pub usingnamespace @import("game.zig");
 
 pub const MoveGen = @import("move_gen.zig");
 pub const MoveList = @import("move_list.zig");

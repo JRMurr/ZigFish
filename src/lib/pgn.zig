@@ -7,19 +7,37 @@ const GameManager = ZigFish.GameManager;
 
 const Allocator = std.mem.Allocator;
 
-pub const Move = ZigFish.Move;
+const Move = ZigFish.Move;
+const GameResult = ZigFish.GameResult;
+const Kind = ZigFish.Piece.Kind;
+const Position = ZigFish.Position;
 
 pub const Pgn = struct {
+    const Move = struct {
+        kind: Kind,
+
+        start_file: ?usize,
+        start_rank: ?usize,
+
+        is_capture: bool,
+        end: Position,
+        promotion_kind: ?Kind,
+        check_flag: ?u8,
+    };
+
     const FullMove = struct {
         white: []const u8,
         black: ?[]const u8,
     };
 
-    const Tag = struct { name: []const u8, value: []const u8 };
+    const Tag = struct {
+        name: []const u8,
+        value: []const u8,
+    };
 
     tags: []Tag,
     moves: []FullMove,
-    result: []const u8,
+    result: ZigFish.GameResult,
 
     /// need to parse in the allocator used to parse
     pub fn deinit(self: Pgn, allocator: Allocator) void {
@@ -104,10 +122,18 @@ const PgnParser = struct {
         mecha.ascii.char('R'),
     }).asStr();
 
-    const file = mecha.ascii.range('a', 'h').asStr();
-    const rank = mecha.ascii.range('1', '8').asStr();
+    fn fileToInt(f: u8) usize {
+        return f - 'a';
+    }
 
-    pub const square = mecha.combine(.{ file, rank }).asStr();
+    fn rankToInt(r: u8) usize {
+        return r - '1';
+    }
+
+    const file = mecha.ascii.range('a', 'h').map(fileToInt);
+    const rank = mecha.ascii.range('1', '8').map(rankToInt);
+
+    pub const square = mecha.combine(.{ file, rank }).asStr().map(Position.fromStr);
 
     const promotion = mecha.combine(.{ mecha.ascii.char('='), piece_char }).asStr();
 
@@ -115,31 +141,60 @@ const PgnParser = struct {
 
     const capture_char = mecha.ascii.char('x');
 
+    fn optToBool(v: anytype) bool {
+        return if (v == null) false else true;
+    }
+
     const move_end = mecha.combine(.{
-        mecha.opt(capture_char),
+        mecha.opt(capture_char).map(optToBool),
         square,
     }).asStr();
 
+    // fn toOptional(T: type) fn (v: T) ?T {
+    //     const mapper = struct {
+    //         fn mapp(v: T) ?T {
+    //             return v;
+    //         }
+    //     }.mapper;
+
+    //     return mapper;
+    // }
+
+    fn toOptional(v: usize) ?usize {
+        return v;
+    }
+
+    fn toNull(_: anytype) ?usize {
+        return null;
+    }
+
     const maxium_selector = mecha.combine(.{
         piece_char,
-        file,
-        rank,
+        file.map(toOptional),
+        rank.map(toOptional),
         move_end,
-    }).asStr();
+    });
 
     const file_selector = mecha.combine(.{
         piece_char,
-        file,
+        file.map(toOptional),
+        mecha.noop.map(toNull),
         move_end,
-    }).asStr();
+    });
 
     const rank_selector = mecha.combine(.{
         piece_char,
-        rank,
+        mecha.noop.map(toNull),
+        rank.map(toOptional),
+        move_end,
+    });
+
+    const no_selector = mecha.combine(.{
+        piece_char,
+        mecha.noop.map(toNull),
+        mecha.noop.map(toNull),
         move_end,
     }).asStr();
-
-    const no_selector = mecha.combine(.{ piece_char, move_end }).asStr();
 
     const non_pawn_move = mecha.oneOf(.{
         maxium_selector,
@@ -149,8 +204,18 @@ const PgnParser = struct {
     }).asStr();
 
     const pawn_capture = mecha.combine(.{
+        mecha.noop.mapConst(Kind.Pawn),
         file,
-        capture_char,
+        mecha.noop.map(toNull),
+        capture_char.mapConst(true),
+        square,
+    }).asStr();
+
+    const pawn_no_captrue = mecha.combine(.{
+        mecha.noop.mapConst(Kind.Pawn),
+        file,
+        mecha.noop.map(toNull),
+        mecha.noop.mapConst(false),
         square,
     }).asStr();
 
@@ -177,11 +242,11 @@ const PgnParser = struct {
     pub const move = mecha.combine(.{ move_no_check, mecha.opt(check_or_mate) }).asStr();
 
     const result = mecha.oneOf(.{
-        mecha.string("1/2-1/2"),
-        mecha.string("1-0"),
-        mecha.string("0-1"),
-        mecha.string("*"),
-    }).asStr();
+        mecha.string("1/2-1/2").mapConst(GameResult.Draw),
+        mecha.string("1-0").mapConst(GameResult.WhiteWin),
+        mecha.string("0-1").mapConst(GameResult.BlackWin),
+        mecha.string("*").mapConst(GameResult.InProgress),
+    });
 
     const digits = mecha.intToken(.{ .base = 10, .parse_sign = false });
     const move_num = mecha.combine(.{ digits, mecha.ascii.char('.') }).asStr();
@@ -310,7 +375,7 @@ test "parse pgn" {
     try testing.expectEqualStrings("O-O", last_move.white);
     try testing.expectEqual(null, last_move.black);
 
-    try testing.expectEqualStrings("*", parsed.result);
+    try testing.expectEqual(GameResult.InProgress, parsed.result);
 }
 
 test "parse many pgn" {

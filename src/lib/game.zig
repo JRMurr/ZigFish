@@ -25,20 +25,18 @@ const Fen = ZigFish.Fen;
 const Search = ZigFish.Search;
 
 const MoveGen = ZigFish.MoveGen;
-pub const MoveList = ZigFish.MoveList;
+const MoveList = ZigFish.MoveList;
 
 const Allocator = std.mem.Allocator;
 
-const NUM_DIRS = utils.enum_len(Dir);
-
-const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook };
-
-// pub const MoveHistory = struct {
-//     move: Move,
-//     meta: BoardMeta,
-// };
-
 const HistoryStack = std.ArrayList(BoardMeta);
+
+pub const GameResult = enum {
+    Draw,
+    WhiteWin,
+    BlackWin,
+    InProgress,
+};
 
 pub const GameManager = struct {
     const Self = @This();
