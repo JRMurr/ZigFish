@@ -26,10 +26,10 @@ const Parser = struct {
         result,
     }).asStr();
 
-    const space = mecha.ascii.char(0x0020);
-    const new_line = mecha.ascii.char(0x000A);
-    const carriage_return = mecha.ascii.char(0x000D);
-    const tab = mecha.ascii.char(0x0009);
+    const space = mecha.ascii.char(' ');
+    const new_line = mecha.ascii.char('\n');
+    const carriage_return = mecha.ascii.char('\r');
+    const tab = mecha.ascii.char('\t');
     const ws = mecha.oneOf(.{
         space,
         new_line,
@@ -37,17 +37,15 @@ const Parser = struct {
         tab,
     }).many(.{ .collect = false }).discard();
 
-    const chars = char.many(.{ .collect = false });
+    const chars = char.many(.{ .collect = false, .min = 1 });
 
+    // const char = mecha.ascii.alphanumeric; // TODO: esacpes?
+
+    // https://www.asciitable.com/
     const char = mecha.oneOf(.{
-        mecha.ascii.range(0x0020, '"' - 1),
-        mecha.ascii.range('"' + 1, '\\' - 1),
-        // mecha.ascii.range('\\' + 1, 0x10FFFF),
-        mecha.combine(.{
-            mecha.ascii.char('\\').discard(),
-            escape,
-        }),
-    });
+        mecha.ascii.range(35, 126), // most normal chars expect ! and quote
+        mecha.ascii.char('!'),
+    }).asStr();
 
     const escape = mecha.oneOf(.{
         mecha.ascii.char('"'),
@@ -68,11 +66,16 @@ const Parser = struct {
     const lbracket = token(mecha.ascii.char('['));
     const rbracket = token(mecha.ascii.char(']'));
 
-    const quote_string = mecha.combine(.{
-        mecha.ascii.char('"').discard(),
-        chars,
-        mecha.ascii.char('"').discard(),
-    });
+    pub const quote = token(mecha.ascii.char('"'));
+
+    const in_quote_char = mecha.oneOf(.{
+        char.asStr(),
+        space.asStr(),
+        mecha.string("\\\""),
+    }).asStr();
+    const in_quote_chars = mecha.many(in_quote_char, .{ .collect = false });
+
+    const quote_string = mecha.combine(.{ quote, in_quote_chars, quote });
 
     const Tag = struct { name: []const u8, value: []const u8 };
 
@@ -84,7 +87,7 @@ const Parser = struct {
         rbracket.discard(),
     }).map(mecha.toStruct(Tag));
 
-    const many_tags = mecha.many(tag, .{ .separator = ws });
+    pub const many_tags = mecha.combine(.{ mecha.opt(ws).discard(), mecha.many(tag, .{ .separator = ws }) });
 
     const castle = mecha.oneOf(.{
         mecha.string("O-O-O"),
@@ -98,10 +101,10 @@ const Parser = struct {
         mecha.ascii.char('R'),
     }).asStr();
 
-    const file = mecha.ascii.range('a', 'h');
-    const rank = mecha.ascii.range('1', '8');
+    const file = mecha.ascii.range('a', 'h').asStr();
+    const rank = mecha.ascii.range('1', '8').asStr();
 
-    const square = mecha.combine(.{ file, rank }).asStr();
+    pub const square = mecha.combine(.{ file, rank }).asStr();
 
     const promotion = mecha.combine(.{ mecha.ascii.char('='), piece_char }).asStr();
 
@@ -115,15 +118,28 @@ const Parser = struct {
     //     // pub fn fromParser()
     // };
 
-    const move_start = mecha.combine(.{ mecha.opt(piece_char), mecha.opt(file), mecha.opt(rank) }).asStr();
+    pub const non_pawn_selector = mecha.combine(.{
+        piece_char,
+        mecha.opt(file),
+        mecha.opt(rank),
+    }).asStr();
 
-    const non_castle = mecha.combine(.{ move_start, square, mecha.opt(promotion) }).asStr();
+    const move_start = mecha.combine(.{
+        mecha.opt(non_pawn_selector),
+        square,
+    }).asStr();
+
+    pub const non_castle = mecha.combine(.{
+        move_start,
+        mecha.opt(promotion),
+    }).asStr();
+
     const move_no_check = mecha.oneOf(.{
         non_castle,
         castle,
     }).asStr();
 
-    const move = mecha.combine(.{ move_no_check, mecha.opt(check_or_mate) }).asStr();
+    pub const move = mecha.combine(.{ move_no_check, mecha.opt(check_or_mate) }).asStr();
 
     // mecha.ascii.
 
@@ -146,6 +162,98 @@ const Parser = struct {
 
     const many_moves = mecha.many(full_move, .{ .separator = ws });
 };
+
+fn printRes(val: mecha.Result([]const u8)) void {
+    std.log.warn("\nval: ({s})\nrest: ({s})\n", .{ val.value, val.rest });
+}
+
+// test "parse quote" {
+//     const test_str = "\"";
+
+//
+//     const allocator = testing.allocator;
+//     const a = (try (comptime Parser.quote.asStr()).parse(allocator, test_str));
+
+//     printRes(a);
+// }
+
+const testing = std.testing;
+
+test "parse pgn tag" {
+    const pgn_str = "[Event \"Balsa 110221\"]";
+
+    const allocator = testing.allocator;
+    const a = (try (comptime Parser.tag).parse(allocator, pgn_str));
+
+    // printRes(a);
+
+    try testing.expectEqualStrings("Event", a.value.name);
+    try testing.expectEqualStrings("Balsa 110221", a.value.value);
+}
+
+test "parse pgn many tags" {
+    const tag_str =
+        \\ [Event "Balsa 110221"]
+        \\ [Site "?"]
+        \\ [Date "2019.08.25"]
+    ;
+
+    const allocator = testing.allocator;
+    const a = (try (comptime Parser.many_tags).parse(allocator, tag_str));
+    defer allocator.free(a.value);
+
+    try testing.expectEqualStrings("Date", a.value[2].name);
+    try testing.expectEqualStrings("2019.08.25", a.value[2].value);
+}
+
+fn testStrParser(parser: mecha.Parser([]const u8), val: []const u8) !void {
+    const allocator = testing.allocator;
+    const res = try parser.parse(allocator, val);
+    printRes(res);
+    try testing.expectEqualStrings(val, res.value);
+}
+
+test "parse pgn square" {
+    try testStrParser(Parser.square, "e4");
+}
+
+test "parse pgn non pawn selector" {
+    try testStrParser(Parser.non_pawn_selector, "N2");
+    try testStrParser(Parser.non_pawn_selector, "Kf");
+    try testStrParser(Parser.non_pawn_selector, "Re2");
+}
+
+test "parse pgn non castle move" {
+    try testStrParser(Parser.non_castle, "N2e4");
+    try testStrParser(Parser.non_castle, "e4");
+}
+
+test "parse pgn mecha" {
+    const pgn_str =
+        \\ [Event "Balsa 110221"]
+        \\ [Site "?"]
+        \\ [Date "2019.08.25"]
+        \\ [Round "2.42"]
+        \\ [White "X"]
+        \\ [Black "X"]
+        \\ [Result "*"]
+        \\ [ECO "B92"]
+        \\ [PlyCount "16"]
+        \\ [EventDate "2021.01.17"]
+        \\ [EventType "simul"]
+        \\ [Source "Sedat Canbaz"]
+        \\ 
+        \\ 1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5 7. Nb3 Be7 8. O-O
+        \\ O-O *
+    ;
+
+    const allocator = testing.allocator;
+    const a = (try Parser.pgn.parse(allocator, pgn_str));
+
+    printRes(a);
+
+    try testing.expectEqualStrings(a.value, "e4");
+}
 
 fn isResult(str: []const u8) bool {
     if (std.mem.eql(u8, str, "1/2-1/2")) {
@@ -202,46 +310,6 @@ pub fn fromPgn(pgn: []const u8, allocator: Allocator) Allocator.Error!GameManage
 }
 
 const fen = @import("fen.zig");
-
-test "parse pgn tag" {
-    const pgn_str = "[Event \"Balsa 110221\"]";
-
-    const testing = std.testing;
-    const allocator = testing.allocator;
-    const a = (try (comptime Parser.tag.asStr()).parse(allocator, pgn_str)).value;
-
-    std.debug.print("res: {s}\n", .{a});
-
-    try testing.expectEqualStrings(a, "e4");
-}
-
-test "parse pgn mecha" {
-    const pgn_str =
-        \\ [Event "Balsa 110221"]
-        \\ [Site "?"]
-        \\ [Date "2019.08.25"]
-        \\ [Round "2.42"]
-        \\ [White "X"]
-        \\ [Black "X"]
-        \\ [Result "*"]
-        \\ [ECO "B92"]
-        \\ [PlyCount "16"]
-        \\ [EventDate "2021.01.17"]
-        \\ [EventType "simul"]
-        \\ [Source "Sedat Canbaz"]
-        \\ 
-        \\ 1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5 7. Nb3 Be7 8. O-O
-        \\ O-O *
-    ;
-
-    const testing = std.testing;
-    const allocator = testing.allocator;
-    const a = (try Parser.pgn.parse(allocator, pgn_str)).value;
-
-    std.debug.print("res: {s}\n", .{a});
-
-    try testing.expectEqualStrings(a, "e4");
-}
 
 // test "parse pgn" {
 //     const pgn =
