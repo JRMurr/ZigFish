@@ -79,12 +79,11 @@ pub fn computeLines() Lines {
     var moves: [64][NUM_LINES]BoardBitSet = undefined;
 
     inline for (0..64) |idx| {
-        const start_bs = BoardBitSet.initWithIndex(idx);
         inline for (utils.enumFields(Line)) |f| {
             const line_idx = f.value;
             const line: Line = @enumFromInt(line_idx);
 
-            moves[idx][line_idx] = line.computeLine(start_bs);
+            moves[idx][line_idx] = line.computeLine(idx);
         }
     }
     return moves;
@@ -110,12 +109,11 @@ pub fn computeRays() Rays {
     var moves: [64][NUM_DIRS]BoardBitSet = undefined;
 
     inline for (0..64) |idx| {
-        const start_bs = BoardBitSet.initWithIndex(idx);
         inline for (utils.enumFields(Dir)) |f| {
             const dir_idx = f.value;
             const dir: Dir = @enumFromInt(dir_idx);
 
-            moves[idx][dir_idx] = dir.computeRay(start_bs);
+            moves[idx][dir_idx] = dir.computeRay(idx);
         }
     }
     return moves;

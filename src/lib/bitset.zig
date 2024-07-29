@@ -91,9 +91,7 @@ pub const Line = enum {
     MainDiag,
     AntiDiag,
 
-    pub fn computeLine(self: Line, sqaure: BoardBitSet) BoardBitSet {
-        const sq = sqaure.toSquare();
-
+    pub fn computeLine(self: Line, sq: u32) BoardBitSet {
         const mask = switch (self) {
             .Rank => rankMask(sq),
             .File => fileMask(sq),
@@ -117,12 +115,12 @@ pub const Dir = enum(u3) {
     SouthWest = 6,
     SouthEast = 7,
 
-    pub fn computeRay(self: Dir, sqaure: BoardBitSet) BoardBitSet {
+    pub fn computeRay(self: Dir, sq: u32) BoardBitSet {
         // https://www.chessprogramming.org/On_an_empty_Board#Rays_by_Line
         const line = self.toLine();
 
-        const single_bit = sqaure.bit_set.mask;
-        const sq = sqaure.toSquare();
+        const square_bitset = BoardBitSet.initWithIndex(sq);
+        const single_bit = square_bitset.bit_set.mask;
 
         const line_attacks = precompute.LINES[sq][@intFromEnum(line)];
 
