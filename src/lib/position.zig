@@ -71,7 +71,7 @@ pub const Position = packed struct {
     }
 
     pub fn move_dir(self: Position, dir: Dir) Position {
-        const new_idx = @as(i8, @intCast(self.index)) + dir.to_offset();
+        const new_idx = @as(i8, @intCast(self.index)) + dir.toOffset();
         return Position.fromIndex(@intCast(new_idx));
     }
 

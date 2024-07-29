@@ -84,7 +84,7 @@ pub fn computeLines() Lines {
             const line_idx = f.value;
             const line: Line = @enumFromInt(line_idx);
 
-            moves[idx][line_idx] = line.compute_line(start_bs);
+            moves[idx][line_idx] = line.computeLine(start_bs);
         }
     }
     return moves;
@@ -115,7 +115,7 @@ pub fn computeRays() Rays {
             const dir_idx = f.value;
             const dir: Dir = @enumFromInt(dir_idx);
 
-            moves[idx][dir_idx] = dir.compute_ray(start_bs);
+            moves[idx][dir_idx] = dir.computeRay(start_bs);
         }
     }
     return moves;

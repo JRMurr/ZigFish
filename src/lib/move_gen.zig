@@ -82,7 +82,7 @@ pub fn pinAttacker(self: *const Self, pin_pos: Position, ignore_sqaures: BoardBi
 
         var on_ray = moves.intersectWith(self.board.occupied_set.differenceWith(ignore_sqaures));
         if (on_ray.count() > 1) {
-            const possible_pin = dir.first_hit_on_ray(on_ray);
+            const possible_pin = dir.firstHitOnRay(on_ray);
 
             if (possible_pin != pin_pos.toIndex()) {
                 continue;
@@ -90,7 +90,7 @@ pub fn pinAttacker(self: *const Self, pin_pos: Position, ignore_sqaures: BoardBi
 
             on_ray.unset(possible_pin);
 
-            const possible_attacker = dir.first_hit_on_ray(on_ray);
+            const possible_attacker = dir.firstHitOnRay(on_ray);
 
             const kind = if (dir_index < 4) Kind.Rook else Kind.Bishop;
             const kind_board = self.board.getPieceSet(Piece{ .color = color.get_enemy(), .kind = kind });
@@ -127,7 +127,7 @@ pub fn findPinnedPieces(self: *const Self, color: Color) PinInfo {
 
             const all_valid_enemies = kind_board.unionWith(enmey_queens);
 
-            const first_seen_on_ray = dir.first_hit_on_ray(on_ray);
+            const first_seen_on_ray = dir.firstHitOnRay(on_ray);
 
             if (all_valid_enemies.isSet(first_seen_on_ray)) {
                 // direct attack on king
@@ -144,7 +144,7 @@ pub fn findPinnedPieces(self: *const Self, color: Color) PinInfo {
                 continue;
             }
 
-            const possible_attacker = dir.first_hit_on_ray(on_ray);
+            const possible_attacker = dir.firstHitOnRay(on_ray);
 
             if (all_valid_enemies.intersectWith(on_ray).isSet(possible_attacker)) {
                 pinned.set(first_seen_on_ray);
@@ -170,7 +170,7 @@ pub fn slidingMoves(board: *const Board, p: Piece, pos: Position, ignore_sqaures
 
         const blocker = moves.intersectWith(board.occupied_set.differenceWith(ignore_sqaures));
         if (blocker.count() > 0) {
-            const sqaure = if (dir.is_positive())
+            const sqaure = if (dir.isPositive())
                 blocker.bitScanForward()
             else
                 blocker.bitScanReverse();

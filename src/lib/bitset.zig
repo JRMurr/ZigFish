@@ -91,7 +91,7 @@ pub const Line = enum {
     MainDiag,
     AntiDiag,
 
-    pub fn compute_line(self: Line, sqaure: BoardBitSet) BoardBitSet {
+    pub fn computeLine(self: Line, sqaure: BoardBitSet) BoardBitSet {
         const sq = sqaure.toSquare();
 
         const mask = switch (self) {
@@ -117,9 +117,9 @@ pub const Dir = enum(u3) {
     SouthWest = 6,
     SouthEast = 7,
 
-    pub fn compute_ray(self: Dir, sqaure: BoardBitSet) BoardBitSet {
+    pub fn computeRay(self: Dir, sqaure: BoardBitSet) BoardBitSet {
         // https://www.chessprogramming.org/On_an_empty_Board#Rays_by_Line
-        const line = self.to_line();
+        const line = self.toLine();
 
         const single_bit = sqaure.bit_set.mask;
         const sq = sqaure.toSquare();
@@ -127,7 +127,7 @@ pub const Dir = enum(u3) {
         const line_attacks = precompute.LINES[sq][@intFromEnum(line)];
 
         var ray_mask: MaskInt = undefined;
-        if (self.is_positive()) {
+        if (self.isPositive()) {
             const shifted = single_bit << 1;
             // creates a mask where all bits to the left of the original single bit (including the bit itself)
             // are set to 0 and all bits to the right are set to 1.
@@ -141,16 +141,16 @@ pub const Dir = enum(u3) {
         return BoardBitSet.fromMask(line_attacks.bit_set.mask & ray_mask);
     }
 
-    pub fn first_hit_on_ray(self: Dir, ray: BoardBitSet) usize {
+    pub fn firstHitOnRay(self: Dir, ray: BoardBitSet) usize {
         std.debug.assert(ray.bit_set.mask != 0);
-        if (self.is_positive()) {
+        if (self.isPositive()) {
             return ray.bitScanForward();
         } else {
             return ray.bitScanReverse();
         }
     }
 
-    pub fn to_offset(self: Dir) i8 {
+    pub fn toOffset(self: Dir) i8 {
         return switch (self) {
             .North => 8,
             .South => -8,
@@ -176,7 +176,7 @@ pub const Dir = enum(u3) {
         };
     }
 
-    pub fn is_positive(self: Dir) bool {
+    pub fn isPositive(self: Dir) bool {
         return switch (self) {
             .North => true,
             .South => false,
@@ -189,7 +189,7 @@ pub const Dir = enum(u3) {
         };
     }
 
-    pub fn to_line(self: Dir) Line {
+    pub fn toLine(self: Dir) Line {
         return switch (self) {
             .North => Line.File,
             .South => Line.File,
