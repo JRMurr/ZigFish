@@ -23,7 +23,7 @@
 
         myPkgs = import ./nix { inherit (pkgs) lib newScope; zig = zigPkg; };
 
-
+        emscripten = pkgs.emscripten;
 
 
       in
@@ -32,14 +32,19 @@
         devShells = {
           default = pkgs.mkShell {
             nativeBuildInputs = runtimeDeps;
+            # needed for ray lib  --sysroot $EMSCRIPTEN_ROOT
+            EMSCRIPTEN_ROOT = "${emscripten}/share/emscripten";
             buildInputs =
               [
+                pkgs.gcc
+                pkgs.pkg-config
                 # NOTE: these need to be roughly in sync
                 zigPkg
                 zlsPkg
                 zon2nix
 
                 pkgs.gdb
+                emscripten
 
 
                 myPkgs.fastchess
@@ -58,6 +63,7 @@
           runFast = myPkgs.runFast;
           books = myPkgs.books.all;
           popularBook = myPkgs.books."popularpos_lichess.epd";
+          emscripten = pkgs.emscripten;
         };
       });
 }

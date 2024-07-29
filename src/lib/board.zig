@@ -100,7 +100,7 @@ pub const Board = struct {
     const Self = @This();
     kind_sets: [NUM_KINDS]BoardBitSet,
     color_sets: [NUM_COLOR]BoardBitSet,
-    /// redudent set for easy check if a square is occupied
+    /// redundant set for easy check if a square is occupied
     occupied_set: BoardBitSet,
 
     active_color: ZigFish.Color = ZigFish.Color.White,

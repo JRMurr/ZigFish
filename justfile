@@ -11,3 +11,7 @@ nix-gen:
 
 run-fast:
   nix run .#runFast
+
+
+run-wasm:
+  zig build run -Dtarget=wasm32-emscripten --sysroot ./result/share/emscripten
