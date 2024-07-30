@@ -14,4 +14,4 @@ run-fast:
 
 
 run-wasm:
-  zig build run -Dtarget=wasm32-emscripten -fno-single-threaded --sysroot ./tmp/emscripten
+  zig build run -Dtarget=wasm32-emscripten --sysroot ./tmp/emscripten
