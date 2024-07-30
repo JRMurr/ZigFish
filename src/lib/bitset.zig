@@ -330,12 +330,12 @@ pub const BoardBitSet = packed struct {
         return @as(u32, @intCast(self.bit_set.findFirstSet().?));
     }
 
-    pub fn bitScanForward(self: Self) u64 {
+    pub fn bitScanForward(self: Self) usize {
         std.debug.assert(self.count() > 0);
         return @ctz(self.bit_set.mask);
     }
 
-    pub fn bitScanReverse(self: Self) u64 {
+    pub fn bitScanReverse(self: Self) usize {
         std.debug.assert(self.count() > 0);
         const mask = self.bit_set.mask;
         return @bitSizeOf(MaskInt) - 1 - @clz(mask);
