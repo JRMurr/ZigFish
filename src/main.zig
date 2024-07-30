@@ -1,4 +1,6 @@
 const std = @import("std");
+const builtin = @import("builtin");
+
 const rl = @import("raylib");
 const ZigFish = @import("zigfish");
 
@@ -57,7 +59,16 @@ fn searchInBackground(game: *GameManager, search_res: *SearchRes) !void {
     search_res.done_search.set();
 }
 
-pub fn main() anyerror!void {
+inline fn getAllocator() Allocator {
+    if (builtin.target.isWasm()) {
+        return std.heap.wasm_allocator;
+    }
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    return gpa.allocator();
+}
+
+fn mainLoop() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
 
@@ -69,20 +80,31 @@ pub fn main() anyerror!void {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     defer rl.unloadTexture(texture); // Texture unloading
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const gpa_allocator = gpa.allocator();
+    std.log.warn("about to load allocs", .{});
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const gpa_allocator = getAllocator();
+
+    var arena = std.heap.ArenaAllocator.init(gpa_allocator);
     defer arena.deinit();
+
+    std.log.warn("loaded allocs\t move allign {}", .{@alignOf(Move)});
 
     // Used for move generation so we can reset after each move taken
     // const move_allocator = arena.allocator();
 
-    var move_history = try std.ArrayList(Move).initCapacity(gpa_allocator, 30);
-    var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
-    var search_thread: ?Thread = null;
+    var move_history = std.ArrayList(Move).initCapacity(gpa_allocator, 30) catch |e| {
+        std.log.warn("init err: {}", .{e});
+        std.debug.panic("init err: {}", .{e});
+    };
+    std.log.warn("move hist", .{});
 
+    var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
+
+    std.log.warn("search res", .{});
+    var search_thread: ?Thread = null;
+    std.log.warn("about to load game", .{});
     var game = try GameManager.init(gpa_allocator);
+    std.log.warn("loaed game", .{});
 
     // var game = try GameManager.from_fen(gpa_allocator, "4kr1r/p6p/6p1/8/2P1n3/5NP1/P3PPBP/R3K1R1 b k - 4 26");
 
@@ -224,6 +246,13 @@ pub fn main() anyerror!void {
 
         //----------------------------------------------------------------------------------
     }
+}
+
+pub fn main() void {
+    std.log.warn("starting main!!!!!", .{});
+    mainLoop() catch |e| {
+        std.log.warn("error running main: {}", .{e});
+    };
 }
 
 test {

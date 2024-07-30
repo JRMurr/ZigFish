@@ -95,6 +95,8 @@ pub fn build(b: *std.Build) !void {
             // add pictures
             "--embed-file",
             "resources/Chess_Pieces_Sprite.png",
+            "-gsource-map",
+            "-g",
         });
         // link_step.addArg("-sGL_ENABLE_GET_PROC_ADDRESS");
         // link_step.addArg("-sMINIFY_HTML=0");
