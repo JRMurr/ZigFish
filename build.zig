@@ -70,7 +70,8 @@ pub fn build(b: *std.Build) !void {
     //web exports are completely separate
     if (target.query.os_tag == .emscripten) {
         // raylib_artifact.addIncludePath(raylib_dep.path("src"));
-        raylib_artifact.addIncludePath(b.path("./tmp/emscripten/cache/sysroot/include/")); // force an include....
+        // raylib_artifact.addIncludePath(b.path("./tmp/emscripten/cache/sysroot/include/")); // force an include....
+        raylib_artifact.addIncludePath(b.path("./result/share/emscripten/cache/sysroot/include/")); // force an include....
         // raylib_artifact.addIncludePath(raygui_dep.path("src"));
 
         const exe_lib = rlz.emcc.compileForEmscripten(b, "zig-fish-wasm", "src/main.zig", target, optimize);
@@ -78,11 +79,28 @@ pub fn build(b: *std.Build) !void {
         exe_lib.linkLibrary(raylib_artifact);
         exe_lib.root_module.addImport("raylib", raylib);
         exe_lib.root_module.addImport("zigfish", zigfish);
+        exe_lib.root_module.single_threaded = false;
         // exe_lib.
         // exe_lib.linkLibC();
 
         // Note that raylib itself is not actually added to the exe_lib output file, so it also needs to be linked with emscripten.
         const link_step = try rlz.emcc.linkWithEmscripten(b, &[_]*std.Build.Step.Compile{ exe_lib, raylib_artifact });
+        // link_step.addArg("-sMEMORY64=1");
+        link_step.addArgs(&[_][]const u8{
+            "-sGL_ENABLE_GET_PROC_ADDRESS", // what is this...
+            "-sALLOW_MEMORY_GROWTH",
+            "-sUSE_OFFSET_CONVERTER", // https://ziggit.dev/t/why-suse-offset-converter-is-needed/4131/3
+            "-sMINIFY_HTML=0", // npm was sad, nix build might make this work
+            "-sASSERTIONS", // error in console said do it for more info...
+            // add pictures
+            "--embed-file",
+            "resources/Chess_Pieces_Sprite.png",
+        });
+        // link_step.addArg("-sGL_ENABLE_GET_PROC_ADDRESS");
+        // link_step.addArg("-sMINIFY_HTML=0");
+        // link_step.addArg("-sASSERTIONS");
+        // link_step.addArg("--embed-file");
+        // link_step.addArg("resources/");
 
         b.getInstallStep().dependOn(&link_step.step);
         const run_step = try rlz.emcc.emscriptenRunStep(b);
