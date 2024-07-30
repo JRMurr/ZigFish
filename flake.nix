@@ -37,6 +37,7 @@
             buildInputs =
               [
                 pkgs.gcc
+                pkgs.glibc
                 pkgs.pkg-config
                 # NOTE: these need to be roughly in sync
                 zigPkg

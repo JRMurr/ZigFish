@@ -69,10 +69,17 @@ pub fn build(b: *std.Build) !void {
 
     //web exports are completely separate
     if (target.query.os_tag == .emscripten) {
+        // raylib_artifact.addIncludePath(raylib_dep.path("src"));
+        raylib_artifact.addIncludePath(b.path("./tmp/emscripten/cache/sysroot/include/")); // force an include....
+        // raylib_artifact.addIncludePath(raygui_dep.path("src"));
+
         const exe_lib = rlz.emcc.compileForEmscripten(b, "zig-fish-wasm", "src/main.zig", target, optimize);
 
         exe_lib.linkLibrary(raylib_artifact);
         exe_lib.root_module.addImport("raylib", raylib);
+        exe_lib.root_module.addImport("zigfish", zigfish);
+        // exe_lib.
+        // exe_lib.linkLibC();
 
         // Note that raylib itself is not actually added to the exe_lib output file, so it also needs to be linked with emscripten.
         const link_step = try rlz.emcc.linkWithEmscripten(b, &[_]*std.Build.Step.Compile{ exe_lib, raylib_artifact });
