@@ -104,7 +104,8 @@ pub fn build(b: *std.Build) !void {
             // https://emscripten.org/docs/tools_reference/settings_reference.html#modularize
             "-sMODULARIZE=1",
             "-sEXPORT_NAME=zigfish",
-            // "--shell-file=zigfish.html",
+            "-sEXPORT_ES6=1",
+            "--shell-file=template.html",
             // add pictures
             "--embed-file",
             "resources/Chess_Pieces_Sprite.png",

@@ -5,7 +5,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 const emccOutputDir = "zig-out" ++ std.fs.path.sep_str ++ "htmlout" ++ std.fs.path.sep_str;
-const emccOutputFile = "zigfish.js";
+const emccOutputFile = "zigfish.html";
 pub fn emscriptenRunStep(b: *std.Build) !*std.Build.Step.Run {
     // Find emrun.
     if (b.sysroot == null) {
