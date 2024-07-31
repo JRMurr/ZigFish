@@ -88,17 +88,20 @@ pub fn build(b: *std.Build) !void {
         // link_step.addArg("-sMEMORY64=1");
         link_step.addArgs(&[_][]const u8{
             "-sGL_ENABLE_GET_PROC_ADDRESS", // what is this...
-            "-sALLOW_MEMORY_GROWTH",
+            "-sALLOW_MEMORY_GROWTH", // TODO: theres a warning with this and pthreads set, maybe need to mess with heap size?
+            // "-sINITIAL_MEMORY=2147483648",
+            // "--no-entry",
             "-pthread",
+            // "-sPROXY_TO_PTHREAD=1",
             "-sUSE_OFFSET_CONVERTER", // https://ziggit.dev/t/why-suse-offset-converter-is-needed/4131/3
             "-sMINIFY_HTML=0", // npm was sad, nix build might make this work
-            "-sASSERTIONS=2", // error in console said do it for more info...
+            // "-sASSERTIONS=2", // error in console said do it for more info...
             // add pictures
             "-sPTHREAD_POOL_SIZE=2",
             "--embed-file",
             "resources/Chess_Pieces_Sprite.png",
-            "-gsource-map",
-            "-g",
+            // "-gsource-map",
+            // "-g",
         });
         // link_step.addArg("-sGL_ENABLE_GET_PROC_ADDRESS");
         // link_step.addArg("-sMINIFY_HTML=0");

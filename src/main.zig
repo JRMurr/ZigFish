@@ -40,7 +40,7 @@ fn indexOf(comptime T: type, list: []const T, elem: T) ?usize {
 }
 
 const MAX_DEPTH = 100;
-const SEARCH_TIME = 1000; // milli seconds
+const SEARCH_TIME = 5000; // milli seconds
 const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
 const AI_ON: bool = true;
