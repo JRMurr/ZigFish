@@ -1,5 +1,5 @@
 const std = @import("std");
-const rlz = @import("raylib-zig");
+const emcc = @import("./emcc.zig");
 
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
@@ -78,7 +78,7 @@ pub fn build(b: *std.Build) !void {
         raylib_artifact.addIncludePath(b.path(includes));
         // raylib_artifact.addIncludePath(raygui_dep.path("src"));
 
-        const exe_lib = rlz.emcc.compileForEmscripten(b, "zig-fish-wasm", "src/main.zig", target, optimize);
+        const exe_lib = emcc.compileForEmscripten(b, "zig-fish-wasm", "src/main.zig", target, optimize);
 
         exe_lib.linkLibrary(raylib_artifact);
         exe_lib.root_module.addImport("raylib", raylib);
@@ -88,7 +88,7 @@ pub fn build(b: *std.Build) !void {
         // exe_lib.linkLibC();
 
         // Note that raylib itself is not actually added to the exe_lib output file, so it also needs to be linked with emscripten.
-        const link_step = try rlz.emcc.linkWithEmscripten(b, &[_]*std.Build.Step.Compile{ exe_lib, raylib_artifact });
+        const link_step = try emcc.linkWithEmscripten(b, &[_]*std.Build.Step.Compile{ exe_lib, raylib_artifact });
         // link_step.addArg("-sMEMORY64=1");
         link_step.addArgs(&[_][]const u8{
             "-sGL_ENABLE_GET_PROC_ADDRESS", // what is this...
@@ -102,8 +102,8 @@ pub fn build(b: *std.Build) !void {
             // "-sASSERTIONS=2", // error in console said do it for more info...
             "-sPTHREAD_POOL_SIZE=2",
             // https://emscripten.org/docs/tools_reference/settings_reference.html#modularize
-            // "-sMODULARIZE=1",
-            // "-sEXPORT_NAME=zigfish",
+            "-sMODULARIZE=1",
+            "-sEXPORT_NAME=zigfish",
             // "--shell-file=zigfish.html",
             // add pictures
             "--embed-file",
@@ -120,7 +120,7 @@ pub fn build(b: *std.Build) !void {
         b.getInstallStep().dependOn(&link_step.step);
 
         // b.installArtifact(&link_step.step);
-        const run_step = try rlz.emcc.emscriptenRunStep(b);
+        const run_step = try emcc.emscriptenRunStep(b);
         run_step.step.dependOn(&link_step.step);
         const run_option = b.step("run", "Run zig-fish-wasm");
         run_option.dependOn(&run_step.step);
