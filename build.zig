@@ -71,7 +71,11 @@ pub fn build(b: *std.Build) !void {
     if (target.query.os_tag == .emscripten) {
         // raylib_artifact.addIncludePath(raylib_dep.path("src"));
         // raylib_artifact.addIncludePath(b.path("./tmp/emscripten/cache/sysroot/include/")); // force an include....
-        raylib_artifact.addIncludePath(b.path("./result/share/emscripten/cache/sysroot/include/")); // force an include....
+        // raylib_artifact.addIncludePath(b.path("./result/share/emscripten/cache/sysroot/include/")); // force an include....
+        const includes = b.pathJoin(&.{ b.sysroot.?, "cache/sysroot/include" });
+        defer b.allocator.free(includes);
+
+        raylib_artifact.addIncludePath(b.path(includes));
         // raylib_artifact.addIncludePath(raygui_dep.path("src"));
 
         const exe_lib = rlz.emcc.compileForEmscripten(b, "zig-fish-wasm", "src/main.zig", target, optimize);
@@ -110,6 +114,8 @@ pub fn build(b: *std.Build) !void {
         // link_step.addArg("resources/");
 
         b.getInstallStep().dependOn(&link_step.step);
+
+        // b.installArtifact(&link_step.step);
         const run_step = try rlz.emcc.emscriptenRunStep(b);
         run_step.step.dependOn(&link_step.step);
         const run_option = b.step("run", "Run zig-fish-wasm");

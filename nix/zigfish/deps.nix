@@ -11,6 +11,13 @@ linkFarm "zig-packages" [
     };
   }
   {
+    name = "12202b55e516247ae27b38919685b8da1543467cfd15cd92d4d4a840dc236d9dc754";
+    path = fetchzip {
+      url = "https://github.com/Not-Nik/raylib-zig/archive/a7f25c615b00b61de1fa5ae432793dd866b81808.tar.gz";
+      hash = "sha256-C2Jly3tkCKR4KcomdYVRtoHn/ithKxOxhAiipoSsmao=";
+    };
+  }
+  {
     name = "12206311fbaae8a0adc35e4835ddd9bcc1ff8fff756c9df40e19133f007fa05d3948";
     path = fetchzip {
       url = "https://github.com/Hejsil/mecha/archive/refs/tags/0.9.0.tar.gz";
@@ -22,13 +29,6 @@ linkFarm "zig-packages" [
     path = fetchzip {
       url = "https://github.com/raysan5/raylib/archive/5767c4cd059e07355ae5588966d0aee97038a86b.tar.gz";
       hash = "sha256-2wKecOJqtM207JIK7ZxhtpXkNa7LnFN86eHRWyfRjlg=";
-    };
-  }
-  {
-    name = "1220d32c92222ded6912529bbd502b2e0c5c5c2056c4b709ad0f6924d6524343a2d2";
-    path = fetchzip {
-      url = "https://github.com/Not-Nik/raylib-zig/archive/2d8e856009bf0ee60ef78bde78e32512bdaae714.tar.gz";
-      hash = "sha256-F6mK5H82txS67y7PMX2BtQcQNuLdykVioWGUZcBlIqo=";
     };
   }
 ]

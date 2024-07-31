@@ -59,7 +59,8 @@
         };
 
         packages = {
-          default = myPkgs.zigfish;
+          default = myPkgs.zigfish.uciBuild;
+          wasm = myPkgs.zigfish.wasmBuild;
           fastChess = myPkgs.fastchess;
           runFast = myPkgs.runFast;
           books = myPkgs.books.all;
