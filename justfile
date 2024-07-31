@@ -14,4 +14,4 @@ run-fast:
 
 
 run-wasm:
-  zig build run -Dtarget=wasm32-emscripten -Dcpu=bleeding_edge --sysroot ./result/share/emscripten --prefix ./tmp
+  nix build .#emscripten && zig build run -Dtarget=wasm32-emscripten -Dcpu=bleeding_edge --sysroot ./result/share/emscripten --prefix ./tmp

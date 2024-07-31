@@ -67,7 +67,7 @@ let
       HOME=$TMPDIR
       runHook preConfigure
       cp -r ${emscripten}/share/emscripten ./tmp
-      cp ${./template.html} template.html
+      cp ${../../template.html} template.html
 
       mkdir -p .emscriptencache
       export EM_CACHE=$(pwd)/.emscriptencache
