@@ -43,7 +43,7 @@ const MAX_DEPTH = 100;
 const SEARCH_TIME = 1000; // milli seconds
 const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
-const AI_ON: bool = false;
+const AI_ON: bool = true;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
@@ -82,11 +82,11 @@ fn mainLoop() anyerror!void {
 
     std.log.warn("about to load allocs", .{});
 
-    // const gpa_allocator = getAllocator();
+    const gpa_allocator = getAllocator();
 
-    var buffer: [30000]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    const gpa_allocator = fba.allocator();
+    // var buffer: [100_000]u8 = undefined;
+    // var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    // const gpa_allocator = fba.allocator();
 
     var arena = std.heap.ArenaAllocator.init(gpa_allocator);
     defer arena.deinit();
