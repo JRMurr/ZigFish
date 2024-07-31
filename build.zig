@@ -100,8 +100,12 @@ pub fn build(b: *std.Build) !void {
             "-sUSE_OFFSET_CONVERTER", // https://ziggit.dev/t/why-suse-offset-converter-is-needed/4131/3
             "-sMINIFY_HTML=0", // npm was sad, nix build might make this work
             // "-sASSERTIONS=2", // error in console said do it for more info...
-            // add pictures
             "-sPTHREAD_POOL_SIZE=2",
+            // https://emscripten.org/docs/tools_reference/settings_reference.html#modularize
+            // "-sMODULARIZE=1",
+            // "-sEXPORT_NAME=zigfish",
+            // "--shell-file=zigfish.html",
+            // add pictures
             "--embed-file",
             "resources/Chess_Pieces_Sprite.png",
             // "-gsource-map",

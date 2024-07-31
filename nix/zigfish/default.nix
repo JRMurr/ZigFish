@@ -67,6 +67,7 @@ let
       HOME=$TMPDIR
       runHook preConfigure
       cp -r ${emscripten}/share/emscripten ./tmp
+      touch zigfish.html
 
       mkdir -p .emscriptencache
       export EM_CACHE=$(pwd)/.emscriptencache
@@ -79,6 +80,7 @@ let
     ];
     postBuild = ''
       cp -r ./zig-out/htmlout $out
+      cat zigfish.html
     '';
 
   };
