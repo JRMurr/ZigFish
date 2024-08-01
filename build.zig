@@ -105,6 +105,7 @@ pub fn build(b: *std.Build) !void {
             "-sMODULARIZE=1",
             "-sEXPORT_NAME=zigfish",
             "-sEXPORT_ES6=1",
+            "-sENVIRONMENT='web,webview,worker'",
             "--shell-file=template.html",
             // add pictures
             "--embed-file",
