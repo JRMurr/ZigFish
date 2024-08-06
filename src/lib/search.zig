@@ -281,21 +281,21 @@ fn quiesceSearch(
         // make, score, unmake
         const meta = self.board.meta;
         self.board.makeMove(move);
-        var res = try self.quiesceSearch(depth - 1, negate_score(beta), negate_score(alpha));
-        res.score = negate_score(res.score);
+        const res = try self.quiesceSearch(depth - 1, negate_score(beta), negate_score(alpha));
+        const score = negate_score(res.score);
         self.board.unMakeMove(move, meta);
 
-        if (res.score >= beta) {
+        if (score >= beta) {
             //  fail hard beta-cutoff
             return SearchRes.initCut(beta, move.*);
         }
-        if (res.score > alpha) {
-            alpha = res.score;
+        if (score > alpha) {
+            alpha = score;
             best_move = move.*;
         }
 
         if (self.stop_search.isSet()) {
-            return SearchRes.initBest(alpha, best_move);
+            return SearchRes.canceledWithBest(alpha, best_move);
         }
     }
     return SearchRes.initBest(alpha, best_move);
@@ -381,8 +381,8 @@ pub fn search(
         const meta = self.board.meta;
         self.board.makeMove(move);
         const hash = self.board.zhash;
-        const res = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
-            break :blk e.search_res;
+        const score = if (self.getFromTransposition(hash, depth_remaing)) |e| blk: {
+            break :blk e.search_res.score;
         } else blk: {
             var depth_remaing_updated = depth_remaing - 1;
             var num_extensions_updated = num_extensions;
@@ -391,25 +391,24 @@ pub fn search(
                 num_extensions_updated += 1;
             }
 
-            var search_res = try self.search(
+            const search_res = try self.search(
                 depth_from_root + 1,
                 depth_remaing_updated,
                 num_extensions_updated,
                 negate_score(beta),
                 negate_score(alpha),
             );
-            search_res.score = negate_score(search_res.score);
-            break :blk search_res;
+            break :blk negate_score(search_res.score);
         };
         self.board.unMakeMove(move, meta);
 
-        if (res.score >= beta) {
+        if (score >= beta) {
             //  fail hard beta-cutoff
             return SearchRes.initCut(beta, move.*);
         }
 
-        if (res.score > alpha) {
-            alpha = res.score;
+        if (score > alpha) {
+            alpha = score;
             best_move = move.*;
         }
 
@@ -417,7 +416,7 @@ pub fn search(
             return SearchRes.canceledWithBest(alpha, best_move);
         }
 
-        try self.addToTransposition(hash, res, depth_remaing);
+        try self.addToTransposition(hash, SearchRes.normal(score), depth_remaing);
     }
 
     return SearchRes.initBest(alpha, best_move);
