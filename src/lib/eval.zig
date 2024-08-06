@@ -32,14 +32,15 @@ fn getMaterialScore(board: *const Board, color: Color) Score {
     inline for (utils.enumFields(Kind)) |f| {
         const kind_idx = f.value;
         const kind: Kind = @enumFromInt(kind_idx);
-        if (kind == Kind.King) {
-            continue;
-        }
+
         const p: Piece = .{ .kind = kind, .color = color };
         const pieces = board.getPieceSet(p);
-        const piece_count = pieces.count();
 
-        score += @as(Score, @intCast(piece_count)) * Precompute.PIECE_SCORES.get(kind);
+        if (kind != Kind.King) {
+            const piece_count = pieces.count();
+            score += @as(Score, @intCast(piece_count)) * Precompute.PIECE_SCORES.get(kind);
+        }
+
         score += Precompute.PieceSquareScore.scorePieces(p, .Opening, pieces);
     }
 

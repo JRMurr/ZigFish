@@ -309,7 +309,7 @@ pub fn search(
     alpha_int: Score,
     beta: Score,
 ) Allocator.Error!SearchRes {
-    var best_eval = alpha_int;
+    var alpha = alpha_int;
 
     if (self.stop_search.isSet()) {
         return SearchRes.canceled(0);
@@ -320,7 +320,7 @@ pub fn search(
         if (self.getFromTransposition(hash, 0)) |e| {
             return e.search_res;
         }
-        const score = try self.quiesceSearch(self.search_opts.quiesce_depth, alpha_int, beta);
+        const score = try self.quiesceSearch(self.search_opts.quiesce_depth, alpha, beta);
         if (self.stop_search.isSet()) {
             return score;
         }
@@ -329,7 +329,7 @@ pub fn search(
     }
 
     const generated_moves = &(self.getAllValidMoves(false));
-    var moves = &generated_moves.moves;
+    var moves = generated_moves.moves;
 
     const gen_info = generated_moves.gen_info;
 
@@ -351,12 +351,12 @@ pub fn search(
         prev_best_move = prev_res.best_move orelse prev_res.refutation;
     }
 
-    // const sort_ctx = MoveCompareCtx{
-    //     .gen_info = gen_info,
-    //     .best_move = prev_best_move,
-    // };
+    const sort_ctx = MoveCompareCtx{
+        .gen_info = gen_info,
+        .best_move = prev_best_move,
+    };
 
-    // moves.sort(sort_ctx, compare_moves);
+    moves.sort(sort_ctx, compare_moves);
 
     var best_move: ?Move = null;
     const move_slice = moves.items();
@@ -374,7 +374,7 @@ pub fn search(
         // }
 
         if (self.stop_search.isSet()) {
-            return SearchRes.canceledWithBest(best_eval, best_move);
+            return SearchRes.canceledWithBest(alpha, best_move);
         }
 
         // const move = move_scored.move;
@@ -396,7 +396,7 @@ pub fn search(
                 depth_remaing_updated,
                 num_extensions_updated,
                 negate_score(beta),
-                negate_score(best_eval),
+                negate_score(alpha),
             );
             search_res.score = negate_score(search_res.score);
             break :blk search_res;
@@ -408,19 +408,19 @@ pub fn search(
             return SearchRes.initCut(beta, move.*);
         }
 
-        if (res.score > best_eval) {
-            best_eval = res.score;
+        if (res.score > alpha) {
+            alpha = res.score;
             best_move = move.*;
         }
 
         if (self.stop_search.isSet()) {
-            return SearchRes.canceledWithBest(best_eval, best_move);
+            return SearchRes.canceledWithBest(alpha, best_move);
         }
 
         try self.addToTransposition(hash, res, depth_remaing);
     }
 
-    return SearchRes.initBest(best_eval, best_move);
+    return SearchRes.initBest(alpha, best_move);
 }
 
 pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
@@ -430,7 +430,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
     self.best_move = null;
 
     for (1..max_depth) |depth| {
-        // std.log.debug("checking at depth: {}", .{depth});
+        std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = &(self.getAllValidMoves(false));
         const moves = generated_moves.moves;
