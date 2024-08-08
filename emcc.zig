@@ -110,7 +110,7 @@ pub fn linkWithEmscripten(
         "-sUSE_GLFW=3",
         "-sASYNCIFY",
         "-O3",
-        "--emrun",
+        // "--emrun",
     });
     return emcc_command;
 }
