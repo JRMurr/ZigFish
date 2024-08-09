@@ -46,7 +46,6 @@ let
           HOME=$TMPDIR
           mkdir -p .cache
           ln -s ${callPackage ./deps.nix { }} .cache/p
-          ls -la ./wasm-templates
           zig build install ${builtins.concatStringsSep " " buildArgs}
           runHook postBuild
         '';
