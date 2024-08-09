@@ -2,9 +2,7 @@
 , buildAtCommit
 , lib
 , git
-, zig
 , fastchess
-, captureStdErr
 , books
 ,
 }:
