@@ -106,7 +106,8 @@ pub fn build(b: *std.Build) !void {
             "-sEXPORT_NAME=zigfish",
             "-sEXPORT_ES6=1",
             "-sENVIRONMENT='web,webview,worker'",
-            "--shell-file=template.html",
+            "--shell-file=wasm-templates/template.html",
+            "--extern-pre-js=wasm-templates/prepend.js",
             // add pictures
             "--embed-file",
             "resources/Chess_Pieces_Sprite.png",

@@ -46,6 +46,7 @@ let
           HOME=$TMPDIR
           mkdir -p .cache
           ln -s ${callPackage ./deps.nix { }} .cache/p
+          ls -la ./wasm-templates
           zig build install ${builtins.concatStringsSep " " buildArgs}
           runHook postBuild
         '';
@@ -64,10 +65,11 @@ let
     optimize = "Debug"; # not sure why...
     postConfigurePhase = ''
       mkdir -p ./tmp
+      mkdir -p ./wasm-templates
       HOME=$TMPDIR
       runHook preConfigure
       cp -r ${emscripten}/share/emscripten ./tmp
-      cp ${../../template.html} template.html
+      cp -r ${../../wasm-templates}/* ./wasm-templates
 
       mkdir -p .emscriptencache
       export EM_CACHE=$(pwd)/.emscriptencache
