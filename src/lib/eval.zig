@@ -31,7 +31,7 @@ const EvalFn = fn (board: *const Board, color: Color) Score;
 
 const evalFuncs = [_](EvalFn){
     getMaterialScore,
-    isolatedPawns,
+    // isolatedPawns,
 };
 
 fn evalForColor(board: *const Board, color: Color) Score {
@@ -43,25 +43,32 @@ fn evalForColor(board: *const Board, color: Color) Score {
     return score;
 }
 
-const ISOLATED_PAWN_SCORE = -30;
-
+// center isolated pawns should be more sad
+// const ISOLATED_PAWN_FILE_SCORE = [8]Score{ -15, -20, -30, -30, -30, -30, -20, -15 };
+const ISOLATED_PAWN_SCORE = -15;
 fn isolatedPawns(board: *const Board, color: Color) Score {
     const p: Piece = .{ .kind = .Pawn, .color = color };
     const pawns = board.getPieceSet(p);
 
     var pawn_iter = pawns.iterator();
 
-    var num_isolated: usize = 0;
+    var score: Score = 0;
     while (pawn_iter.next()) |pos| {
+        if (pos.toRank() == color.get_enemy().pawnRank()) {
+            continue; // could promote so no need to care
+        }
+
         const file = pos.toFile();
         const neighbors = Precompute.NEIGHBOR_FILES[file];
 
         if (neighbors.intersectWith(pawns).isEmpty()) {
-            num_isolated += 1;
+            const scale: Score = if (ZigFish.BitSet.EXTENDED_CENTER_BOARD.isPosSet(pos)) 3 else 1;
+
+            score += (ISOLATED_PAWN_SCORE * scale);
         }
     }
 
-    return @as(Score, @intCast(num_isolated)) * ISOLATED_PAWN_SCORE;
+    return score;
 }
 
 fn getMaterialScore(board: *const Board, color: Color) Score {

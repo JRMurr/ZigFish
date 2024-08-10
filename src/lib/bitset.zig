@@ -267,6 +267,10 @@ pub const BoardBitSet = packed struct {
         return self.bit_set.isSet(index);
     }
 
+    pub fn isPosSet(self: Self, pos: Position) bool {
+        return self.bit_set.isSet(pos.index);
+    }
+
     /// Adds a specific bit to the bit set
     pub fn set(self: *Self, index: usize) void {
         self.bit_set.set(index);
@@ -473,6 +477,10 @@ pub const BoardBitSet = packed struct {
         return Self.fromMask(attacks);
     }
 };
+
+// https://www.chessprogramming.org/Center
+pub const CENTER_BOARD = BoardBitSet.fromMask(0x0000001818000000);
+pub const EXTENDED_CENTER_BOARD = BoardBitSet.fromMask(0x00003C3C3C3C0000);
 
 // used mostly for pawn moves
 fn shift_color(color: Color, x: MaskInt, amount: BitSet.ShiftInt) MaskInt {

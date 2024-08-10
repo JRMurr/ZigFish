@@ -91,8 +91,6 @@ fn mainLoop() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(gpa_allocator);
     defer arena.deinit();
 
-    std.log.warn("loaded allocs\t move allign {}", .{@alignOf(Move)});
-
     // Used for move generation so we can reset after each move taken
     // const move_allocator = arena.allocator();
 
@@ -100,15 +98,10 @@ fn mainLoop() anyerror!void {
         std.log.warn("init err: {}", .{e});
         std.debug.panic("init err: {}", .{e});
     };
-    std.log.warn("move hist", .{});
-
     var search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} };
 
-    std.log.warn("search res", .{});
     var search_thread: ?Thread = null;
-    std.log.warn("about to load game", .{});
     var game = try GameManager.init(gpa_allocator);
-    std.log.warn("loaed game", .{});
 
     // var game = try GameManager.from_fen(gpa_allocator, "4kr1r/p6p/6p1/8/2P1n3/5NP1/P3PPBP/R3K1R1 b k - 4 26");
 

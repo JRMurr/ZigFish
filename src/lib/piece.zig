@@ -11,6 +11,13 @@ pub const Color = enum(u1) {
             .Black => Color.White,
         };
     }
+
+    pub fn pawnRank(self: Color) u8 {
+        return switch (self) {
+            .White => 1,
+            .Black => 6,
+        };
+    }
 };
 
 pub const Kind = enum(u3) {
