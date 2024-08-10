@@ -38,6 +38,17 @@ pub fn init(texture: rl.Texture, game_manager: *GameManager, cell_size: u32) Spr
     };
 }
 
+pub fn deinit(self: *SpriteManager) void {
+    rl.unloadTexture(self.texture);
+}
+
+pub fn clamp_to_screen(self: *SpriteManager, val: i32) usize {
+    const screen_size: usize = self.cell_size * 8;
+
+    const clamped = std.math.clamp(val, 0, @as(i32, @intCast(screen_size)));
+    return @intCast(clamped);
+}
+
 pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
     for (0..8) |rank| {
         for (0..8) |file| {
