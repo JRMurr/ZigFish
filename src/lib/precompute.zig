@@ -101,6 +101,7 @@ fn computeNeighorFiles() NeighborFiles {
     }
     return neighbors;
 }
+pub const NEIGHBOR_FILES = computeNeighorFiles();
 
 pub const Rays = [64][NUM_DIRS]BoardBitSet;
 

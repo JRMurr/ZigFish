@@ -257,6 +257,10 @@ pub const BoardBitSet = packed struct {
         return self.bit_set.eql(other.bit_set);
     }
 
+    pub fn isEmpty(self: Self) bool {
+        return self.bit_set.mask == 0;
+    }
+
     /// Returns true if the bit at the specified index
     /// is present in the set, false otherwise.
     pub fn isSet(self: Self, index: usize) bool {
