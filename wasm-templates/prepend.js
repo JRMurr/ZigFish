@@ -5,3 +5,4 @@ if (!global.window) {
     location: location,
   };
 }
+Module["force_exit"] = _emscripten_force_exit;
