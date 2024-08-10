@@ -6,7 +6,7 @@ const ZigFish = @import("zigfish");
 
 const Thread = std.Thread;
 
-const SpriteManager = @import("./graphics/sprite.zig");
+const SpriteManager = @import("./ui/sprite.zig");
 
 const Position = ZigFish.Position;
 const Piece = ZigFish.Piece;
