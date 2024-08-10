@@ -444,7 +444,7 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
             const meta = self.board.meta;
             // std.log.debug("checking {s}", .{move.toStrSimple()});
             self.board.makeMove(move);
-            const enemy_score = try self.search(0, depth - 1, 0, MIN_SCORE, negate_score(self.best_score));
+            const enemy_score = try self.search(0, depth - 1, 0, MIN_SCORE, MAX_SCORE);
             const eval = negate_score(enemy_score.score);
             self.board.unMakeMove(move, meta);
 

@@ -200,7 +200,7 @@ fn compute_castling_info() [2]CastlingInfo {
 pub const CASTLING_INFO = compute_castling_info();
 
 pub const PIECE_SCORES = std.EnumArray(Kind, Score).init(.{
-    .King = 200000,
+    .King = 0,
     .Queen = 900,
     .Bishop = 330,
     .Knight = 320,
