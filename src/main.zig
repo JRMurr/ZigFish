@@ -7,7 +7,7 @@ const ZigFish = @import("zigfish");
 const Thread = std.Thread;
 
 const SpriteManager = @import("./ui/sprite.zig");
-const UiState = @import("./ui/state.zig").UiState;
+const UiState = @import("./ui/state.zig");
 
 const Position = ZigFish.Position;
 const Piece = ZigFish.Piece;
@@ -79,6 +79,10 @@ fn mainLoop() anyerror!void {
 
         //----------------------------------------------------------------------------------
     }
+}
+
+pub fn exit() void { // TODO: see if this can be called from wasm for better exits?
+    rl.closeWindow();
 }
 
 pub fn main() void {
