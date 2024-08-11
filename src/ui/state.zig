@@ -71,10 +71,14 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
     const move_history = try std.ArrayList(Move).initCapacity(allocator, 30);
 
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
+    // const font = rl.Font.initEx("resources/FiraCode-Bold.otf", 32, null);
 
     const sprite_manager = SpriteManager.init(texture, cell_size);
 
-    const gui = Gui{ .x_offset = @floatFromInt(cell_size * 8) };
+    const gui = Gui.init(
+        @floatFromInt(cell_size * 8),
+        // font,
+    );
 
     return UiState{
         .game = game,
@@ -90,6 +94,7 @@ pub fn deinit(self: *UiState) void {
     self.sprite_manager.deinit();
     self.game.deinit();
     self.move_history.deinit();
+    self.gui.deint();
 }
 
 // pub fn getMousePos(self: *UiState) ClampedMousePos {

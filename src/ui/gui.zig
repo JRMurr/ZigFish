@@ -8,7 +8,12 @@ const UiState = @import("state.zig");
 
 const Self = @This();
 
+// https://github.com/Not-Nik/raylib-zig/issues/131
+pub extern "c" fn GuiSetStyle(control: rlg.GuiControl, property: c_int, value: c_int) void;
+pub extern "c" fn GuiGetStyle(control: rlg.GuiControl, property: c_int) c_int;
+
 x_offset: f32,
+// font: rl.Font,
 
 fn getOffsetRect(self: *const Self, x: f32, y: f32, width: f32, height: f32) rl.Rectangle {
     return rl.Rectangle.init(x + self.x_offset, y, width, height);
@@ -19,9 +24,30 @@ fn toCStr(allocator: std.mem.Allocator, str: []u8) ![*:0]u8 {
     return slice.ptr;
 }
 
+pub fn init(
+    x_offset: f32,
+    // font: rl.Font,
+) Self {
+    // rlg.guiSetFont(font);
+    return Self{
+        .x_offset = x_offset,
+        // .font = font,
+    };
+}
+
+pub fn deint(self: *Self) void {
+    _ = self;
+    // self.font.unload();
+}
+
 pub fn draw(self: *const Self, state: *UiState) !void {
+    // const font_size = GuiGetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size));
+    // std.debug.print("font_size: {}\n", .{font_size});
+
+    GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
+
     _ = rlg.guiSliderBar(
-        self.getOffsetRect(130, 10, 100, 40),
+        self.getOffsetRect(200, 10, 100, 40),
         "Engine search time (sec)",
         rl.textFormat("%.2f", .{state.options.search_time}),
         &state.options.search_time,
@@ -34,6 +60,8 @@ pub fn draw(self: *const Self, state: *UiState) !void {
     var buffer: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
     const allocator = fba.allocator();
+
+    GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 32));
 
     // Iter over 2 move pairs (ie white and black)
     var move_iter = std.mem.window(ZigFish.Move, state.move_history.items, 2, 2);
