@@ -17,9 +17,10 @@ const GameManager = ZigFish.GameManager;
 
 const cell_size: usize = 150;
 const screen_size: usize = cell_size * 8;
+const sidebar_width: usize = cell_size * 3;
 
 const MAX_DEPTH = 100;
-const SEARCH_TIME = 5000; // milli seconds
+const SEARCH_TIME = 5; // seconds
 const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
 const AI_ON: bool = true;
@@ -52,7 +53,7 @@ fn mainLoop() anyerror!void {
     //--------------------------------------------------------------------------------------
 
     rl.initAudioDevice(); // Initialize audio device
-    rl.initWindow(screen_size, screen_size, "ZigFish");
+    rl.initWindow(screen_size + sidebar_width, screen_size, "ZigFish");
     defer rl.closeWindow(); // Close window and OpenGL context
 
     var ui_state = try UiState.init(getAllocator(), cell_size, .{
@@ -75,7 +76,7 @@ fn mainLoop() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        ui_state.draw();
+        try ui_state.draw();
 
         //----------------------------------------------------------------------------------
     }

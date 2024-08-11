@@ -5,6 +5,7 @@ const rl = @import("raylib");
 const ZigFish = @import("zigfish");
 
 const SpriteManager = @import("./sprite.zig");
+const Gui = @import("gui.zig");
 
 const Thread = std.Thread;
 
@@ -25,8 +26,8 @@ const MovingPiece = struct {
 const Allocator = std.mem.Allocator;
 
 pub const GameOptions = struct {
-    /// milli seconds
-    search_time: usize = 5000,
+    /// seconds
+    search_time: f32 = 5.0,
     player_color: Piece.Color = Piece.Color.White,
     ai_on: bool = true,
     start_pos: ?[]const u8 = null,
@@ -59,6 +60,7 @@ game: GameManager,
 options: GameOptions,
 move_history: std.ArrayList(Move),
 sprite_manager: SpriteManager,
+gui: Gui,
 search_res: SearchRes,
 search_thread: ?Thread = null,
 moving_piece: ?MovingPiece = null,
@@ -75,11 +77,14 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
 
     const sprite_manager = SpriteManager.init(texture, cell_size);
 
+    const gui = Gui{ .x_offset = @floatFromInt(cell_size * 8) };
+
     return UiState{
         .game = game,
         .options = options,
         .move_history = move_history,
         .sprite_manager = sprite_manager,
+        .gui = gui,
         .search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} },
     };
 }
@@ -110,10 +115,12 @@ pub fn update(self: *UiState) !void {
         self.search_res.done_search.reset();
         self.search_res.move = null;
         var cloned_game = try self.game.clone();
+        const search_time = @as(usize, @intFromFloat(self.options.search_time * 1000));
+
         self.search_thread = try std.Thread.spawn(.{}, searchInBackground, .{
             &cloned_game,
             &self.search_res,
-            .{ .time_limit_millis = self.options.search_time },
+            .{ .time_limit_millis = search_time },
         });
         return;
     }
@@ -134,7 +141,8 @@ pub fn update(self: *UiState) !void {
 
     // check if clicked a piece
     if (self.moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
-        const pos = self.sprite_manager.mouse_to_pos(mouse_x, mouse_y);
+        const maybe_pos = self.sprite_manager.mouse_to_pos(mouse_x, mouse_y);
+        const pos = if (maybe_pos) |p| p else return;
         const maybe_piece = self.game.getPos(pos);
         if (maybe_piece) |p| {
             if (p.color == self.game.board.active_color) {
@@ -148,8 +156,8 @@ pub fn update(self: *UiState) !void {
 
     // check if they can place the piece they picked up
     if (self.moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
-        const pos = self.sprite_manager.mouse_to_pos(mouse_x, mouse_y);
-
+        const maybe_pos = self.sprite_manager.mouse_to_pos(mouse_x, mouse_y);
+        const pos = if (maybe_pos) |p| p else return;
         const mp = self.moving_piece.?;
 
         // reset the piece so board can do its own moving logic
@@ -184,13 +192,15 @@ pub fn update(self: *UiState) !void {
     }
 }
 
-pub fn draw(self: *UiState) void {
+pub fn draw(self: *UiState) !void {
     self.sprite_manager.draw_board(&self.game.board, self.move_history.getLastOrNull());
 
     // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
     // while (attacked_iter.next()) |p_idx| {
     //     sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
     // }
+
+    try self.gui.draw(self);
 
     if (self.moving_piece) |p| {
         const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());

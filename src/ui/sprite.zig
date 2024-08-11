@@ -100,9 +100,14 @@ pub fn draw_board(self: SpriteManager, board: *const ZigFish.Board, last_move: ?
     }
 }
 
-pub fn mouse_to_pos(self: SpriteManager, x: usize, y: usize) Position {
+pub fn mouse_to_pos(self: SpriteManager, x: usize, y: usize) ?Position {
     const file = @divFloor(x, self.cell_size);
     const rank = 7 - @divFloor(y, self.cell_size);
+
+    if (file > 7) {
+        // clicking on gui so ingnore
+        return null;
+    }
 
     return Position.fromRankFile(.{
         .rank = @intCast(rank),
