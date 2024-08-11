@@ -13,7 +13,6 @@ const num_colors = 2;
 const SpriteManager = @This();
 
 texture: rl.Texture,
-game_manager: *GameManager,
 sprite_w: f32,
 sprite_h: f32,
 cell_size: u32,
@@ -21,14 +20,13 @@ scale: f32,
 dark_sqaure_color: rl.Color,
 light_square_color: rl.Color,
 
-pub fn init(texture: rl.Texture, game_manager: *GameManager, cell_size: u32) SpriteManager {
+pub fn init(texture: rl.Texture, cell_size: u32) SpriteManager {
     const sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types)));
     const sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors)));
     const scale = @as(f32, @floatFromInt(cell_size)) / sprite_w;
 
     return .{
         .texture = texture,
-        .game_manager = game_manager,
         .sprite_w = sprite_w,
         .sprite_h = sprite_h,
         .scale = scale,
@@ -49,7 +47,7 @@ pub fn clamp_to_screen(self: *SpriteManager, val: i32) usize {
     return @intCast(clamped);
 }
 
-pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
+pub fn draw_board(self: SpriteManager, board: *const ZigFish.Board, last_move: ?Move) void {
     for (0..8) |rank| {
         for (0..8) |file| {
             const flipped_rank = 7 - rank;
@@ -91,7 +89,7 @@ pub fn draw_board(self: SpriteManager, last_move: ?Move) void {
                 rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
             }
 
-            if (self.game_manager.getPos(pos)) |p| {
+            if (board.getPos(pos)) |p| {
                 self.draw_piece(
                     p,
                     @as(f32, @floatFromInt(pos_x)),

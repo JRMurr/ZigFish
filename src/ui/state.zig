@@ -24,7 +24,7 @@ const MovingPiece = struct {
 
 const Allocator = std.mem.Allocator;
 
-const GameOptions = struct {
+pub const GameOptions = struct {
     /// milli seconds
     search_time: usize = 5000,
     player_color: Piece.Color = Piece.Color.White,
@@ -41,28 +41,38 @@ fn searchInBackground(game: *GameManager, search_res: *SearchRes, search_opts: Z
     search_res.done_search.set();
 }
 
-const UiState = struct {
-    allocator: Allocator,
+fn sub_ignore_overflow(a: anytype, b: anytype) @TypeOf(a, b) {
+    return a -| b;
+}
+
+const ClampedMousePos = struct {
+    x: usize,
+    y: usize,
+};
+
+pub const UiState = struct {
+    // allocator: Allocator,
     // area: std.heap.ArenaAllocator,
 
     game: GameManager,
     options: GameOptions,
     move_history: std.ArrayList(Move),
     sprite_manager: SpriteManager,
-    serch_res: SearchRes,
+    search_res: SearchRes,
     search_thread: ?Thread = null,
+    moving_piece: ?MovingPiece = null,
 
-    fn init(allocator: Allocator, cell_size: usize, options: GameOptions) UiState {
+    pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState {
         const game = if (options.start_pos) |fen|
             try GameManager.from_fen(allocator, fen)
         else
             try GameManager.init(allocator);
 
-        const move_history = std.ArrayList(Move).initCapacity(allocator, 30);
+        const move_history = try std.ArrayList(Move).initCapacity(allocator, 30);
 
         const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
 
-        const sprite_manager = SpriteManager.init(texture, &game, cell_size);
+        const sprite_manager = SpriteManager.init(texture, cell_size);
 
         return UiState{
             .game = game,
@@ -73,11 +83,20 @@ const UiState = struct {
         };
     }
 
-    fn deinit(self: *UiState) void {
+    pub fn deinit(self: *UiState) void {
         self.sprite_manager.deinit();
+        self.game.deinit();
+        self.move_history.deinit();
     }
 
-    fn update(self: *UiState) void {
+    // pub fn getMousePos(self: *UiState) ClampedMousePos {
+    //     const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
+    //     const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
+
+    //     return .{ .x = mouse_x, .y = mouse_y };
+    // }
+
+    pub fn update(self: *UiState) !void {
         const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
         const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
 
@@ -161,6 +180,33 @@ const UiState = struct {
             }
 
             return;
+        }
+    }
+
+    pub fn draw(self: *UiState) void {
+        self.sprite_manager.draw_board(&self.game.board, self.move_history.getLastOrNull());
+
+        // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
+        // while (attacked_iter.next()) |p_idx| {
+        //     sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
+        // }
+
+        if (self.moving_piece) |p| {
+            const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
+            const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
+
+            for (p.valid_moves.items()) |move| {
+                self.sprite_manager.draw_move_marker(move.end, rl.Color.red);
+            }
+
+            const offset = self.sprite_manager.cell_size / 2; // make sprite under mouse cursor
+
+            // TODO: this seems fine for the top / left sides, peice is half cut off on right / bottom
+            self.sprite_manager.draw_piece(
+                p.piece,
+                @as(f32, @floatFromInt(sub_ignore_overflow(mouse_x, offset))),
+                @as(f32, @floatFromInt(sub_ignore_overflow(mouse_y, offset))),
+            );
         }
     }
 };
