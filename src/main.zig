@@ -69,6 +69,7 @@ fn mainLoop() anyerror!void {
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
         //----------------------------------------------------------------------------------
+        rl.clearBackground(rl.Color.black);
         try ui_state.update();
 
         // Draw

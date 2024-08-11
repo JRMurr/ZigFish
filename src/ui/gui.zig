@@ -13,13 +13,10 @@ fn getOffsetRect(self: *const Self, x: f32, y: f32, width: f32, height: f32) rl.
 }
 
 pub fn draw(self: *const Self, state: *UiState) !void {
-    var slider_buf: [5:0]u8 = .{' '} ** 5;
-    _ = try std.fmt.bufPrint(&slider_buf, "{d:.2}", .{state.options.search_time});
-
     _ = rlg.guiSliderBar(
         self.getOffsetRect(130, 10, 100, 40),
         "Think time (sec)",
-        &slider_buf, // this looks weird?
+        rl.textFormat("%.2f", .{state.options.search_time}),
         &state.options.search_time,
         0.0,
         10,
