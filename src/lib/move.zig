@@ -66,6 +66,12 @@ pub const Move = struct {
     promotion_kind: ?Kind = null,
 
     pub fn toSan(self: *const Move) [SAN_LEN]u8 {
+        var str = comptime utils.initStr(' ', SAN_LEN);
+        _ = self.toSanBuf(&str);
+        return str;
+    }
+
+    pub fn toSanBuf(self: *const Move, buff: []u8) []u8 {
         // https://www.chessprogramming.org/Algebraic_Chess_Notation#SAN
         // TODO: san can omit info depening on if the move is unambiguous.
         // for now duing "full"
@@ -80,12 +86,9 @@ pub const Move = struct {
 
         const promotion_symbol = if (self.promotion_kind) |k| k.toSymbol() else "";
 
-        var str = comptime utils.initStr(' ', SAN_LEN);
-        _ = std.fmt.bufPrint(&str, "{s}{s}{s}{s}{s}", .{ piece_symbol, from_str, capture_str, to_str, promotion_symbol }) catch {
+        return std.fmt.bufPrint(buff, "{s}{s}{s}{s}{s}", .{ piece_symbol, from_str, capture_str, to_str, promotion_symbol }) catch {
             std.debug.panic("Bad san format for {any}", .{self});
         };
-
-        return str;
     }
 
     pub fn fromSan(san: []const u8, valid_moves: []Move) Move {

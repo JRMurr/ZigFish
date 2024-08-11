@@ -53,9 +53,6 @@ const ClampedMousePos = struct {
 
 const UiState = @This();
 
-// allocator: Allocator,
-// area: std.heap.ArenaAllocator,
-
 game: GameManager,
 options: GameOptions,
 move_history: std.ArrayList(Move),
