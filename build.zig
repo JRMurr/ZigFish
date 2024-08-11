@@ -82,6 +82,7 @@ pub fn build(b: *std.Build) !void {
 
         exe_lib.linkLibrary(raylib_artifact);
         exe_lib.root_module.addImport("raylib", raylib);
+        exe_lib.root_module.addImport("raygui", raygui);
         exe_lib.root_module.addImport("zigfish", zigfish);
         exe_lib.root_module.single_threaded = false;
         // exe_lib.
