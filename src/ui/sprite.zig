@@ -105,7 +105,7 @@ pub fn mouse_to_pos(self: SpriteManager, x: usize, y: usize) ?Position {
     const rank = 7 - @divFloor(y, self.cell_size);
 
     if (file > 7) {
-        // clicking on gui so ingnore
+        // clicking on gui so ignore
         return null;
     }
 

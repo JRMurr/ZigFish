@@ -50,7 +50,8 @@ pub fn draw(self: *const Self, state: *UiState) !void {
             const move_str = try toCStr(allocator, move.toSanBuf(&move_buf));
 
             if (rlg.guiLabelButton(rect, move_str) > 0) {
-                std.log.debug("pressed move: {s}", .{move_str});
+                // TOOD: if this a std.log.debug print if i click during search it crashes??
+                std.debug.print("pressed move: {s}\n", .{move_str});
             }
             x_offset += box_width;
         }
