@@ -13,6 +13,8 @@ pub extern "c" fn GuiSetStyle(control: rlg.GuiControl, property: c_int, value: c
 pub extern "c" fn GuiGetStyle(control: rlg.GuiControl, property: c_int) c_int;
 
 const RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT = 24;
+const MARGIN = 8;
+const MOVE_HIST_HEIGHT = 150 * 6;
 
 x_offset: f32,
 scrollOffset: rl.Vector2 = .{ .x = 0, .y = 0 },
@@ -48,24 +50,7 @@ fn getScrollBarY(self: *Self) f32 {
     return self.content.y + self.content.height + self.scrollOffset.y;
 }
 
-pub fn draw(self: *Self, state: *UiState) !void {
-    // const font_size = GuiGetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size));
-    // std.debug.print("font_size: {}\n", .{font_size});
-
-    // rl.beginScissorMode(@intFromFloat(self.x_offset), 0, 150 * 3, 150 * 8);
-    // defer rl.endScissorMode();
-
-    GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
-
-    _ = rlg.guiSliderBar(
-        self.getOffsetRect(200, 10, 100, 40),
-        "Engine search time (sec)",
-        rl.textFormat("%.2f", .{state.options.search_time}),
-        &state.options.search_time,
-        0.0,
-        10,
-    );
-
+fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
     var move_num: usize = 0;
 
     var buffer: [1000]u8 = undefined;
@@ -77,18 +62,17 @@ pub fn draw(self: *Self, state: *UiState) !void {
     // scroll example https://github.com/raysan5/raygui/blob/master/examples/animation_curve/animation_curve.c
     // https://www.reddit.com/r/raylib/comments/12ezor0/animation_curves_demo_in_c/
 
-    const bounds = self.getOffsetRect(0, 40, 150 * 3, 150 * 8 - 40);
-    const margin = 8;
     var view = rl.Rectangle{ .x = 0, .y = 0, .width = 0, .height = 0 };
     _ = rlg.guiScrollPanel(bounds, "moves", self.content, &self.scrollOffset, &view);
 
     rl.beginScissorMode(@intFromFloat(bounds.x), @intFromFloat(bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT), @intFromFloat(bounds.width), @intFromFloat(bounds.height));
+    defer rl.endScissorMode();
 
     const scroll_bar_width = @as(f32, @floatFromInt(GuiGetStyle(.listview, @intFromEnum(rlg.GuiListViewProperty.scrollbar_width))));
     self.content = rl.Rectangle{
-        .x = bounds.x + margin,
-        .y = bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + margin,
-        .width = bounds.width - 2 * margin - scroll_bar_width,
+        .x = bounds.x + MARGIN,
+        .y = bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + MARGIN,
+        .width = bounds.width - 2 * MARGIN - scroll_bar_width,
         .height = 0,
     };
 
@@ -115,6 +99,26 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
         self.content.height += box_height;
     }
+}
 
-    rl.endScissorMode();
+pub fn draw(self: *Self, state: *UiState) !void {
+    // const font_size = GuiGetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size));
+    // std.debug.print("font_size: {}\n", .{font_size});
+
+    // rl.beginScissorMode(@intFromFloat(self.x_offset), 0, 150 * 3, 150 * 8);
+    // defer rl.endScissorMode();
+
+    GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
+
+    _ = rlg.guiSliderBar(
+        self.getOffsetRect(200, 10, 100, 40),
+        "Engine search time (sec)",
+        rl.textFormat("%.2f", .{state.options.search_time}),
+        &state.options.search_time,
+        0.0,
+        10,
+    );
+
+    const bounds = self.getOffsetRect(0, 40, 150 * 3, MOVE_HIST_HEIGHT - 40);
+    try self.drawMoveHist(state, bounds);
 }
