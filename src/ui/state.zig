@@ -36,7 +36,8 @@ pub const GameOptions = struct {
 const MAX_DEPTH = 100;
 
 fn searchInBackground(game: *GameManager, search_res: *SearchRes, search_opts: ZigFish.Search.SearchOpts) !void {
-    const move = try game.findBestMove(search_opts);
+    var cloned_game = try game.clone();
+    const move = try cloned_game.findBestMove(search_opts);
 
     search_res.move = move;
     search_res.done_search.set();
@@ -128,11 +129,10 @@ pub fn update(self: *UiState) !void {
     if (self.search_thread == null and !is_player_turn) {
         self.search_res.done_search.reset();
         self.search_res.move = null;
-        var cloned_game = try self.game.clone();
         const search_time = @as(usize, @intFromFloat(self.options.search_time * 1000));
 
         self.search_thread = try std.Thread.spawn(.{}, searchInBackground, .{
-            &cloned_game,
+            &self.game,
             &self.search_res,
             .{ .time_limit_millis = search_time },
         });
