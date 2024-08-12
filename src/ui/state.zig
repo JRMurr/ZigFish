@@ -64,7 +64,6 @@ game: GameManager,
 options: GameOptions,
 move_history: std.ArrayList(MoveHist),
 sprite_manager: SpriteManager,
-start_board: ZigFish.Board,
 gui: Gui,
 search_res: SearchRes,
 search_thread: ?Thread = null,
@@ -77,7 +76,9 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
     else
         try GameManager.init(allocator);
 
-    const move_history = try std.ArrayList(MoveHist).initCapacity(allocator, 30);
+    var move_history = try std.ArrayList(MoveHist).initCapacity(allocator, 30);
+    // add a dummy first move that is the start pos
+    move_history.appendAssumeCapacity(.{ .board = game.board.clone(), .move = undefined });
 
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     // const font = rl.Font.initEx("resources/FiraCode-Bold.otf", 32, null);
@@ -91,7 +92,6 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
 
     return UiState{
         .game = game,
-        .start_board = game.board.clone(),
         .options = options,
         .move_history = move_history,
         .sprite_manager = sprite_manager,
@@ -207,7 +207,14 @@ pub fn update(self: *UiState) !void {
 }
 
 pub fn draw(self: *UiState) !void {
-    const last_move = if (self.move_history.getLastOrNull()) |m| m.move else null;
+    const hist = self.move_history.items;
+    var last_move: ?Move = null;
+    if (self.hist_index) |idx| {
+        last_move = if (idx > 0) hist[idx].move else null;
+    } else if (hist.len > 1) {
+        last_move = self.move_history.getLast().move;
+    }
+
     self.sprite_manager.draw_board(&self.game.board, last_move);
 
     // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
@@ -302,12 +309,12 @@ pub fn firstMove(self: *UiState) void {
 
 pub fn lastMove(self: *UiState) void {
     defer self.setBoard();
-    const num_moves = self.move_history.items.len;
+    // const num_moves = self.move_history.items.len;
 
-    if (num_moves > 0) {
-        self.hist_index = num_moves - 1;
-        return;
-    }
+    // if (num_moves > 0) {
+    //     self.hist_index = num_moves - 1;
+    //     return;
+    // }
 
     self.hist_index = null;
 }

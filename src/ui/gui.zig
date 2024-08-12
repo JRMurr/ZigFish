@@ -51,12 +51,11 @@ fn getScrollBarY(self: *Self) f32 {
 }
 
 fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
-    const move_hist = state.move_history.items;
-    if (state.hist_index) |idx| {
-        std.debug.assert(idx < move_hist.len);
-    }
+    // skip the first move since its the dummy
+    const move_hist = state.move_history.items[1..];
 
-    var move_num: usize = 0;
+    // start at 1 to skip the dummy move
+    var move_num: usize = 1;
 
     var buffer: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
@@ -84,7 +83,7 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
     // Iter over 2 move pairs (ie white and black)
     var move_iter = std.mem.window(UiState.MoveHist, move_hist, 2, 2);
     // idx of the move currently shown on the board
-    const shown_move = if (state.hist_index) |idx| idx else move_hist.len -| 1;
+    const shown_move = if (state.hist_index) |idx| idx else move_hist.len;
     while (move_iter.next()) |window| {
         var x_offset: f32 = 0;
         const box_width = 120;
