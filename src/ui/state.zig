@@ -116,8 +116,6 @@ pub fn deinit(self: *UiState) void {
 // }
 
 pub fn update(self: *UiState) !void {
-    // TODO: don't do search when looking at an old postion
-    // + don't allow moves?
     const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
     const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
 
@@ -126,7 +124,9 @@ pub fn update(self: *UiState) !void {
     else
         true;
 
-    if (self.search_thread == null and !is_player_turn) {
+    // TODO: should the player be able to play for the ai in old position to mess around?
+    // Need to do something to make it obvious they are in an old position and cant do anything if not
+    if (self.search_thread == null and !is_player_turn and self.hist_index == null) {
         self.search_res.done_search.reset();
         self.search_res.move = null;
         const search_time = @as(usize, @intFromFloat(self.options.search_time * 1000));
@@ -251,6 +251,7 @@ pub fn draw(self: *UiState) !void {
 }
 
 fn setBoard(self: *UiState) void {
+    // TODO: either don't allow changing pos during search or cancel it here
     const hist = self.move_history.items;
     if (hist.len == 0) {
         return;
@@ -290,7 +291,7 @@ pub fn nextMove(self: *UiState) void {
     if (self.hist_index) |idx| {
         const new_idx = idx + 1;
         if (new_idx >= num_moves) {
-            return;
+            self.hist_index = null;
         }
         self.hist_index = new_idx;
         return;
@@ -299,8 +300,6 @@ pub fn nextMove(self: *UiState) void {
     self.hist_index = null;
 }
 
-// TODO: this actually needs to set back to the "start" state
-// maybe insert a dummy history move?
 pub fn firstMove(self: *UiState) void {
     defer self.setBoard();
 
@@ -316,12 +315,6 @@ pub fn firstMove(self: *UiState) void {
 
 pub fn lastMove(self: *UiState) void {
     defer self.setBoard();
-    // const num_moves = self.move_history.items.len;
-
-    // if (num_moves > 0) {
-    //     self.hist_index = num_moves - 1;
-    //     return;
-    // }
 
     self.hist_index = null;
 }
