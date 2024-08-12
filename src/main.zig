@@ -23,7 +23,7 @@ const MAX_DEPTH = 100;
 const SEARCH_TIME = 5; // seconds
 const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
-const AI_ON: bool = false;
+const AI_ON: bool = true;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
