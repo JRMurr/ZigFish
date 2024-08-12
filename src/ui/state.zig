@@ -61,6 +61,7 @@ gui: Gui,
 search_res: SearchRes,
 search_thread: ?Thread = null,
 moving_piece: ?MovingPiece = null,
+hist_index: ?usize = null,
 
 pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState {
     const game = if (options.start_pos) |fen|
@@ -221,4 +222,61 @@ pub fn draw(self: *UiState) !void {
             @as(f32, @floatFromInt(sub_ignore_overflow(mouse_y, offset))),
         );
     }
+}
+
+pub fn selectHist(self: *UiState, idx: usize) void {
+    const move_hist = self.move_history.items;
+    std.debug.assert(idx < move_hist.len);
+    self.hist_index = idx;
+}
+
+pub fn prevMove(self: *UiState) void {
+    if (self.hist_index) |idx| {
+        self.hist_index = idx -| 1;
+        return;
+    }
+
+    const num_moves = self.move_history.items.len;
+    if (num_moves > 0) {
+        self.hist_index = num_moves - 1;
+        return;
+    }
+    self.hist_index = null;
+}
+
+pub fn nextMove(self: *UiState) void {
+    const num_moves = self.move_history.items.len;
+
+    if (self.hist_index) |idx| {
+        const new_idx = idx + 1;
+        if (new_idx >= num_moves) {
+            return;
+        }
+        self.hist_index = new_idx;
+        return;
+    }
+
+    self.hist_index = null;
+}
+
+pub fn firstMove(self: *UiState) void {
+    const num_moves = self.move_history.items.len;
+
+    if (num_moves > 0) {
+        self.hist_index = 0;
+        return;
+    }
+
+    self.hist_index = null;
+}
+
+pub fn lastMove(self: *UiState) void {
+    const num_moves = self.move_history.items.len;
+
+    if (num_moves > 0) {
+        self.hist_index = num_moves - 1;
+        return;
+    }
+
+    self.hist_index = null;
 }

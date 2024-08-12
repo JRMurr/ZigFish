@@ -51,6 +51,11 @@ fn getScrollBarY(self: *Self) f32 {
 }
 
 fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
+    const move_hist = state.move_history.items;
+    if (state.hist_index) |idx| {
+        std.debug.assert(idx < move_hist.len);
+    }
+
     var move_num: usize = 0;
 
     var buffer: [1000]u8 = undefined;
@@ -77,25 +82,29 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
     };
 
     // Iter over 2 move pairs (ie white and black)
-    var move_iter = std.mem.window(ZigFish.Move, state.move_history.items, 2, 2);
+    var move_iter = std.mem.window(ZigFish.Move, move_hist, 2, 2);
+    // idx of the move currently shown on the board
+    const shown_move = if (state.hist_index) |idx| idx else move_hist.len -| 1;
     while (move_iter.next()) |window| {
         var x_offset: f32 = 0;
         const box_width = 120;
         const box_height = 40;
         for (window) |move| {
-            // const y_offset: f32 = (@as(f32, @floatFromInt(move_num)) * box_height);
             const rect = self.getOffsetRect(20 + x_offset, self.getScrollBarY(), box_width, box_height);
             var move_buf = [_]u8{' '} ** 8;
 
             const move_str = try toCStr(allocator, move.toSanBuf(&move_buf));
 
+            if (shown_move == move_num) {
+                _ = rlg.guiDummyRec(rect, "");
+            }
+
             if (rlg.guiLabelButton(rect, move_str) > 0) {
-                // TOOD: if this a std.log.debug print if i click during search it crashes??
-                std.debug.print("pressed move: {s}\n", .{move_str});
+                state.selectHist(move_num);
             }
             x_offset += box_width;
+            move_num += 1;
         }
-        move_num += 1;
 
         self.content.height += box_height;
     }
@@ -126,27 +135,27 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
     // go to first move
     if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_player_previous), "")) > 0) {
-        std.debug.print("pressed first move\n", .{});
+        state.firstMove();
     }
 
     iconRect.x += iconRect.width + (MARGIN / 2);
 
     // go back one move
     if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_arrow_left_fill), "")) > 0) {
-        std.debug.print("pressed left fill\n", .{});
+        state.prevMove();
     }
 
     iconRect.x += iconRect.width + (MARGIN / 2);
 
     // forward one move
     if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_arrow_right_fill), "")) > 0) {
-        std.debug.print("pressed rght fill\n", .{});
+        state.nextMove();
     }
 
     iconRect.x += iconRect.width + (MARGIN / 2);
 
     // go to most recent move
     if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_player_next), "")) > 0) {
-        std.debug.print("pressed last move\n", .{});
+        state.lastMove();
     }
 }
