@@ -12,7 +12,11 @@ const Self = @This();
 pub extern "c" fn GuiSetStyle(control: rlg.GuiControl, property: c_int, value: c_int) void;
 pub extern "c" fn GuiGetStyle(control: rlg.GuiControl, property: c_int) c_int;
 
+const RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT = 24;
+
 x_offset: f32,
+scrollOffset: rl.Vector2 = .{ .x = 0, .y = 0 },
+content: rl.Rectangle = rl.Rectangle{ .x = 0, .y = 0, .width = 0, .height = 0 },
 // font: rl.Font,
 
 fn getOffsetRect(self: *const Self, x: f32, y: f32, width: f32, height: f32) rl.Rectangle {
@@ -40,9 +44,16 @@ pub fn deint(self: *Self) void {
     // self.font.unload();
 }
 
-pub fn draw(self: *const Self, state: *UiState) !void {
+fn getScrollBarY(self: *Self) f32 {
+    return self.content.y + self.content.height + self.scrollOffset.y;
+}
+
+pub fn draw(self: *Self, state: *UiState) !void {
     // const font_size = GuiGetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size));
     // std.debug.print("font_size: {}\n", .{font_size});
+
+    // rl.beginScissorMode(@intFromFloat(self.x_offset), 0, 150 * 3, 150 * 8);
+    // defer rl.endScissorMode();
 
     GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
 
@@ -63,16 +74,33 @@ pub fn draw(self: *const Self, state: *UiState) !void {
 
     GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 32));
 
+    // scroll example https://github.com/raysan5/raygui/blob/master/examples/animation_curve/animation_curve.c
+    // https://www.reddit.com/r/raylib/comments/12ezor0/animation_curves_demo_in_c/
+
+    const bounds = self.getOffsetRect(0, 40, 150 * 3, 150 * 8 - 40);
+    const margin = 8;
+    var view = rl.Rectangle{ .x = 0, .y = 0, .width = 0, .height = 0 };
+    _ = rlg.guiScrollPanel(bounds, "moves", self.content, &self.scrollOffset, &view);
+
+    rl.beginScissorMode(@intFromFloat(bounds.x), @intFromFloat(bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT), @intFromFloat(bounds.width), @intFromFloat(bounds.height));
+
+    const scroll_bar_width = @as(f32, @floatFromInt(GuiGetStyle(.listview, @intFromEnum(rlg.GuiListViewProperty.scrollbar_width))));
+    self.content = rl.Rectangle{
+        .x = bounds.x + margin,
+        .y = bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + margin,
+        .width = bounds.width - 2 * margin - scroll_bar_width,
+        .height = 0,
+    };
+
     // Iter over 2 move pairs (ie white and black)
     var move_iter = std.mem.window(ZigFish.Move, state.move_history.items, 2, 2);
     while (move_iter.next()) |window| {
-        move_num += 1;
         var x_offset: f32 = 0;
-        const box_width = 100;
+        const box_width = 120;
         const box_height = 40;
         for (window) |move| {
-            const y_offset: f32 = (@as(f32, @floatFromInt(move_num)) * box_height);
-            const rect = self.getOffsetRect(20 + x_offset, 50 + y_offset, box_width, box_height);
+            // const y_offset: f32 = (@as(f32, @floatFromInt(move_num)) * box_height);
+            const rect = self.getOffsetRect(20 + x_offset, self.getScrollBarY(), box_width, box_height);
             var move_buf = [_]u8{' '} ** 8;
 
             const move_str = try toCStr(allocator, move.toSanBuf(&move_buf));
@@ -83,5 +111,10 @@ pub fn draw(self: *const Self, state: *UiState) !void {
             }
             x_offset += box_width;
         }
+        move_num += 1;
+
+        self.content.height += box_height;
     }
+
+    rl.endScissorMode();
 }
