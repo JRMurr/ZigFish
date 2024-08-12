@@ -182,6 +182,13 @@ pub fn update(self: *UiState) !void {
             if (move.end.eql(pos)) {
                 // std.log.debug("{s}", .{move.toSan()});
                 try self.game.makeMove(move);
+
+                // we are playing a move while looking at an old postion, we need to delete the history after this
+                if (self.hist_index) |idx| {
+                    self.move_history.shrinkAndFree(idx + 1);
+                    self.hist_index = null;
+                }
+
                 try self.move_history.append(.{ .move = move.*, .board = self.game.board.clone() });
                 // std.log.debug("make hash: {d}", .{game.board.zhash});
 
