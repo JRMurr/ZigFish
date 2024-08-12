@@ -121,4 +121,32 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
     const bounds = self.getOffsetRect(0, 40, 150 * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);
+
+    var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);
+
+    // go to first move
+    if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_player_previous), "")) > 0) {
+        std.debug.print("pressed first move\n", .{});
+    }
+
+    iconRect.x += iconRect.width + (MARGIN / 2);
+
+    // go back one move
+    if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_arrow_left_fill), "")) > 0) {
+        std.debug.print("pressed left fill\n", .{});
+    }
+
+    iconRect.x += iconRect.width + (MARGIN / 2);
+
+    // forward one move
+    if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_arrow_right_fill), "")) > 0) {
+        std.debug.print("pressed rght fill\n", .{});
+    }
+
+    iconRect.x += iconRect.width + (MARGIN / 2);
+
+    // go to most recent move
+    if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_player_next), "")) > 0) {
+        std.debug.print("pressed last move\n", .{});
+    }
 }
