@@ -53,10 +53,18 @@ const ClampedMousePos = struct {
 
 const UiState = @This();
 
+pub const MoveHist = struct {
+    /// Move played
+    move: Move,
+    /// The board after the move was played
+    board: ZigFish.Board,
+};
+
 game: GameManager,
 options: GameOptions,
-move_history: std.ArrayList(Move),
+move_history: std.ArrayList(MoveHist),
 sprite_manager: SpriteManager,
+start_board: ZigFish.Board,
 gui: Gui,
 search_res: SearchRes,
 search_thread: ?Thread = null,
@@ -69,7 +77,7 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
     else
         try GameManager.init(allocator);
 
-    const move_history = try std.ArrayList(Move).initCapacity(allocator, 30);
+    const move_history = try std.ArrayList(MoveHist).initCapacity(allocator, 30);
 
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     // const font = rl.Font.initEx("resources/FiraCode-Bold.otf", 32, null);
@@ -83,6 +91,7 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
 
     return UiState{
         .game = game,
+        .start_board = game.board.clone(),
         .options = options,
         .move_history = move_history,
         .sprite_manager = sprite_manager,
@@ -106,6 +115,8 @@ pub fn deinit(self: *UiState) void {
 // }
 
 pub fn update(self: *UiState) !void {
+    // TODO: don't do search when looking at an old postion
+    // + don't allow moves?
     const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
     const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
 
@@ -133,7 +144,7 @@ pub fn update(self: *UiState) !void {
         self.search_thread = null;
         if (self.search_res.move) |m| {
             try self.game.makeMove(&m);
-            try self.move_history.append(m);
+            try self.move_history.append(.{ .move = m, .board = self.game.board.clone() });
         }
         return;
     }
@@ -171,7 +182,7 @@ pub fn update(self: *UiState) !void {
             if (move.end.eql(pos)) {
                 // std.log.debug("{s}", .{move.toSan()});
                 try self.game.makeMove(move);
-                try self.move_history.append(move.*);
+                try self.move_history.append(.{ .move = move.*, .board = self.game.board.clone() });
                 // std.log.debug("make hash: {d}", .{game.board.zhash});
 
                 // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
@@ -183,20 +194,21 @@ pub fn update(self: *UiState) !void {
         return;
     }
 
-    // move undo
-    if (self.moving_piece == null and rl.isKeyPressed(rl.KeyboardKey.key_left)) {
-        const maybe_move = self.move_history.popOrNull();
-        if (maybe_move) |move| {
-            self.game.unMakeMove(&move);
-            // std.log.debug("unmake hash: {d}", .{game.board.zhash});
-        }
+    // // move undo
+    // if (self.moving_piece == null and rl.isKeyPressed(rl.KeyboardKey.key_left)) {
+    //     const maybe_move = self.move_history.popOrNull();
+    //     if (maybe_move) |move| {
+    //         self.game.unMakeMove(&move);
+    //         // std.log.debug("unmake hash: {d}", .{game.board.zhash});
+    //     }
 
-        return;
-    }
+    //     return;
+    // }
 }
 
 pub fn draw(self: *UiState) !void {
-    self.sprite_manager.draw_board(&self.game.board, self.move_history.getLastOrNull());
+    const last_move = if (self.move_history.getLastOrNull()) |m| m.move else null;
+    self.sprite_manager.draw_board(&self.game.board, last_move);
 
     // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
     // while (attacked_iter.next()) |p_idx| {
@@ -224,13 +236,25 @@ pub fn draw(self: *UiState) !void {
     }
 }
 
+fn setBoard(self: *UiState) void {
+    const hist = self.move_history.items;
+    if (hist.len == 0) {
+        return;
+    }
+    const idx = if (self.hist_index) |idx| idx else hist.len -| 1;
+    std.debug.assert(idx < hist.len);
+    self.game.board = self.move_history.items[idx].board.clone();
+}
+
 pub fn selectHist(self: *UiState, idx: usize) void {
+    defer self.setBoard();
     const move_hist = self.move_history.items;
     std.debug.assert(idx < move_hist.len);
     self.hist_index = idx;
 }
 
 pub fn prevMove(self: *UiState) void {
+    defer self.setBoard();
     if (self.hist_index) |idx| {
         self.hist_index = idx -| 1;
         return;
@@ -245,6 +269,8 @@ pub fn prevMove(self: *UiState) void {
 }
 
 pub fn nextMove(self: *UiState) void {
+    defer self.setBoard();
+
     const num_moves = self.move_history.items.len;
 
     if (self.hist_index) |idx| {
@@ -259,7 +285,11 @@ pub fn nextMove(self: *UiState) void {
     self.hist_index = null;
 }
 
+// TODO: this actually needs to set back to the "start" state
+// maybe insert a dummy history move?
 pub fn firstMove(self: *UiState) void {
+    defer self.setBoard();
+
     const num_moves = self.move_history.items.len;
 
     if (num_moves > 0) {
@@ -271,6 +301,7 @@ pub fn firstMove(self: *UiState) void {
 }
 
 pub fn lastMove(self: *UiState) void {
+    defer self.setBoard();
     const num_moves = self.move_history.items.len;
 
     if (num_moves > 0) {

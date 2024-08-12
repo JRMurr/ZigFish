@@ -82,18 +82,18 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
     };
 
     // Iter over 2 move pairs (ie white and black)
-    var move_iter = std.mem.window(ZigFish.Move, move_hist, 2, 2);
+    var move_iter = std.mem.window(UiState.MoveHist, move_hist, 2, 2);
     // idx of the move currently shown on the board
     const shown_move = if (state.hist_index) |idx| idx else move_hist.len -| 1;
     while (move_iter.next()) |window| {
         var x_offset: f32 = 0;
         const box_width = 120;
         const box_height = 40;
-        for (window) |move| {
+        for (window) |mh| {
             const rect = self.getOffsetRect(20 + x_offset, self.getScrollBarY(), box_width, box_height);
             var move_buf = [_]u8{' '} ** 8;
 
-            const move_str = try toCStr(allocator, move.toSanBuf(&move_buf));
+            const move_str = try toCStr(allocator, mh.move.toSanBuf(&move_buf));
 
             if (shown_move == move_num) {
                 _ = rlg.guiDummyRec(rect, "");
