@@ -133,16 +133,21 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
     GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
 
+    _ = rlg.guiLabel(self.getOffsetRect(MARGIN, 0, 200, 20), "Engine search time (sec)");
+
     _ = rlg.guiSliderBar(
-        self.getOffsetRect(200, 10, 100, 40),
-        "Engine search time (sec)",
+        self.getOffsetRect(MARGIN, 25, 150, 20),
+        "",
         rl.textFormat("%.2f", .{state.options.search_time}),
+
         &state.options.search_time,
         0.0,
         10,
     );
 
-    const bounds = self.getOffsetRect(0, 40, 150 * 3, MOVE_HIST_HEIGHT - 40);
+    _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, 55, 20, 20), "Ai on", &state.options.ai_on);
+
+    const bounds = self.getOffsetRect(0, 100, 150 * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);
 
     var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);
