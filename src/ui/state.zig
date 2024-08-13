@@ -96,6 +96,10 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
         // font,
     );
 
+    // for (game.getAllValidMoves().items()) |m| {
+    //     std.debug.print("{s}\n", .{m.toStrSimple()});
+    // }
+
     return UiState{
         .game = game,
         .options = options,

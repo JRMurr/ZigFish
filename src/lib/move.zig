@@ -131,10 +131,26 @@ pub const Move = struct {
             idx += 1;
         }
 
+        var maybe_file: ?usize = null;
+        var maybe_rank: ?usize = null;
+
+        if (idx < end_idx - 1) {
+            if (std.ascii.isAlphabetic(san[idx]) and san[idx] != 'x') {
+                maybe_file = @intCast(san[idx] - 'a');
+                idx += 1;
+            }
+
+            if (std.ascii.isDigit(san[idx]) and san[idx] != 'x') {
+                maybe_rank = @intCast(san[idx] - '1');
+                idx += 1;
+            }
+        }
+
         // Parse captures
         if (std.mem.indexOf(u8, san, "x")) |capture_idx| {
-            move_flags.setUnion(MoveFlags.initOne(MoveType.Capture));
+            move_flags.setPresent(MoveType.Capture, true);
             idx = capture_idx + 1;
+            // _ = capture_idx;
         }
 
         // Parse destination square
@@ -148,23 +164,8 @@ pub const Move = struct {
 
         // Parse promotion
         if (san.len > 2 and san[end_idx - 2] == '=') {
-            move_flags.setUnion(MoveFlags.initOne(MoveType.Promotion));
+            move_flags.setPresent(MoveType.Promotion, true);
             promotion_kind = parsePieceType(san[end_idx]);
-        }
-
-        var maybe_file: ?usize = null;
-        var maybe_rank: ?usize = null;
-
-        if (idx < end_idx - 1) {
-            if (std.ascii.isAlphabetic(san[idx])) {
-                maybe_file = @intCast(san[idx] - 'a');
-                idx += 1;
-            }
-
-            if (std.ascii.isDigit(san[idx])) {
-                maybe_rank = @intCast(san[idx] - '1');
-                idx += 1;
-            }
         }
 
         for (valid_moves) |m| {
@@ -174,7 +175,7 @@ pub const Move = struct {
             if (!m.end.eql(end_square)) {
                 continue;
             }
-            if (!m.move_flags.eql(move_flags)) {
+            if (!m.move_flags.supersetOf(move_flags)) { // super set to allow for en passant flag
                 continue;
             }
             const rankFile = m.start.toRankFile();
@@ -189,15 +190,21 @@ pub const Move = struct {
                 }
             }
 
+            // std.debug.assert(std.mem.startsWith(u8, san, &m.toStrSimple()));
             return m;
         }
 
-        std.debug.panic("could not find move for {s}\nkind: {}\nend_square: {s}\nmaybe_file: {?}\nmaybe_rank: {?}\n", .{
+        // for (valid_moves) |m| {
+        //     std.debug.print("move: {s}\n", .{m.toStrSimple()});
+        // }
+
+        std.debug.panic("could not find move for {s}\nkind: {}\nend_square: {s}\nmaybe_file: {?}\nmaybe_rank: {?}\ncapture? {}\n", .{
             san,
             kind,
             end_square.toStr(),
             maybe_file,
             maybe_rank,
+            move_flags.contains(MoveType.Capture),
         });
     }
 

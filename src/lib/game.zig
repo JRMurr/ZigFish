@@ -162,7 +162,7 @@ pub const GameManager = struct {
 
     pub fn getAllValidMoves(
         self: *Self,
-    ) Allocator.Error!MoveList {
+    ) MoveList {
         const move_gen = MoveGen{ .board = &self.board };
         const res = move_gen.getAllValidMoves(false);
 

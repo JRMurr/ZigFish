@@ -31,15 +31,20 @@ pub fn readPgn(self: *Self, pgn_str: []const u8) !void {
 
     const arena_alloc = arena.allocator();
 
-    const pgns: []Pgn = (try PgnParser.many_pgn.parse(arena_alloc, pgn_str)).value;
+    const parsed = try PgnParser.many_pgn.parse(arena_alloc, pgn_str);
 
-    // std.debug.print("PGNS: {}\n", .{pgns.len});
+    const pgns: []Pgn = parsed.value;
+
+    std.debug.print("PGNS: {}\n", .{pgns.len});
+
+    // std.debug.print("rest: {s}\n", .{parsed.rest[0..300]});
 
     for (pgns) |pgn| {
         var board = Board.initStart();
         for (pgn.moves) |full_move| {
             const moves = full_move.moves().constSlice();
             for (moves) |move_str| {
+                // std.debug.print("checking: {s}\n", .{move_str});
                 const allowed_moves = board.getAllValidMoves();
 
                 const move = Move.fromSan(move_str, allowed_moves.items());
