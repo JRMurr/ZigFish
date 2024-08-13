@@ -9,6 +9,7 @@ const Move = ZigFish.Move;
 const MoveType = ZigFish.MoveType;
 const MoveFlags = ZigFish.MoveFlags;
 const BoardMeta = ZigFish.BoardMeta;
+const Opening = ZigFish.Opening;
 
 const BoardBitSet = ZigFish.BoardBitSet;
 const Dir = ZigFish.Dir;
@@ -48,6 +49,7 @@ pub const GameManager = struct {
     allocator: Allocator,
 
     board: Board,
+    opening: Opening,
     history: HistoryStack, // TODO: yeet
 
     pub fn init(allocator: Allocator) Allocator.Error!Self {
@@ -73,7 +75,12 @@ pub const GameManager = struct {
         const board_clone = self.board.clone();
         const history_clone = try self.history.clone();
 
-        return Self{ .allocator = self.allocator, .board = board_clone, .history = history_clone };
+        return Self{
+            .allocator = self.allocator,
+            .board = board_clone,
+            .history = history_clone,
+            .opening = self.opening,
+        };
     }
 
     pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
@@ -84,7 +91,16 @@ pub const GameManager = struct {
             .allocator = allocator,
             .board = board,
             .history = history,
+            .opening = Opening.init(allocator),
         };
+    }
+
+    pub fn readPgnOpening(self: *Self, pgn_str: []const u8) !void {
+        try self.opening.readPgn(pgn_str);
+    }
+
+    pub fn getOpeningMoves(self: *const Self) []ZigFish.Opening.MoveEntry {
+        return self.opening.getPossibleMoves(self.board.zhash);
     }
 
     pub fn gameStatus(self: *const Self) GameStatus {

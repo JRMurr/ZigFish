@@ -132,6 +132,10 @@ pub const Board = struct {
         };
     }
 
+    pub fn initStart() Self {
+        return ZigFish.Fen.parse(ZigFish.Fen.START_POS);
+    }
+
     pub fn clone(self: Self) Self {
         var res = Self{
             .zhash = self.zhash,
@@ -425,6 +429,13 @@ pub const Board = struct {
             self.kind_sets[@intFromEnum(p.kind)].set(pos_idx);
             self.occupied_set.set(pos_idx);
         }
+    }
+
+    pub fn getAllValidMoves(self: *const Self) ZigFish.MoveList {
+        const move_gen = ZigFish.MoveGen{ .board = self };
+        const res = move_gen.getAllValidMoves(false);
+
+        return res.moves;
     }
 
     pub fn king_in_check(self: *const Self) bool {

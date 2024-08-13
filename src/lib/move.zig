@@ -91,7 +91,7 @@ pub const Move = struct {
         };
     }
 
-    pub fn fromSan(san: []const u8, valid_moves: []Move) Move {
+    pub fn fromSan(san: []const u8, valid_moves: []const Move) Move {
         // Handle castling
         const is_king_castle: bool = std.mem.startsWith(u8, san, "O-O");
         const is_queen_castle: bool = std.mem.startsWith(u8, san, "O-O-O");

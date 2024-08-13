@@ -9,26 +9,39 @@ const Allocator = std.mem.Allocator;
 
 pub const Move = ZigFish.Move;
 
-pub const Pgn = struct {
-    const FullMove = struct {
-        white: []const u8,
-        black: ?[]const u8,
-    };
+pub const Pgn = @This();
 
-    const Tag = struct { name: []const u8, value: []const u8 };
+const FullMove = struct {
+    white: []const u8,
+    black: ?[]const u8,
 
-    tags: []Tag,
-    moves: []FullMove,
-    result: []const u8,
+    pub fn moves(self: *const FullMove) std.BoundedArray([]const u8, 2) {
+        var arr = std.BoundedArray([]const u8, 2).init(0) catch |err| {
+            std.debug.panic("error making bounded arr: {}", .{err});
+        };
 
-    /// need to parse in the allocator used to parse
-    pub fn deinit(self: Pgn, allocator: Allocator) void {
-        allocator.free(self.tags);
-        allocator.free(self.moves);
+        arr.appendAssumeCapacity(self.white);
+        if (self.black) |b| {
+            arr.appendAssumeCapacity(b);
+        }
+
+        return arr;
     }
 };
 
-const PgnParser = struct {
+const Tag = struct { name: []const u8, value: []const u8 };
+
+tags: []Tag,
+moves: []FullMove,
+result: []const u8,
+
+/// need to pass in the allocator used to parse
+pub fn deinit(self: Pgn, allocator: Allocator) void {
+    allocator.free(self.tags);
+    allocator.free(self.moves);
+}
+
+pub const PgnParser = struct {
     pub const pgn = mecha.combine(.{
         many_tags,
         ws.discard(),

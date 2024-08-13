@@ -61,6 +61,8 @@ pub const MoveHist = struct {
     board: ZigFish.Board,
 };
 
+const OPENING_PGN = @embedFile("../openings/Balsa_v110221.pgn");
+
 game: GameManager,
 options: GameOptions,
 move_history: std.ArrayList(MoveHist),
@@ -73,10 +75,12 @@ hist_index: ?usize = null,
 game_status: ZigFish.GameStatus,
 
 pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState {
-    const game = if (options.start_pos) |fen|
+    var game = if (options.start_pos) |fen|
         try GameManager.from_fen(allocator, fen)
     else
         try GameManager.init(allocator);
+
+    try game.readPgnOpening(OPENING_PGN);
 
     var move_history = try std.ArrayList(MoveHist).initCapacity(allocator, 30);
     // add a dummy first move that is the start pos
@@ -117,18 +121,26 @@ pub fn deinit(self: *UiState) void {
 //     return .{ .x = mouse_x, .y = mouse_y };
 // }
 
+pub fn isPlayerTurn(self: *const UiState) bool {
+    return if (self.options.ai_on)
+        self.game.board.active_color == self.options.player_color
+    else
+        true;
+}
+
 pub fn update(self: *UiState) !void {
     if (self.game_status != .InProgress) {
         return;
     }
 
+    // for (self.game.getOpeningMoves()) |opening| {
+    //     std.debug.print("opening move: {s}\ttimes_played:{}\n", .{ opening.move.toStrSimple(), opening.times_played });
+    // }
+
     const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
     const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
 
-    const is_player_turn = if (self.options.ai_on)
-        self.game.board.active_color == self.options.player_color
-    else
-        true;
+    const is_player_turn = self.isPlayerTurn();
 
     // TODO: should the player be able to play for the ai in old position to mess around?
     // Need to do something to make it obvious they are in an old position and cant do anything if not
