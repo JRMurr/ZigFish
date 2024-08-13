@@ -33,6 +33,8 @@ const NUM_DIRS = utils.enumLen(Dir);
 
 const PROMOTION_KINDS = [4]Kind{ Kind.Queen, Kind.Knight, Kind.Bishop, Kind.Rook };
 
+pub const GameStatus = enum { WhiteWin, BlackWin, Draw, InProgress };
+
 // pub const MoveHistory = struct {
 //     move: Move,
 //     meta: BoardMeta,
@@ -46,7 +48,7 @@ pub const GameManager = struct {
     allocator: Allocator,
 
     board: Board,
-    history: HistoryStack,
+    history: HistoryStack, // TODO: yeet
 
     pub fn init(allocator: Allocator) Allocator.Error!Self {
         return Self.from_fen(allocator, Fen.START_POS);
@@ -83,6 +85,26 @@ pub const GameManager = struct {
             .board = board,
             .history = history,
         };
+    }
+
+    pub fn gameStatus(self: *const Self) GameStatus {
+        const move_gen = MoveGen{ .board = &self.board };
+        const res = move_gen.getAllValidMoves(false);
+
+        if (res.moves.count() == 0) {
+            if (res.gen_info.attack_info.king_attackers.count() > 0) {
+                // checkmate against active color
+                if (self.board.active_color == .White) {
+                    return GameStatus.BlackWin;
+                }
+                return GameStatus.WhiteWin;
+            }
+            // no moves available but not in check is stalemate ie draw
+            return GameStatus.Draw;
+        }
+        // TODO: insuffecent win material (ie just kings and bishops)
+
+        return GameStatus.InProgress;
     }
 
     pub fn getPos(self: Self, pos: Position) ?Piece {

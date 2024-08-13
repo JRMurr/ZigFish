@@ -35,6 +35,7 @@ pub fn init(
     // font: rl.Font,
 ) Self {
     // rlg.guiSetFont(font);
+    rlg.guiLoadStyle("resources/style_dark.rgs");
     return Self{
         .x_offset = x_offset,
         // .font = font,
@@ -115,6 +116,20 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
     // rl.beginScissorMode(@intFromFloat(self.x_offset), 0, 150 * 3, 150 * 8);
     // defer rl.endScissorMode();
+
+    if (state.game_status != .InProgress) {
+        const cell_size = 150; // TODO:
+        const rect = rl.Rectangle{ .x = cell_size * 3, .y = cell_size * 3, .width = cell_size * 2, .height = cell_size * 2 };
+        const msg = switch (state.game_status) {
+            .BlackWin => "Black Win",
+            .WhiteWin => "White Win",
+            .Draw => "Draw",
+            .InProgress => unreachable,
+        };
+        rlg.guiSetAlpha(0.85);
+        defer rlg.guiSetAlpha(1);
+        _ = rlg.guiDummyRec(rect, msg);
+    }
 
     GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
 

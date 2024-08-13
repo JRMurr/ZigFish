@@ -70,6 +70,7 @@ search_res: SearchRes,
 search_thread: ?Thread = null,
 moving_piece: ?MovingPiece = null,
 hist_index: ?usize = null,
+game_status: ZigFish.GameStatus,
 
 pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState {
     const game = if (options.start_pos) |fen|
@@ -98,6 +99,7 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
         .sprite_manager = sprite_manager,
         .gui = gui,
         .search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} },
+        .game_status = game.gameStatus(),
     };
 }
 
@@ -116,6 +118,10 @@ pub fn deinit(self: *UiState) void {
 // }
 
 pub fn update(self: *UiState) !void {
+    if (self.game_status != .InProgress) {
+        return;
+    }
+
     const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
     const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
 
@@ -145,6 +151,7 @@ pub fn update(self: *UiState) !void {
         if (self.search_res.move) |m| {
             try self.game.makeMove(&m);
             try self.move_history.append(.{ .move = m, .board = self.game.board.clone() });
+            self.game_status = self.game.gameStatus();
         }
         return;
     }
@@ -190,6 +197,8 @@ pub fn update(self: *UiState) !void {
                 }
 
                 try self.move_history.append(.{ .move = move.*, .board = self.game.board.clone() });
+                self.game_status = self.game.gameStatus();
+
                 // std.log.debug("make hash: {d}", .{game.board.zhash});
 
                 // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
@@ -259,6 +268,7 @@ fn setBoard(self: *UiState) void {
     const idx = if (self.hist_index) |idx| idx else hist.len -| 1;
     std.debug.assert(idx < hist.len);
     self.game.board = self.move_history.items[idx].board.clone();
+    self.game_status = self.game.gameStatus();
 }
 
 pub fn selectHist(self: *UiState, idx: usize) void {

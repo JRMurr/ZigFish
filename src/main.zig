@@ -59,6 +59,7 @@ fn mainLoop() anyerror!void {
     var ui_state = try UiState.init(getAllocator(), cell_size, .{
         .search_time = SEARCH_TIME,
         .ai_on = AI_ON,
+        .start_pos = "7k/8/6QP/8/8/8/6K1/8 w - - 0 1", // white about to win
     });
     defer ui_state.deinit();
 
