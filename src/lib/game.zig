@@ -1,4 +1,6 @@
 const std = @import("std");
+const DefaultPrng = std.rand.DefaultPrng;
+
 const builtin = @import("builtin");
 const utils = ZigFish.Utils;
 
@@ -50,9 +52,10 @@ pub const GameManager = struct {
 
     board: Board,
     opening: Opening,
+    prng: DefaultPrng,
     history: HistoryStack, // TODO: yeet
 
-    pub fn init(allocator: Allocator) Allocator.Error!Self {
+    pub fn init(allocator: Allocator) !Self {
         return Self.from_fen(allocator, Fen.START_POS);
     }
 
@@ -80,18 +83,27 @@ pub const GameManager = struct {
             .board = board_clone,
             .history = history_clone,
             .opening = self.opening,
+            .prng = self.prng,
         };
     }
 
-    pub fn from_fen(allocator: Allocator, fen_str: []const u8) Allocator.Error!Self {
+    pub fn from_fen(allocator: Allocator, fen_str: []const u8) !Self {
         const board = Fen.parse(fen_str);
         const history = try HistoryStack.initCapacity(allocator, 30);
+
+        const prng = std.rand.DefaultPrng.init(blk: {
+            var seed: u64 = undefined;
+            try std.posix.getrandom(std.mem.asBytes(&seed));
+            std.debug.print("seed: {}\n", .{seed});
+            break :blk seed;
+        });
 
         return Self{
             .allocator = allocator,
             .board = board,
             .history = history,
             .opening = Opening.init(allocator),
+            .prng = prng,
         };
     }
 
@@ -185,6 +197,33 @@ pub const GameManager = struct {
     }
 
     pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts) !?Move {
+        const opening_moves = self.getOpeningMoves();
+
+        if (opening_moves.len > 0) {
+            // for (opening_moves) |m| {
+            //     std.debug.print("{}\n", .{m.times_played});
+            // }
+
+            const idx = self.prng.random().intRangeLessThan(usize, 0, opening_moves.len);
+            const entry = opening_moves[idx];
+
+            const std_dev: f64 = 20;
+            const mean: f64 = 20;
+            const min_times_float = (self.prng.random().floatNorm(f64) * std_dev) + mean;
+
+            if (min_times_float > 0) {
+                const min_times_played: usize = @intFromFloat(min_times_float);
+                // std.debug.print("move: {s}\t time_played: {}\tmin_times_played: {}\n", .{
+                //     entry.move.toStrSimple(),
+                //     entry.times_played,
+                //     min_times_played,
+                // });
+                if (entry.times_played >= min_times_played) {
+                    return entry.move;
+                }
+            }
+        }
+
         var search = try Search.init(self.allocator, &self.board, search_opts);
         defer search.deinit();
 

@@ -63,6 +63,10 @@ fn mainLoop() anyerror!void {
     });
     defer ui_state.deinit();
 
+    for (ui_state.game.getOpeningMoves()) |m| {
+        std.debug.print("move: {s}\t{}\n", .{ m.move.toStrSimple(), m.times_played });
+    }
+
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
 
