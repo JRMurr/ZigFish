@@ -45,6 +45,11 @@ pub const GameStatus = enum { WhiteWin, BlackWin, Draw, InProgress };
 
 const HistoryStack = std.ArrayList(BoardMeta);
 
+const NormalDist = struct {
+    mean: f64,
+    std_dev: f64,
+};
+
 pub const GameManager = struct {
     const Self = @This();
 
@@ -53,7 +58,7 @@ pub const GameManager = struct {
     board: Board,
     opening: Opening,
     prng: DefaultPrng,
-    history: HistoryStack, // TODO: yeet
+    history: HistoryStack,
 
     pub fn init(allocator: Allocator) !Self {
         return Self.from_fen(allocator, Fen.START_POS);
@@ -113,6 +118,39 @@ pub const GameManager = struct {
 
     pub fn getOpeningMoves(self: *const Self) []ZigFish.Opening.MoveEntry {
         return self.opening.getPossibleMoves(self.board.zhash);
+    }
+
+    pub fn getRandOpeningMove(self: *Self, dist: NormalDist) ?Move {
+        const opening_moves = self.getOpeningMoves();
+
+        if (opening_moves.len == 0) {
+            return null;
+        }
+
+        // for (opening_moves) |m| {
+        //     std.debug.print("{}\n", .{m.times_played});
+        // }
+
+        const idx = self.prng.random().intRangeLessThan(usize, 0, opening_moves.len);
+        const entry = opening_moves[idx];
+
+        const min_times_float = (self.prng.random().floatNorm(f64) * dist.std_dev) + dist.mean;
+
+        if (min_times_float < 0) {
+            return null;
+        }
+
+        const min_times_played: usize = @intFromFloat(min_times_float);
+        // std.debug.print("move: {s}\t time_played: {}\tmin_times_played: {}\n", .{
+        //     entry.move.toStrSimple(),
+        //     entry.times_played,
+        //     min_times_played,
+        // });
+        if (entry.times_played >= min_times_played) {
+            return entry.move;
+        }
+
+        return null;
     }
 
     pub fn gameStatus(self: *const Self) GameStatus {
@@ -197,31 +235,9 @@ pub const GameManager = struct {
     }
 
     pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts) !?Move {
-        const opening_moves = self.getOpeningMoves();
-
-        if (opening_moves.len > 0) {
-            // for (opening_moves) |m| {
-            //     std.debug.print("{}\n", .{m.times_played});
-            // }
-
-            const idx = self.prng.random().intRangeLessThan(usize, 0, opening_moves.len);
-            const entry = opening_moves[idx];
-
-            const std_dev: f64 = 20;
-            const mean: f64 = 20;
-            const min_times_float = (self.prng.random().floatNorm(f64) * std_dev) + mean;
-
-            if (min_times_float > 0) {
-                const min_times_played: usize = @intFromFloat(min_times_float);
-                // std.debug.print("move: {s}\t time_played: {}\tmin_times_played: {}\n", .{
-                //     entry.move.toStrSimple(),
-                //     entry.times_played,
-                //     min_times_played,
-                // });
-                if (entry.times_played >= min_times_played) {
-                    return entry.move;
-                }
-            }
+        const maybe_opening_move = self.getRandOpeningMove(.{ .mean = 20, .std_dev = 20 });
+        if (maybe_opening_move) |m| {
+            return m;
         }
 
         var search = try Search.init(self.allocator, &self.board, search_opts);
