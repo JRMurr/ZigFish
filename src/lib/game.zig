@@ -136,11 +136,7 @@ pub const GameManager = struct {
 
         const min_times_float = (self.prng.random().floatNorm(f64) * dist.std_dev) + dist.mean;
 
-        if (min_times_float < 0) {
-            return null;
-        }
-
-        const min_times_played: usize = @intFromFloat(min_times_float);
+        const min_times_played: usize = if (min_times_float < 0) 0 else @intFromFloat(min_times_float);
         // std.debug.print("move: {s}\t time_played: {}\tmin_times_played: {}\n", .{
         //     entry.move.toStrSimple(),
         //     entry.times_played,
