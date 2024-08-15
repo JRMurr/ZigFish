@@ -45,7 +45,7 @@ pub const GameStatus = enum { WhiteWin, BlackWin, Draw, InProgress };
 
 const HistoryStack = std.ArrayList(BoardMeta);
 
-const NormalDist = struct {
+pub const NormalDist = struct {
     mean: f64,
     std_dev: f64,
 };
@@ -99,7 +99,6 @@ pub const GameManager = struct {
         const prng = std.rand.DefaultPrng.init(blk: {
             var seed: u64 = undefined;
             try std.posix.getrandom(std.mem.asBytes(&seed));
-            std.debug.print("seed: {}\n", .{seed});
             break :blk seed;
         });
 
@@ -230,10 +229,12 @@ pub const GameManager = struct {
         return moves;
     }
 
-    pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts) !?Move {
-        const maybe_opening_move = self.getRandOpeningMove(.{ .mean = 20, .std_dev = 20 });
-        if (maybe_opening_move) |m| {
-            return m;
+    pub fn findBestMove(self: *Self, search_opts: Search.SearchOpts, opening_stats: ?NormalDist) !?Move {
+        if (opening_stats) |stats| {
+            const maybe_opening_move = self.getRandOpeningMove(stats);
+            if (maybe_opening_move) |m| {
+                return m;
+            }
         }
 
         var search = try Search.init(self.allocator, &self.board, search_opts);

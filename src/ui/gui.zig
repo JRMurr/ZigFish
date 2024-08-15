@@ -133,10 +133,14 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
     GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 16));
 
-    _ = rlg.guiLabel(self.getOffsetRect(MARGIN, 0, 200, 20), "Engine search time (sec)");
+    var height: f32 = 0;
+
+    _ = rlg.guiLabel(self.getOffsetRect(MARGIN, height, 200, 20), "Engine search time (sec)");
+    height += 20;
+    height += MARGIN / 2;
 
     _ = rlg.guiSliderBar(
-        self.getOffsetRect(MARGIN, 25, 150, 20),
+        self.getOffsetRect(MARGIN, height, 150, 20),
         "",
         rl.textFormat("%.2f", .{state.options.search_time}),
 
@@ -145,9 +149,18 @@ pub fn draw(self: *Self, state: *UiState) !void {
         10,
     );
 
-    _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, 55, 20, 20), "Ai on", &state.options.ai_on);
+    height += 20;
+    height += MARGIN / 2;
 
-    const bounds = self.getOffsetRect(0, 100, 150 * 3, MOVE_HIST_HEIGHT - 40);
+    _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, height, 20, 20), "Ai on", &state.options.ai_on);
+    height += 20;
+    height += MARGIN / 2;
+
+    _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, height, 20, 20), "Use opening book", &state.options.use_opening_book);
+    height += 20;
+    height += MARGIN / 2;
+
+    const bounds = self.getOffsetRect(0, height, 150 * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);
 
     var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);

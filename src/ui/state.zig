@@ -30,14 +30,18 @@ pub const GameOptions = struct {
     search_time: f32 = 5.0,
     player_color: Piece.Color = Piece.Color.White,
     ai_on: bool = true,
+    use_opening_book: bool = true,
     start_pos: ?[]const u8 = null,
 };
 
 const MAX_DEPTH = 100;
 
-fn searchInBackground(game: *GameManager, search_res: *SearchRes, search_opts: ZigFish.Search.SearchOpts) !void {
+fn searchInBackground(game: *GameManager, search_res: *SearchRes, search_opts: ZigFish.Search.SearchOpts, game_opts: *const GameOptions) !void {
     var cloned_game = try game.clone();
-    const move = try cloned_game.findBestMove(search_opts);
+
+    const opening_dist: ?ZigFish.NormalDist = if (game_opts.use_opening_book) .{ .mean = 20, .std_dev = 20 } else null;
+
+    const move = try cloned_game.findBestMove(search_opts, opening_dist);
 
     search_res.move = move;
     search_res.done_search.set();
@@ -157,6 +161,7 @@ pub fn update(self: *UiState) !void {
             &self.game,
             &self.search_res,
             .{ .time_limit_millis = search_time },
+            &self.options,
         });
         return;
     }
