@@ -1,0 +1,17 @@
+diff --git a/tools/link.py b/tools/link.py
+index e35b0d008..b7a160445 100644
+--- a/tools/link.py
++++ b/tools/link.py
+@@ -432,8 +432,10 @@ def get_binaryen_passes():
+   # restructures the code). We could re-run those opts, but it is most efficient
+   # to just not do them now if we'll invoke other tools later, and we'll do them
+   # only in the very last invocation.
+-  if will_metadce():
+-    passes += ['--no-stack-ir']
++
++  # binaryan has not released a version with this yet....
++  # if will_metadce():
++  #   passes += ['--no-stack-ir']
+ 
+   return passes
+ 
