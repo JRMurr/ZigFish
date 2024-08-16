@@ -53,6 +53,11 @@ fn mainLoop() anyerror!void {
     //--------------------------------------------------------------------------------------
 
     rl.initAudioDevice(); // Initialize audio device
+    rl.setConfigFlags(rl.ConfigFlags{
+        // .window_highdpi = true,
+        // .window_resizable = true,
+    });
+    // TODO: make a "base unit" for sizing. Use this everywhere. Can update on resizes to keep scale
     rl.initWindow(screen_size + sidebar_width, screen_size, "ZigFish");
     defer rl.closeWindow(); // Close window and OpenGL context
 
