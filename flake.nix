@@ -21,9 +21,9 @@
         xorgDeps = with pkgs.xorg; [ libXrandr libXinerama libXi ];
         runtimeDeps = with pkgs; [ raylib xorg.libXcursor pkg-config ] ++ xorgDeps;
 
-        myPkgs = import ./nix { inherit (pkgs) lib newScope; zig = zigPkg; };
+        myPkgs = import ./nix { inherit (pkgs) lib newScope; pkgs = pkgs; zig = zigPkg; };
 
-        emscripten = pkgs.emscripten;
+        emscripten = myPkgs.emscripten;
 
 
       in

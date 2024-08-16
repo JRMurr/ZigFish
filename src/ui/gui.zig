@@ -1,4 +1,6 @@
 const std = @import("std");
+const builtin = @import("builtin");
+
 const rl = @import("raylib");
 const rlg = @import("raygui");
 
@@ -156,9 +158,11 @@ pub fn draw(self: *Self, state: *UiState) !void {
     height += 20;
     height += MARGIN / 2;
 
-    _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, height, 20, 20), "Use opening book", &state.options.use_opening_book);
-    height += 20;
-    height += MARGIN / 2;
+    if (!builtin.target.isWasm()) {
+        _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, height, 20, 20), "Use opening book", &state.options.use_opening_book);
+        height += 20;
+        height += MARGIN / 2;
+    }
 
     const bounds = self.getOffsetRect(0, height, 150 * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);

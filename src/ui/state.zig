@@ -65,7 +65,7 @@ pub const MoveHist = struct {
     board: ZigFish.Board,
 };
 
-const OPENING_PGN = @embedFile("../openings/Balsa_v110221.pgn");
+const OPENING_PGN = if (builtin.target.isWasm()) "" else @embedFile("../openings/Balsa_v110221.pgn");
 
 game: GameManager,
 options: GameOptions,
