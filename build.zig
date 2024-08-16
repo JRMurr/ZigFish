@@ -67,6 +67,16 @@ pub fn build(b: *std.Build) !void {
     const raygui = raylib_dep.module("raygui"); // raygui module
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
 
+    const mecha_dep = b.dependency("mecha", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const mecha = mecha_dep.module("mecha");
+    exe.root_module.addImport("mecha", mecha);
+
+    zigfish.addImport("mecha", mecha);
+
     //web exports are completely separate
     if (target.query.os_tag == .emscripten) {
         // raylib_artifact.addIncludePath(raylib_dep.path("src"));
@@ -84,6 +94,7 @@ pub fn build(b: *std.Build) !void {
         exe_lib.root_module.addImport("raylib", raylib);
         exe_lib.root_module.addImport("raygui", raygui);
         exe_lib.root_module.addImport("zigfish", zigfish);
+        exe_lib.root_module.addImport("mecha", mecha);
         exe_lib.root_module.single_threaded = false;
         // exe_lib.
         // exe_lib.linkLibC();
@@ -138,16 +149,6 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
-
-    const mecha_dep = b.dependency("mecha", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const mecha = mecha_dep.module("mecha");
-    exe.root_module.addImport("mecha", mecha);
-
-    zigfish.addImport("mecha", mecha);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
