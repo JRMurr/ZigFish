@@ -78,6 +78,9 @@ fn mainLoop() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
+        // need negative on height or its all flipped....
+        // TODO: https://github.com/raysan5/raylib/blob/master/examples/core/core_window_letterbox.c
+        // need to update the mouse offsets for clicking gui to still work
         const source_rect = rl.Rectangle.init(0, 0, @floatFromInt(target.texture.width), @floatFromInt(-target.texture.height));
         // const dest_rect = rl.Rectangle.init(0, 0, @floatFromInt(target.texture.width), @floatFromInt(target.texture.height));
         rl.drawTexturePro(target.texture, source_rect, UiScale.scale_rect(), rl.Vector2.zero(), 0, rl.Color.white);

@@ -22,7 +22,7 @@ pub const BOARD_SIZE: usize = CELL_SIZE * 8;
 pub const SIDEBAR_WIDTH: usize = CELL_SIZE * 3;
 
 // these are the "target" sizes, we will scale to match this ratio
-// https://github.com/raysan5/raylib/blob/master/examples/core/core_window_letterbox.c
+// https://github.com/raysan5/raylib/blob/master/examples/core/core_smooth_pixelperfect.c
 pub const GAME_WIDTH: usize = BOARD_SIZE + SIDEBAR_WIDTH;
 pub const GAME_HEIGHT: usize = BOARD_SIZE;
 
@@ -33,31 +33,36 @@ pub const UiScale = struct {
     // var y: f32 = 1;
 
     pub fn update() void {
-        const width = rl.getScreenWidth();
-        const height = rl.getScreenHeight();
+        const width: f32 = @floatFromInt(rl.getScreenWidth());
+        const height: f32 = @floatFromInt(rl.getScreenHeight());
 
-        const x_i32 = @divTrunc(width, @as(i32, @intCast(GAME_WIDTH)));
-        const y_i32 = @divTrunc(height, @as(i32, @intCast(GAME_HEIGHT)));
+        const width_ratio = width / @as(f32, @floatFromInt(GAME_WIDTH));
+        const height_ratio = height / @as(f32, @floatFromInt(GAME_HEIGHT));
 
-        const x: f32 = @floatFromInt(x_i32);
-        const y: f32 = @floatFromInt(y_i32);
-
-        scale = @max(x, y);
+        scale = @max(width_ratio, height_ratio);
     }
 
     pub fn scale_rect() rl.Rectangle {
-        const scaled_width: f32 = GAME_WIDTH * scale;
-        const scaled_height: f32 = GAME_HEIGHT * scale;
+        // const scaled_width: f32 = GAME_WIDTH * scale;
+        // const scaled_height: f32 = GAME_HEIGHT * scale;
 
-        std.debug.print("w: {d:.3}\th: {d:.3}\n", .{ scaled_width, scaled_height });
+        // return rl.Rectangle.init(
+        //     (@as(f32, @floatFromInt(rl.getScreenWidth())) - scaled_width) * 0.5,
+        //     (@as(f32, @floatFromInt(rl.getScreenHeight())) - scaled_height) * 0.5,
+        //     // 0,
+        //     // 0,
+        //     scaled_width,
+        //     scaled_height,
+        // );
+
+        const screen_width: f32 = @floatFromInt(rl.getScreenWidth());
+        const screen_height: f32 = @floatFromInt(rl.getScreenHeight());
 
         return rl.Rectangle.init(
-            (@as(f32, @floatFromInt(rl.getScreenWidth())) - scaled_width) * 0.5,
-            (@as(f32, @floatFromInt(rl.getScreenHeight())) - scaled_height) * 0.5,
-            // 0,
-            // 0,
-            scaled_width,
-            scaled_height,
+            -scale,
+            -scale,
+            screen_width + (scale * 2),
+            screen_height + (scale * 2),
         );
     }
 };
