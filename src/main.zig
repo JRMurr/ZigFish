@@ -54,7 +54,7 @@ fn mainLoop() anyerror!void {
     defer ui_state.deinit();
 
     const target = rl.RenderTexture2D.init(UiState.BOARD_SIZE + UiState.SIDEBAR_WIDTH, UiState.BOARD_SIZE);
-    rl.setTextureFilter(target.texture, .texture_filter_bilinear);
+    rl.setTextureFilter(target.texture, .texture_filter_anisotropic_16x);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -64,6 +64,15 @@ fn mainLoop() anyerror!void {
         // Update
         //----------------------------------------------------------------------------------
         rl.clearBackground(rl.Color.black);
+        UiScale.update();
+        const scale_rect = UiScale.scale_rect();
+
+        rl.setMouseOffset(@intFromFloat(-scale_rect.x), @intFromFloat(-scale_rect.y));
+        rl.setMouseScale(1 / UiScale.scale, 1 / UiScale.scale);
+
+        // rl.setMouseOffset(offsetX: i32, offsetY: i32)
+        //SetMouseOffset(-(GetScreenWidth() - (gameScreenWidth*scale))*0.5f, -(GetScreenHeight() - (gameScreenHeight*scale))*0.5f);
+        //SetMouseScale(1/scale, 1/scale);
         try ui_state.update();
 
         // Draw
@@ -73,6 +82,8 @@ fn mainLoop() anyerror!void {
             rl.beginTextureMode(target);
             defer rl.endTextureMode();
             try ui_state.draw();
+            // rl.drawText(rl.textFormat("Default Mouse: [%i , %i]", (int)mouse.x, (int)mouse.y), 350, 25, 20, GREEN);
+            // rl.drawText(rl.textFormat("Virtual Mouse: [%i , %i]", (int)virtualMouse.x, (int)virtualMouse.y), 350, 55, 20, YELLOW);
         }
 
         rl.beginDrawing();
@@ -82,7 +93,6 @@ fn mainLoop() anyerror!void {
         // TODO: https://github.com/raysan5/raylib/blob/master/examples/core/core_window_letterbox.c
         // need to update the mouse offsets for clicking gui to still work
         const source_rect = rl.Rectangle.init(0, 0, @floatFromInt(target.texture.width), @floatFromInt(-target.texture.height));
-        // const dest_rect = rl.Rectangle.init(0, 0, @floatFromInt(target.texture.width), @floatFromInt(target.texture.height));
         rl.drawTexturePro(target.texture, source_rect, UiScale.scale_rect(), rl.Vector2.zero(), 0, rl.Color.white);
 
         //----------------------------------------------------------------------------------

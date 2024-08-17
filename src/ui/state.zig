@@ -28,7 +28,7 @@ pub const GAME_HEIGHT: usize = BOARD_SIZE;
 
 pub const UiScale = struct {
     // a lil gross but global vars for scale....
-    var scale: f32 = 1;
+    pub var scale: f32 = 1;
     // var x: f32 = 1;
     // var y: f32 = 1;
 
@@ -39,31 +39,42 @@ pub const UiScale = struct {
         const width_ratio = width / @as(f32, @floatFromInt(GAME_WIDTH));
         const height_ratio = height / @as(f32, @floatFromInt(GAME_HEIGHT));
 
-        scale = @max(width_ratio, height_ratio);
+        scale = @min(width_ratio, height_ratio);
+    }
+
+    pub fn screen_width() f32 {
+        return @floatFromInt(rl.getScreenWidth());
+    }
+
+    pub fn screen_height() f32 {
+        return @floatFromInt(rl.getScreenHeight());
+    }
+
+    pub fn game_width() f32 {
+        return @floatFromInt(GAME_WIDTH);
+    }
+
+    pub fn game_height() f32 {
+        return @floatFromInt(GAME_HEIGHT);
     }
 
     pub fn scale_rect() rl.Rectangle {
-        // const scaled_width: f32 = GAME_WIDTH * scale;
-        // const scaled_height: f32 = GAME_HEIGHT * scale;
-
-        // return rl.Rectangle.init(
-        //     (@as(f32, @floatFromInt(rl.getScreenWidth())) - scaled_width) * 0.5,
-        //     (@as(f32, @floatFromInt(rl.getScreenHeight())) - scaled_height) * 0.5,
-        //     // 0,
-        //     // 0,
-        //     scaled_width,
-        //     scaled_height,
-        // );
-
-        const screen_width: f32 = @floatFromInt(rl.getScreenWidth());
-        const screen_height: f32 = @floatFromInt(rl.getScreenHeight());
+        const scaled_width: f32 = GAME_WIDTH * scale;
+        const scaled_height: f32 = GAME_HEIGHT * scale;
 
         return rl.Rectangle.init(
-            -scale,
-            -scale,
-            screen_width + (scale * 2),
-            screen_height + (scale * 2),
+            (screen_width() - scaled_width) * 0.5,
+            (screen_height() - scaled_height) * 0.5,
+            scaled_width,
+            scaled_height,
         );
+
+        // return rl.Rectangle.init(
+        //     -scale,
+        //     -scale,
+        //     screen_width() + (scale * 2),
+        //     screen_height() + (scale * 2),
+        // );
     }
 };
 
@@ -157,8 +168,6 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
     //     std.debug.print("{s}\n", .{m.toStrSimple()});
     // }
 
-    UiScale.update();
-
     return UiState{
         .game = game,
         .options = options,
@@ -180,13 +189,15 @@ pub fn deinit(self: *UiState) void {
 }
 
 fn clamp_to_screen(val: i32) usize {
-    const clamped = std.math.clamp(val, 0, @as(i32, @intCast(BOARD_SIZE)));
+    const clamped = std.math.clamp(val, 0, @as(i32, @intCast(BOARD_SIZE + SIDEBAR_WIDTH)));
     return @intCast(clamped);
 }
 
 fn mouse_to_pos(x: usize, y: usize) ?Position {
     const file = @divFloor(x, CELL_SIZE);
     const rank = 7 - @divFloor(y, CELL_SIZE);
+
+    std.debug.print("({},{})\n", .{ file, rank });
 
     if (file > 7) {
         // clicking on gui so ignore
