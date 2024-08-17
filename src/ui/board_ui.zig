@@ -16,10 +16,14 @@ const UiState = @import("state.zig");
 
 const CELL_SIZE = UiState.CELL_SIZE;
 
+// const TEXT_SIZE: i32 = @intFromFloat(@as(f64, @floatFromInt(CELL_SIZE)) * 0.1);
+const TEXT_SIZE = 20;
+
 texture: rl.Texture,
 sprite_w: f32,
 sprite_h: f32,
-sprite_scale: f32,
+sprite_scale_w: f32,
+sprite_scale_h: f32,
 dark_sqaure_color: rl.Color,
 light_square_color: rl.Color,
 
@@ -28,13 +32,15 @@ pub fn init() BoardUI {
 
     const sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types)));
     const sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors)));
-    const sprite_scale = @as(f32, @floatFromInt(CELL_SIZE)) / sprite_w;
+    const sprite_scale_w = @as(f32, @floatFromInt(CELL_SIZE)) / sprite_w;
+    const sprite_scale_h = @as(f32, @floatFromInt(CELL_SIZE)) / sprite_h;
 
     return .{
         .texture = texture,
         .sprite_w = sprite_w,
         .sprite_h = sprite_h,
-        .sprite_scale = sprite_scale,
+        .sprite_scale_w = sprite_scale_w,
+        .sprite_scale_h = sprite_scale_h,
         .dark_sqaure_color = rl.Color.init(140, 77, 42, 255),
         .light_square_color = rl.Color.init(224, 186, 151, 255),
     };
@@ -73,20 +79,23 @@ pub fn draw_board(self: BoardUI, board: *const ZigFish.Board, last_move: ?Move) 
             );
 
             if (flipped_rank == 0) {
-                const text_offset = (8 * @divFloor(CELL_SIZE, 9));
+                const unit = @divFloor(CELL_SIZE, 9);
+                const x_text_offset = (8 * unit) - (unit / 10);
+                const y_text_offset = (7 * unit);
                 const char: u8 = @as(u8, @intCast(file)) + 'a';
                 const str = [1:0]u8{char};
-                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
+                rl.drawText(&str, @intCast(pos_x + x_text_offset), @intCast(pos_y + y_text_offset), TEXT_SIZE, opposite_color);
             }
 
             if (file == 0) {
                 const text_offset = @divFloor(CELL_SIZE, 9);
                 const char: u8 = @as(u8, @intCast(flipped_rank)) + '1';
                 const str = [1:0]u8{char};
-                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
+                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), TEXT_SIZE, opposite_color);
             }
 
             if (board.getPos(pos)) |p| {
+                // _ = p;
                 self.draw_piece(
                     p,
                     @as(f32, @floatFromInt(pos_x)),
@@ -125,8 +134,8 @@ fn draw_sprite(
     const position = rl.Rectangle.init(
         pos_x,
         pos_y,
-        self.sprite_w * self.sprite_scale,
-        self.sprite_h * self.sprite_scale,
+        self.sprite_w * self.sprite_scale_w,
+        self.sprite_h * self.sprite_scale_h,
     );
 
     self.texture.drawPro(frameRec, position, rl.Vector2.zero(), 0, rl.Color.white);
