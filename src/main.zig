@@ -6,7 +6,6 @@ const ZigFish = @import("zigfish");
 
 const Thread = std.Thread;
 
-const SpriteManager = @import("./ui/sprite.zig");
 const UiState = @import("./ui/state.zig");
 
 const Position = ZigFish.Position;

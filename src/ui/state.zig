@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 const rl = @import("raylib");
 const ZigFish = @import("zigfish");
 
-const SpriteManager = @import("./sprite.zig");
+const BoardUI = @import("./board_ui.zig");
 const Gui = @import("gui.zig");
 
 const Thread = std.Thread;
@@ -74,7 +74,7 @@ const OPENING_PGN = if (builtin.target.isWasm()) "" else @embedFile("../openings
 game: GameManager,
 options: GameOptions,
 move_history: std.ArrayList(MoveHist),
-sprite_manager: SpriteManager,
+board_ui: BoardUI,
 gui: Gui,
 search_res: SearchRes,
 // scale: f32,
@@ -98,10 +98,9 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
     // add a dummy first move that is the start pos
     move_history.appendAssumeCapacity(.{ .board = game.board.clone(), .move = undefined });
 
-    const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     // const font = rl.Font.initEx("resources/FiraCode-Bold.otf", 32, null);
 
-    const sprite_manager = SpriteManager.init(texture, CELL_SIZE);
+    const board_ui = BoardUI.init();
 
     const gui = Gui.init(
         @floatFromInt(SCREEN_SIZE),
@@ -116,7 +115,7 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
         .game = game,
         .options = options,
         .move_history = move_history,
-        .sprite_manager = sprite_manager,
+        .board_ui = board_ui,
         .gui = gui,
         .search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} },
         .game_status = game.gameStatus(),
@@ -124,19 +123,47 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
 }
 
 pub fn deinit(self: *UiState) void {
-    self.sprite_manager.deinit();
+    self.board_ui.deinit();
     self.game.deinit();
     self.move_history.deinit();
     self.gui.deint();
     rl.closeWindow();
 }
 
-// pub fn getMousePos(self: *UiState) ClampedMousePos {
-//     const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
-//     const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
+fn clamp_to_screen(val: i32) usize {
+    const clamped = std.math.clamp(val, 0, @as(i32, @intCast(SCREEN_SIZE)));
+    return @intCast(clamped);
+}
 
-//     return .{ .x = mouse_x, .y = mouse_y };
-// }
+fn mouse_to_pos(x: usize, y: usize) ?Position {
+    const file = @divFloor(x, CELL_SIZE);
+    const rank = 7 - @divFloor(y, CELL_SIZE);
+
+    if (file > 7) {
+        // clicking on gui so ignore
+        return null;
+    }
+
+    return Position.fromRankFile(.{
+        .rank = @intCast(rank),
+        .file = @intCast(file),
+    });
+}
+
+fn draw_move_marker(pos: Position, color: rl.Color) void {
+    const rank_file = pos.toRankFile();
+    const pos_x = CELL_SIZE * rank_file.file;
+    const pos_y = CELL_SIZE * (7 - rank_file.rank);
+
+    const rect = rl.Rectangle.init(
+        @as(f32, @floatFromInt(pos_x)),
+        @as(f32, @floatFromInt(pos_y)),
+        @as(f32, @floatFromInt(CELL_SIZE)),
+        @as(f32, @floatFromInt(CELL_SIZE)),
+    );
+
+    rl.drawRectangleLinesEx(rect, 10, color);
+}
 
 pub fn isPlayerTurn(self: *const UiState) bool {
     return if (self.options.ai_on)
@@ -154,8 +181,8 @@ pub fn update(self: *UiState) !void {
     //     std.debug.print("opening move: {s}\ttimes_played:{}\n", .{ opening.move.toStrSimple(), opening.times_played });
     // }
 
-    const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
-    const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
+    const mouse_x: usize = clamp_to_screen(rl.getMouseX());
+    const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
     const is_player_turn = self.isPlayerTurn();
 
@@ -192,7 +219,7 @@ pub fn update(self: *UiState) !void {
 
     // check if clicked a piece
     if (self.moving_piece == null and rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
-        const maybe_pos = self.sprite_manager.mouse_to_pos(mouse_x, mouse_y);
+        const maybe_pos = mouse_to_pos(mouse_x, mouse_y);
         const pos = if (maybe_pos) |p| p else return;
         const maybe_piece = self.game.getPos(pos);
         if (maybe_piece) |p| {
@@ -207,7 +234,7 @@ pub fn update(self: *UiState) !void {
 
     // check if they can place the piece they picked up
     if (self.moving_piece != null and !rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
-        const maybe_pos = self.sprite_manager.mouse_to_pos(mouse_x, mouse_y);
+        const maybe_pos = mouse_to_pos(mouse_x, mouse_y);
         const pos = if (maybe_pos) |p| p else return;
         const mp = self.moving_piece.?;
 
@@ -261,27 +288,27 @@ pub fn draw(self: *UiState) !void {
         last_move = self.move_history.getLast().move;
     }
 
-    self.sprite_manager.draw_board(&self.game.board, last_move);
+    self.board_ui.draw_board(&self.game.board, last_move);
 
     // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
     // while (attacked_iter.next()) |p_idx| {
-    //     sprite_manager.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
+    //     board_ui.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
     // }
 
     try self.gui.draw(self);
 
     if (self.moving_piece) |p| {
-        const mouse_x: usize = self.sprite_manager.clamp_to_screen(rl.getMouseX());
-        const mouse_y: usize = self.sprite_manager.clamp_to_screen(rl.getMouseY());
+        const mouse_x: usize = clamp_to_screen(rl.getMouseX());
+        const mouse_y: usize = clamp_to_screen(rl.getMouseY());
 
         for (p.valid_moves.items()) |move| {
-            self.sprite_manager.draw_move_marker(move.end, rl.Color.red);
+            draw_move_marker(move.end, rl.Color.red);
         }
 
-        const offset = self.sprite_manager.cell_size / 2; // make sprite under mouse cursor
+        const offset = CELL_SIZE / 2; // make sprite under mouse cursor
 
         // TODO: this seems fine for the top / left sides, peice is half cut off on right / bottom
-        self.sprite_manager.draw_piece(
+        self.board_ui.draw_piece(
             p.piece,
             @as(f32, @floatFromInt(sub_ignore_overflow(mouse_x, offset))),
             @as(f32, @floatFromInt(sub_ignore_overflow(mouse_y, offset))),
