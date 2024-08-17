@@ -17,7 +17,8 @@ const GameManager = ZigFish.GameManager;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
-pub const CELL_SIZE: usize = 150;
+pub const CELL_SIZE: usize = if (builtin.target.isWasm()) 90 else 150;
+// pub const CELL_SIZE: usize = 90;
 pub const BOARD_SIZE: usize = CELL_SIZE * 8;
 pub const SIDEBAR_WIDTH: usize = CELL_SIZE * 3;
 

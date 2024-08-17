@@ -168,7 +168,7 @@ pub fn draw(self: *Self, state: *UiState) !void {
     const bounds = self.getOffsetRect(0, height, CELL_SIZE * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);
 
-    var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);
+    var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, (bounds.width - (MARGIN * 4)) / 4, 40);
 
     // go to first move
     if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_player_previous), "")) > 0) {
