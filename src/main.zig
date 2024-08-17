@@ -39,10 +39,8 @@ fn mainLoop() anyerror!void {
 
     // rl.initAudioDevice(); // Initialize audio device
     rl.setConfigFlags(rl.ConfigFlags{
-        // .window_highdpi = true,
-        .window_resizable = true,
-        // .window_undecorated = true,
-        .borderless_windowed_mode = true,
+        // can still be manually resized but doesnt let browser do it automagically
+        .window_resizable = !builtin.target.isWasm(),
         .vsync_hint = true,
     });
 

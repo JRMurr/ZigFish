@@ -197,8 +197,6 @@ fn mouse_to_pos(x: usize, y: usize) ?Position {
     const file = @divFloor(x, CELL_SIZE);
     const rank = 7 - @divFloor(y, CELL_SIZE);
 
-    std.debug.print("({},{})\n", .{ file, rank });
-
     if (file > 7) {
         // clicking on gui so ignore
         return null;
