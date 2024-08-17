@@ -8,7 +8,10 @@ const ZigFish = @import("zigfish");
 
 const UiState = @import("state.zig");
 
+const UiScale = UiState.UiScale;
+
 const CELL_SIZE = UiState.CELL_SIZE;
+const X_OFFSET = UiState.BOARD_SIZE;
 
 const Self = @This();
 
@@ -20,13 +23,15 @@ const RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT = 24;
 const MARGIN = 8;
 const MOVE_HIST_HEIGHT = CELL_SIZE * 6;
 
-x_offset: f32,
+// x_offset: f32,
 scrollOffset: rl.Vector2 = .{ .x = 0, .y = 0 },
 content: rl.Rectangle = rl.Rectangle{ .x = 0, .y = 0, .width = 0, .height = 0 },
 // font: rl.Font,
 
-fn getOffsetRect(self: *const Self, x: f32, y: f32, width: f32, height: f32) rl.Rectangle {
-    return rl.Rectangle.init(x + self.x_offset, y, width, height);
+fn getOffsetRect(x: f32, y: f32, width: f32, height: f32) rl.Rectangle {
+    return UiScale.init_rect(x + X_OFFSET, y, width, height);
+    // var rect = rl.Rectangle.init(x + self.x_offset, y, width, height);
+    // return UiState.UiScale.scale_rect(&rect);
 }
 
 fn toCStr(allocator: std.mem.Allocator, str: []u8) ![*:0]u8 {
@@ -35,13 +40,13 @@ fn toCStr(allocator: std.mem.Allocator, str: []u8) ![*:0]u8 {
 }
 
 pub fn init(
-    x_offset: f32,
+    // x_offset: f32,
     // font: rl.Font,
 ) Self {
     // rlg.guiSetFont(font);
     rlg.guiLoadStyle("resources/style_dark.rgs");
     return Self{
-        .x_offset = x_offset,
+        // .x_offset = x_offset,
         // .font = font,
     };
 }
@@ -94,7 +99,7 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
         const box_width = 120;
         const box_height = 40;
         for (window) |mh| {
-            const rect = self.getOffsetRect(20 + x_offset, self.getScrollBarY(), box_width, box_height);
+            const rect = getOffsetRect(20 + x_offset, self.getScrollBarY(), box_width, box_height); // TODO: the scroll bar y might be sad in scale
             var move_buf = [_]u8{' '} ** 8;
 
             const move_str = try toCStr(allocator, mh.move.toSanBuf(&move_buf));
@@ -138,12 +143,12 @@ pub fn draw(self: *Self, state: *UiState) !void {
 
     var height: f32 = 0;
 
-    _ = rlg.guiLabel(self.getOffsetRect(MARGIN, height, 200, 20), "Engine search time (sec)");
+    _ = rlg.guiLabel(getOffsetRect(MARGIN, height, 200, 20), "Engine search time (sec)");
     height += 20;
     height += MARGIN / 2;
 
     _ = rlg.guiSliderBar(
-        self.getOffsetRect(MARGIN, height, CELL_SIZE, 20),
+        getOffsetRect(MARGIN, height, CELL_SIZE, 20),
         "",
         rl.textFormat("%.2f", .{state.options.search_time}),
 
@@ -155,20 +160,20 @@ pub fn draw(self: *Self, state: *UiState) !void {
     height += 20;
     height += MARGIN / 2;
 
-    _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, height, 20, 20), "Ai on", &state.options.ai_on);
+    _ = rlg.guiCheckBox(getOffsetRect(MARGIN, height, 20, 20), "Ai on", &state.options.ai_on);
     height += 20;
     height += MARGIN / 2;
 
     if (!builtin.target.isWasm()) {
-        _ = rlg.guiCheckBox(self.getOffsetRect(MARGIN, height, 20, 20), "Use opening book", &state.options.use_opening_book);
+        _ = rlg.guiCheckBox(getOffsetRect(MARGIN, height, 20, 20), "Use opening book", &state.options.use_opening_book);
         height += 20;
         height += MARGIN / 2;
     }
 
-    const bounds = self.getOffsetRect(0, height, CELL_SIZE * 3, MOVE_HIST_HEIGHT - 40);
+    const bounds = getOffsetRect(0, height, CELL_SIZE * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);
 
-    var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);
+    var iconRect = getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);
 
     // go to first move
     if (rlg.guiButton(iconRect, rlg.guiIconText(@intFromEnum(rlg.GuiIconName.icon_player_previous), "")) > 0) {

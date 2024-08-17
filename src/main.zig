@@ -38,7 +38,7 @@ fn mainLoop() anyerror!void {
     // rl.initAudioDevice(); // Initialize audio device
     rl.setConfigFlags(rl.ConfigFlags{
         // .window_highdpi = true,
-        // .window_resizable = true,
+        .window_resizable = true,
     });
 
     var ui_state = try UiState.init(getAllocator(), .{

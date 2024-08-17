@@ -13,6 +13,7 @@ const num_colors = 2;
 const BoardUI = @This();
 
 const UiState = @import("state.zig");
+const UiScale = UiState.UiScale;
 
 const CELL_SIZE = UiState.CELL_SIZE;
 
@@ -64,27 +65,34 @@ pub fn draw_board(self: BoardUI, board: *const ZigFish.Board, last_move: ?Move) 
                 }
             }
 
-            rl.drawRectangle(
-                @intCast(pos_x),
-                @intCast(pos_y),
-                @intCast(CELL_SIZE),
-                @intCast(CELL_SIZE),
+            const sqaure_rect = UiScale.init_rect(
+                @floatFromInt(pos_x),
+                @floatFromInt(pos_y),
+                @floatFromInt(CELL_SIZE),
+                @floatFromInt(CELL_SIZE),
+            );
+
+            rl.drawRectangleRec(
+                sqaure_rect,
                 cell_color,
             );
 
-            if (flipped_rank == 0) {
-                const text_offset = (8 * @divFloor(CELL_SIZE, 9));
-                const char: u8 = @as(u8, @intCast(file)) + 'a';
-                const str = [1:0]u8{char};
-                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
-            }
+            // _ = board;
+            _ = opposite_color;
 
-            if (file == 0) {
-                const text_offset = @divFloor(CELL_SIZE, 9);
-                const char: u8 = @as(u8, @intCast(flipped_rank)) + '1';
-                const str = [1:0]u8{char};
-                rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
-            }
+            // if (flipped_rank == 0) {
+            //     const text_offset = (8 * @divFloor(CELL_SIZE, 9));
+            //     const char: u8 = @as(u8, @intCast(file)) + 'a';
+            //     const str = [1:0]u8{char};
+            //     rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
+            // }
+
+            // if (file == 0) {
+            //     const text_offset = @divFloor(CELL_SIZE, 9);
+            //     const char: u8 = @as(u8, @intCast(flipped_rank)) + '1';
+            //     const str = [1:0]u8{char};
+            //     rl.drawText(&str, @intCast(pos_x + text_offset), @intCast(pos_y + text_offset), 20, opposite_color);
+            // }
 
             if (board.getPos(pos)) |p| {
                 self.draw_piece(
@@ -122,7 +130,7 @@ fn draw_sprite(
         self.sprite_h,
     );
 
-    const position = rl.Rectangle.init(
+    const position = UiScale.init_rect(
         pos_x,
         pos_y,
         self.sprite_w * self.sprite_scale,

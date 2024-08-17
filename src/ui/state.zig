@@ -33,24 +33,34 @@ pub const UiScale = struct {
     // var y: f32 = 1;
 
     pub fn update() void {
-        const width = rl.getScreenWidth();
-        const height = rl.getScreenHeight();
+        var width: f32 = @floatFromInt(rl.getScreenWidth());
+        var height: f32 = @floatFromInt(rl.getScreenHeight());
 
-        const x_i32 = @divTrunc(width, @as(i32, @intCast(GAME_WIDTH)));
-        const y_i32 = @divTrunc(height, @as(i32, @intCast(GAME_HEIGHT)));
+        const width_ratio = width / @as(f32, @floatFromInt(GAME_WIDTH));
+        const height_ratio = height / @as(f32, @floatFromInt(GAME_HEIGHT));
 
-        const x: f32 = @floatFromInt(x_i32);
-        const y: f32 = @floatFromInt(y_i32);
+        // const x: f32 = @floatFromInt(x_i32);
+        // const y: f32 = @floatFromInt(y_i32);
 
-        scale = @max(x, y);
+        if (height * width_ratio <= width) {
+            width = height * width_ratio;
+        } else if (width * height_ratio <= width) {
+            height = width * height_ratio;
+        }
+
+        rl.setWindowSize(@intFromFloat(width), @intFromFloat(height));
+
+        scale = @max(width_ratio, height_ratio); // TODO: use rl.setWindowSize to keep the aspect ratio?
+
+        // std.debug.print("scale: {d:.3}\n", .{scale});
     }
 
-    pub fn scale_rect(rect: *rl.Rectangle) void {
-        rect.x *= scale;
-        rect.y *= scale;
+    pub fn init_rect(x: f32, y: f32, width: f32, height: f32) rl.Rectangle {
+        return rl.Rectangle.init(x * scale, y * scale, width * scale, height * scale);
+    }
 
-        rect.width *= scale;
-        rect.height *= scale;
+    pub fn scale_rect(rect: rl.Rectangle) rl.Rectangle {
+        return init_rect(rect.x, rect.y, rect.width, rect.height);
     }
 };
 
@@ -119,6 +129,7 @@ game_status: ZigFish.GameStatus,
 pub fn init(allocator: Allocator, options: GameOptions) !UiState {
     // TODO: make a "base unit" for sizing. Use this everywhere. Can update on resizes to keep scale
     rl.initWindow(BOARD_SIZE + SIDEBAR_WIDTH, BOARD_SIZE, "ZigFish");
+    // rl.setWindowMinSize(@divTrunc(BOARD_SIZE + SIDEBAR_WIDTH, 4), @divTrunc(BOARD_SIZE, 4));
 
     var game = if (options.start_pos) |fen|
         try GameManager.from_fen(allocator, fen)
@@ -136,7 +147,7 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
     const board_ui = BoardUI.init();
 
     const gui = Gui.init(
-        @floatFromInt(BOARD_SIZE),
+        // @floatFromInt(BOARD_SIZE),
         // font,
     );
 
@@ -209,6 +220,8 @@ pub fn isPlayerTurn(self: *const UiState) bool {
 }
 
 pub fn update(self: *UiState) !void {
+    UiScale.update();
+
     if (self.game_status != .InProgress) {
         return;
     }
