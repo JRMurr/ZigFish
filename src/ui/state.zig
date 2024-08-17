@@ -18,8 +18,41 @@ const GameManager = ZigFish.GameManager;
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
 pub const CELL_SIZE: usize = 150;
-pub const SCREEN_SIZE: usize = CELL_SIZE * 8;
+pub const BOARD_SIZE: usize = CELL_SIZE * 8;
 pub const SIDEBAR_WIDTH: usize = CELL_SIZE * 3;
+
+// these are the "target" sizes, we will scale to match this ratio
+// https://github.com/raysan5/raylib/blob/master/examples/core/core_window_letterbox.c
+pub const GAME_WIDTH: usize = BOARD_SIZE + SIDEBAR_WIDTH;
+pub const GAME_HEIGHT: usize = BOARD_SIZE;
+
+pub const UiScale = struct {
+    // a lil gross but global vars for scale....
+    var scale: f32 = 1;
+    // var x: f32 = 1;
+    // var y: f32 = 1;
+
+    pub fn update() void {
+        const width = rl.getScreenWidth();
+        const height = rl.getScreenHeight();
+
+        const x_i32 = @divTrunc(width, @as(i32, @intCast(GAME_WIDTH)));
+        const y_i32 = @divTrunc(height, @as(i32, @intCast(GAME_HEIGHT)));
+
+        const x: f32 = @floatFromInt(x_i32);
+        const y: f32 = @floatFromInt(y_i32);
+
+        scale = @max(x, y);
+    }
+
+    pub fn scale_rect(rect: *rl.Rectangle) void {
+        rect.x *= scale;
+        rect.y *= scale;
+
+        rect.width *= scale;
+        rect.height *= scale;
+    }
+};
 
 const MovingPiece = struct {
     start: Position,
@@ -77,7 +110,7 @@ move_history: std.ArrayList(MoveHist),
 board_ui: BoardUI,
 gui: Gui,
 search_res: SearchRes,
-// scale: f32,
+// scale: UiScale,
 search_thread: ?Thread = null,
 moving_piece: ?MovingPiece = null,
 hist_index: ?usize = null,
@@ -85,7 +118,7 @@ game_status: ZigFish.GameStatus,
 
 pub fn init(allocator: Allocator, options: GameOptions) !UiState {
     // TODO: make a "base unit" for sizing. Use this everywhere. Can update on resizes to keep scale
-    rl.initWindow(SCREEN_SIZE + SIDEBAR_WIDTH, SCREEN_SIZE, "ZigFish");
+    rl.initWindow(BOARD_SIZE + SIDEBAR_WIDTH, BOARD_SIZE, "ZigFish");
 
     var game = if (options.start_pos) |fen|
         try GameManager.from_fen(allocator, fen)
@@ -103,13 +136,15 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
     const board_ui = BoardUI.init();
 
     const gui = Gui.init(
-        @floatFromInt(SCREEN_SIZE),
+        @floatFromInt(BOARD_SIZE),
         // font,
     );
 
     // for (game.getAllValidMoves().items()) |m| {
     //     std.debug.print("{s}\n", .{m.toStrSimple()});
     // }
+
+    UiScale.update();
 
     return UiState{
         .game = game,
@@ -119,6 +154,7 @@ pub fn init(allocator: Allocator, options: GameOptions) !UiState {
         .gui = gui,
         .search_res = SearchRes{ .move = null, .done_search = Thread.ResetEvent{} },
         .game_status = game.gameStatus(),
+        // .scale = UiScale.init(),
     };
 }
 
@@ -131,7 +167,7 @@ pub fn deinit(self: *UiState) void {
 }
 
 fn clamp_to_screen(val: i32) usize {
-    const clamped = std.math.clamp(val, 0, @as(i32, @intCast(SCREEN_SIZE)));
+    const clamped = std.math.clamp(val, 0, @as(i32, @intCast(BOARD_SIZE)));
     return @intCast(clamped);
 }
 
