@@ -45,12 +45,20 @@ pub const UiScale = struct {
         scale = @max(x, y);
     }
 
-    pub fn scale_rect(rect: *rl.Rectangle) void {
-        rect.x *= scale;
-        rect.y *= scale;
+    pub fn scale_rect() rl.Rectangle {
+        const scaled_width: f32 = GAME_WIDTH * scale;
+        const scaled_height: f32 = GAME_HEIGHT * scale;
 
-        rect.width *= scale;
-        rect.height *= scale;
+        std.debug.print("w: {d:.3}\th: {d:.3}\n", .{ scaled_width, scaled_height });
+
+        return rl.Rectangle.init(
+            (@as(f32, @floatFromInt(rl.getScreenWidth())) - scaled_width) * 0.5,
+            (@as(f32, @floatFromInt(rl.getScreenHeight())) - scaled_height) * 0.5,
+            // 0,
+            // 0,
+            scaled_width,
+            scaled_height,
+        );
     }
 };
 

@@ -8,6 +8,8 @@ const Thread = std.Thread;
 
 const UiState = @import("./ui/state.zig");
 
+const UiScale = UiState.UiScale;
+
 const Position = ZigFish.Position;
 const Piece = ZigFish.Piece;
 const MoveList = ZigFish.MoveList;
@@ -38,7 +40,10 @@ fn mainLoop() anyerror!void {
     // rl.initAudioDevice(); // Initialize audio device
     rl.setConfigFlags(rl.ConfigFlags{
         // .window_highdpi = true,
-        // .window_resizable = true,
+        .window_resizable = true,
+        // .window_undecorated = true,
+        .borderless_windowed_mode = true,
+        .vsync_hint = true,
     });
 
     var ui_state = try UiState.init(getAllocator(), .{
@@ -47,6 +52,9 @@ fn mainLoop() anyerror!void {
         // .start_pos = "r1bqkb1r/pppp1ppp/2nn4/1B2p3/3P4/5N2/PPP2PPP/RNBQ1RK1 w kq - 1 6",
     });
     defer ui_state.deinit();
+
+    const target = rl.RenderTexture2D.init(UiState.BOARD_SIZE + UiState.SIDEBAR_WIDTH, UiState.BOARD_SIZE);
+    rl.setTextureFilter(target.texture, .texture_filter_bilinear);
 
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -60,10 +68,19 @@ fn mainLoop() anyerror!void {
 
         // Draw
         //----------------------------------------------------------------------------------
+
+        {
+            rl.beginTextureMode(target);
+            defer rl.endTextureMode();
+            try ui_state.draw();
+        }
+
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        try ui_state.draw();
+        const source_rect = rl.Rectangle.init(0, 0, @floatFromInt(target.texture.width), @floatFromInt(-target.texture.height));
+        // const dest_rect = rl.Rectangle.init(0, 0, @floatFromInt(target.texture.width), @floatFromInt(target.texture.height));
+        rl.drawTexturePro(target.texture, source_rect, UiScale.scale_rect(), rl.Vector2.zero(), 0, rl.Color.white);
 
         //----------------------------------------------------------------------------------
     }
