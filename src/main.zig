@@ -78,6 +78,7 @@ fn mainLoop() anyerror!void {
 
         {
             rl.beginTextureMode(target);
+            rl.clearBackground(rl.Color.black);
             defer rl.endTextureMode();
             try ui_state.draw();
             // rl.drawText(rl.textFormat("Default Mouse: [%i , %i]", (int)mouse.x, (int)mouse.y), 350, 25, 20, GREEN);

@@ -58,6 +58,9 @@ pub fn build(b: *std.Build) !void {
 
     exe.root_module.addImport("zigfish", zigfish);
 
+    exe.addIncludePath(b.path("src/ui"));
+    exe.installHeader(b.path("src/ui/style_dark.h"), "style_dark.h");
+
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
         .optimize = optimize,
@@ -95,6 +98,12 @@ pub fn build(b: *std.Build) !void {
         exe_lib.root_module.addImport("raygui", raygui);
         exe_lib.root_module.addImport("zigfish", zigfish);
         exe_lib.root_module.addImport("mecha", mecha);
+
+        exe_lib.addIncludePath(b.path("src/ui"));
+        exe_lib.addIncludePath(b.path(includes));
+
+        exe_lib.installHeader(b.path("src/ui/style_dark.h"), "style_dark.h");
+
         exe_lib.root_module.single_threaded = false;
         // exe_lib.
         // exe_lib.linkLibC();

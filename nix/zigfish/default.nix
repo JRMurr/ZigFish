@@ -3,11 +3,11 @@ let
   rootDir = ../../.;
   fs = lib.fileset;
   fileHasAnySuffix = fileSuffixes: file: (lib.lists.any (s: lib.hasSuffix s file.name) fileSuffixes);
-  zigFiles = fs.fileFilter (fileHasAnySuffix [ ".zig" ".zon" ]) rootDir;
+  codeFiles = fs.fileFilter (fileHasAnySuffix [ ".zig" ".zon" ".h" ]) rootDir;
   resources = ../../resources;
   openings = ../../src/openings;
 
-  neededFiles = fs.unions [ zigFiles resources openings ];
+  neededFiles = fs.unions [ codeFiles resources openings ];
 
 
   compileHelper = { stdenv ? stdenvNoCC, name, optimize ? "ReleaseSafe", postBuild ? "", extraBuildArgs ? [ ], extraNativeDeps ? [ ], postConfigurePhase ? "" }:

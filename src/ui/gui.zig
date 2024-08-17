@@ -16,6 +16,14 @@ const Self = @This();
 pub extern "c" fn GuiSetStyle(control: rlg.GuiControl, property: c_int, value: c_int) void;
 pub extern "c" fn GuiGetStyle(control: rlg.GuiControl, property: c_int) c_int;
 
+// pub extern "c" fn GuiLoadStyleDark() void;
+
+const style = @cImport({
+    @cInclude("style_dark.h");
+});
+
+const STYLE_DATA = @embedFile("./style_dark.rgs");
+
 const RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT = 24;
 const MARGIN = 8;
 const MOVE_HIST_HEIGHT = CELL_SIZE * 6;
@@ -39,7 +47,11 @@ pub fn init(
     // font: rl.Font,
 ) Self {
     // rlg.guiSetFont(font);
-    rlg.guiLoadStyle("resources/style_dark.rgs");
+    style.GuiLoadStyleDark();
+    // GuiLoadStyleDark();
+    // GuiLoadStyleFromMemory(@ptrCast(STYLE_DATA), STYLE_DATA.len);
+
+    // rlg.guiLoadStyle("resources/style_dark.rgs");
     return Self{
         .x_offset = x_offset,
         // .font = font,
