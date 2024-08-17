@@ -245,6 +245,11 @@ pub fn update(self: *UiState) !void {
 
     const is_player_turn = self.isPlayerTurn();
 
+    if (self.options.ai_on == false and self.search_thread != null) {
+        self.search_thread.?.detach(); // kinda wasteful since the search will still run but wont affect us..
+        self.search_thread = null;
+    }
+
     // TODO: should the player be able to play for the ai in old position to mess around?
     // Need to do something to make it obvious they are in an old position and cant do anything if not
     if (self.search_thread == null and !is_player_turn and self.hist_index == null) {
@@ -261,7 +266,7 @@ pub fn update(self: *UiState) !void {
         return;
     }
 
-    if (self.search_thread != null and self.search_res.done_search.isSet()) {
+    if (self.search_thread != null and self.search_res.done_search.isSet() and self.hist_index == null) {
         self.search_thread.?.join();
         self.search_thread = null;
         if (self.search_res.move) |m| {
@@ -418,8 +423,9 @@ pub fn nextMove(self: *UiState) void {
         const new_idx = idx + 1;
         if (new_idx >= num_moves) {
             self.hist_index = null;
+        } else {
+            self.hist_index = new_idx;
         }
-        self.hist_index = new_idx;
         return;
     }
 
