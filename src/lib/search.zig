@@ -432,7 +432,14 @@ pub fn iterativeSearch(self: *Self, max_depth: usize) Allocator.Error!void {
         std.log.debug("checking at depth: {}", .{depth});
         self.diagnostics.num_nodes_analyzed = 0;
         const generated_moves = &(self.getAllValidMoves(false));
-        const moves = generated_moves.moves;
+        var moves = generated_moves.moves;
+
+        const sort_ctx = MoveCompareCtx{
+            .gen_info = generated_moves.gen_info,
+            .best_move = self.best_move,
+        };
+
+        moves.sort(sort_ctx, compare_moves);
 
         if (moves.count() == 0) {
             break;
