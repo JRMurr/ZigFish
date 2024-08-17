@@ -27,8 +27,14 @@ sprite_scale_h: f32,
 dark_sqaure_color: rl.Color,
 light_square_color: rl.Color,
 
+// const tmp = @cImport({
+//     @cDefine("SUPPORT_FILEFORMAT_SVG", 1);
+// });
+
 pub fn init() BoardUI {
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
+    // const image = rl.loadImageSvg("resources/Chess_Pieces_Sprite.svg", CELL_SIZE * num_piece_types, CELL_SIZE * num_colors);
+    // const texture = image.toTexture();
 
     const sprite_w = @as(f32, @floatFromInt(@divFloor(texture.width, num_piece_types)));
     const sprite_h = @as(f32, @floatFromInt(@divFloor(texture.height, num_colors)));

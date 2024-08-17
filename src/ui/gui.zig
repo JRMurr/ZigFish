@@ -9,6 +9,7 @@ const ZigFish = @import("zigfish");
 const UiState = @import("state.zig");
 
 const CELL_SIZE = UiState.CELL_SIZE;
+const CELL_SIZE_F = UiState.CELL_SIZE_F;
 
 const Self = @This();
 
@@ -25,8 +26,10 @@ const style = @cImport({
 const STYLE_DATA = @embedFile("./style_dark.rgs");
 
 const RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT = 24;
-const MARGIN = 8;
+const MARGIN = CELL_SIZE_F * 0.05;
 const MOVE_HIST_HEIGHT = CELL_SIZE * 6;
+
+const TEXT_SIZE: usize = @divTrunc(CELL_SIZE, 4);
 
 x_offset: f32,
 scrollOffset: rl.Vector2 = .{ .x = 0, .y = 0 },
@@ -78,18 +81,21 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
     var fba = std.heap.FixedBufferAllocator.init(&buffer);
     const allocator = fba.allocator();
 
-    GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, 32));
+    GuiSetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size), @as(c_int, TEXT_SIZE));
 
     // scroll example https://github.com/raysan5/raygui/blob/master/examples/animation_curve/animation_curve.c
     // https://www.reddit.com/r/raylib/comments/12ezor0/animation_curves_demo_in_c/
 
     var view = rl.Rectangle{ .x = 0, .y = 0, .width = 0, .height = 0 };
     _ = rlg.guiScrollPanel(bounds, "moves", self.content, &self.scrollOffset, &view);
+    const box_width = CELL_SIZE_F * 0.8;
+    const box_height = CELL_SIZE_F * 0.25;
 
-    rl.beginScissorMode(@intFromFloat(bounds.x), @intFromFloat(bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT), @intFromFloat(bounds.width), @intFromFloat(bounds.height));
+    rl.beginScissorMode(@intFromFloat(bounds.x), @intFromFloat(bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT), @intFromFloat(bounds.width), @intFromFloat(bounds.height - RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT));
     defer rl.endScissorMode();
 
     const scroll_bar_width = @as(f32, @floatFromInt(GuiGetStyle(.listview, @intFromEnum(rlg.GuiListViewProperty.scrollbar_width))));
+
     self.content = rl.Rectangle{
         .x = bounds.x + MARGIN,
         .y = bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + MARGIN,
@@ -103,10 +109,9 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
     const shown_move = if (state.hist_index) |idx| idx else move_hist.len;
     while (move_iter.next()) |window| {
         var x_offset: f32 = 0;
-        const box_width = 120;
-        const box_height = 40;
+
         for (window) |mh| {
-            const rect = self.getOffsetRect(20 + x_offset, self.getScrollBarY(), box_width, box_height);
+            const rect = self.getOffsetRect(MARGIN * 3 + x_offset, self.getScrollBarY(), box_width, box_height);
             var move_buf = [_]u8{' '} ** 8;
 
             const move_str = try toCStr(allocator, mh.move.toSanBuf(&move_buf));
@@ -118,11 +123,11 @@ fn drawMoveHist(self: *Self, state: *UiState, bounds: rl.Rectangle) !void {
             if (rlg.guiLabelButton(rect, move_str) > 0) {
                 state.selectHist(move_num);
             }
-            x_offset += box_width;
+            x_offset += CELL_SIZE + (4 * MARGIN);
             move_num += 1;
         }
 
-        self.content.height += box_height;
+        self.content.height += (box_height) + MARGIN;
     }
 }
 
@@ -177,7 +182,7 @@ pub fn draw(self: *Self, state: *UiState) !void {
         height += MARGIN / 2;
     }
 
-    const bounds = self.getOffsetRect(0, height, CELL_SIZE * 3, MOVE_HIST_HEIGHT - 40);
+    const bounds = self.getOffsetRect(0, height, CELL_SIZE * 3, MOVE_HIST_HEIGHT - (CELL_SIZE_F * 0.25));
     try self.drawMoveHist(state, bounds);
 
     var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height + MARGIN, (bounds.width - (MARGIN * 4)) / 4, 40);

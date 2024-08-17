@@ -70,6 +70,8 @@ pub fn build(b: *std.Build) !void {
     const raygui = raylib_dep.module("raygui"); // raygui module
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
 
+    // raylib_artifact.root_module.addCMacro("SUPPORT_FILEFORMAT_SVG", "1");
+
     const mecha_dep = b.dependency("mecha", .{
         .target = target,
         .optimize = optimize,
