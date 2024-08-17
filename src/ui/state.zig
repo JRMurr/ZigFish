@@ -266,9 +266,15 @@ pub fn update(self: *UiState) !void {
         return;
     }
 
-    if (self.search_thread != null and self.search_res.done_search.isSet() and self.hist_index == null) {
+    if (self.search_thread != null and self.search_res.done_search.isSet()) {
         self.search_thread.?.join();
         self.search_thread = null;
+
+        // if we are looking at an old postion just ignore the search result
+        if (self.hist_index != null) {
+            return;
+        }
+
         if (self.search_res.move) |m| {
             try self.game.makeMove(&m);
             try self.move_history.append(.{ .move = m, .board = self.game.board.clone() });
