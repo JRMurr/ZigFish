@@ -17,6 +17,10 @@ const GameManager = ZigFish.GameManager;
 
 const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
 
+pub const CELL_SIZE: usize = 150;
+pub const SCREEN_SIZE: usize = CELL_SIZE * 8;
+pub const SIDEBAR_WIDTH: usize = CELL_SIZE * 3;
+
 const MovingPiece = struct {
     start: Position,
     piece: Piece,
@@ -73,12 +77,16 @@ move_history: std.ArrayList(MoveHist),
 sprite_manager: SpriteManager,
 gui: Gui,
 search_res: SearchRes,
+// scale: f32,
 search_thread: ?Thread = null,
 moving_piece: ?MovingPiece = null,
 hist_index: ?usize = null,
 game_status: ZigFish.GameStatus,
 
-pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState {
+pub fn init(allocator: Allocator, options: GameOptions) !UiState {
+    // TODO: make a "base unit" for sizing. Use this everywhere. Can update on resizes to keep scale
+    rl.initWindow(SCREEN_SIZE + SIDEBAR_WIDTH, SCREEN_SIZE, "ZigFish");
+
     var game = if (options.start_pos) |fen|
         try GameManager.from_fen(allocator, fen)
     else
@@ -93,10 +101,10 @@ pub fn init(allocator: Allocator, cell_size: u32, options: GameOptions) !UiState
     const texture: rl.Texture = rl.Texture.init("resources/Chess_Pieces_Sprite.png"); // Texture loading
     // const font = rl.Font.initEx("resources/FiraCode-Bold.otf", 32, null);
 
-    const sprite_manager = SpriteManager.init(texture, cell_size);
+    const sprite_manager = SpriteManager.init(texture, CELL_SIZE);
 
     const gui = Gui.init(
-        @floatFromInt(cell_size * 8),
+        @floatFromInt(SCREEN_SIZE),
         // font,
     );
 
@@ -120,6 +128,7 @@ pub fn deinit(self: *UiState) void {
     self.game.deinit();
     self.move_history.deinit();
     self.gui.deint();
+    rl.closeWindow();
 }
 
 // pub fn getMousePos(self: *UiState) ClampedMousePos {

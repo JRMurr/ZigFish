@@ -15,10 +15,6 @@ const MoveList = ZigFish.MoveList;
 const Move = ZigFish.Move;
 const GameManager = ZigFish.GameManager;
 
-const cell_size: usize = 150;
-const screen_size: usize = cell_size * 8;
-const sidebar_width: usize = cell_size * 3;
-
 const MAX_DEPTH = 100;
 const SEARCH_TIME = 5; // seconds
 const QUIESCE_DEPTH = 5;
@@ -52,16 +48,13 @@ fn mainLoop() anyerror!void {
     // Initialization
     //--------------------------------------------------------------------------------------
 
-    rl.initAudioDevice(); // Initialize audio device
+    // rl.initAudioDevice(); // Initialize audio device
     rl.setConfigFlags(rl.ConfigFlags{
         // .window_highdpi = true,
         // .window_resizable = true,
     });
-    // TODO: make a "base unit" for sizing. Use this everywhere. Can update on resizes to keep scale
-    rl.initWindow(screen_size + sidebar_width, screen_size, "ZigFish");
-    defer rl.closeWindow(); // Close window and OpenGL context
 
-    var ui_state = try UiState.init(getAllocator(), cell_size, .{
+    var ui_state = try UiState.init(getAllocator(), .{
         .search_time = SEARCH_TIME,
         .ai_on = AI_ON,
         // .start_pos = "r1bqkb1r/pppp1ppp/2nn4/1B2p3/3P4/5N2/PPP2PPP/RNBQ1RK1 w kq - 1 6",

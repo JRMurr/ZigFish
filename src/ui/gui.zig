@@ -8,6 +8,8 @@ const ZigFish = @import("zigfish");
 
 const UiState = @import("state.zig");
 
+const CELL_SIZE = UiState.CELL_SIZE;
+
 const Self = @This();
 
 // https://github.com/Not-Nik/raylib-zig/issues/131
@@ -16,7 +18,7 @@ pub extern "c" fn GuiGetStyle(control: rlg.GuiControl, property: c_int) c_int;
 
 const RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT = 24;
 const MARGIN = 8;
-const MOVE_HIST_HEIGHT = 150 * 6;
+const MOVE_HIST_HEIGHT = CELL_SIZE * 6;
 
 x_offset: f32,
 scrollOffset: rl.Vector2 = .{ .x = 0, .y = 0 },
@@ -116,12 +118,11 @@ pub fn draw(self: *Self, state: *UiState) !void {
     // const font_size = GuiGetStyle(.default, @intFromEnum(rlg.GuiDefaultProperty.text_size));
     // std.debug.print("font_size: {}\n", .{font_size});
 
-    // rl.beginScissorMode(@intFromFloat(self.x_offset), 0, 150 * 3, 150 * 8);
+    // rl.beginScissorMode(@intFromFloat(self.x_offset), 0, CELL_SIZE * 3, CELL_SIZE * 8);
     // defer rl.endScissorMode();
 
     if (state.game_status != .InProgress) {
-        const cell_size = 150; // TODO:
-        const rect = rl.Rectangle{ .x = cell_size * 3, .y = cell_size * 3, .width = cell_size * 2, .height = cell_size * 2 };
+        const rect = rl.Rectangle{ .x = CELL_SIZE * 3, .y = CELL_SIZE * 3, .width = CELL_SIZE * 2, .height = CELL_SIZE * 2 };
         const msg = switch (state.game_status) {
             .BlackWin => "Black Win",
             .WhiteWin => "White Win",
@@ -142,7 +143,7 @@ pub fn draw(self: *Self, state: *UiState) !void {
     height += MARGIN / 2;
 
     _ = rlg.guiSliderBar(
-        self.getOffsetRect(MARGIN, height, 150, 20),
+        self.getOffsetRect(MARGIN, height, CELL_SIZE, 20),
         "",
         rl.textFormat("%.2f", .{state.options.search_time}),
 
@@ -164,7 +165,7 @@ pub fn draw(self: *Self, state: *UiState) !void {
         height += MARGIN / 2;
     }
 
-    const bounds = self.getOffsetRect(0, height, 150 * 3, MOVE_HIST_HEIGHT - 40);
+    const bounds = self.getOffsetRect(0, height, CELL_SIZE * 3, MOVE_HIST_HEIGHT - 40);
     try self.drawMoveHist(state, bounds);
 
     var iconRect = self.getOffsetRect(MARGIN, bounds.y + bounds.height, 80, 40);
