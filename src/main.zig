@@ -20,19 +20,7 @@ const QUIESCE_DEPTH = 5;
 const PLAYER_COLOR = Piece.Color.White;
 const AI_ON: bool = true;
 
-const SearchRes = struct { move: ?Move, done_search: Thread.ResetEvent };
-
 const Allocator = std.mem.Allocator;
-
-fn searchInBackground(game: *GameManager, search_res: *SearchRes) !void {
-    const move = try game.findBestMove(.{
-        .max_depth = MAX_DEPTH,
-        .time_limit_millis = SEARCH_TIME,
-    });
-
-    search_res.move = move;
-    search_res.done_search.set();
-}
 
 inline fn getAllocator() Allocator {
     if (builtin.target.isWasm()) {
