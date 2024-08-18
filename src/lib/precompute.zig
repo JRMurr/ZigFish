@@ -75,7 +75,7 @@ pub const KING_MOVES = computeKingMoves();
 pub const Lines = [64][NUM_LINES]BoardBitSet;
 
 pub fn computeLines() Lines {
-    @setEvalBranchQuota(64 * NUM_LINES * 100 + 1);
+    @setEvalBranchQuota(64 * NUM_LINES * 100);
     var moves: [64][NUM_LINES]BoardBitSet = undefined;
 
     inline for (0..64) |idx| {

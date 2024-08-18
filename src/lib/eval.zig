@@ -47,7 +47,7 @@ fn evalForColor(board: *const Board, color: Color) Score {
 // const ISOLATED_PAWN_FILE_SCORE = [8]Score{ -15, -20, -30, -30, -30, -30, -20, -15 };
 const ISOLATED_PAWN_SCORE = -15;
 fn isolatedPawns(board: *const Board, color: Color) Score {
-    const p: Piece = .{ .kind = .Pawn, .color = color };
+    const p = Piece{ .kind = .Pawn, .color = color };
     const pawns = board.getPieceSet(p);
 
     var pawn_iter = pawns.iterator();
@@ -77,7 +77,7 @@ fn getMaterialScore(board: *const Board, color: Color) Score {
         const kind_idx = f.value;
         const kind: Kind = @enumFromInt(kind_idx);
 
-        const p: Piece = .{ .kind = kind, .color = color };
+        const p = Piece{ .kind = kind, .color = color };
         const pieces = board.getPieceSet(p);
 
         if (kind != Kind.King) {
