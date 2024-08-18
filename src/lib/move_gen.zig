@@ -35,7 +35,7 @@ const NUM_KINDS = utils.enumLen(Kind);
 
 const AttackedSqaureInfo = struct {
     attackers: [NUM_KINDS]BoardBitSet,
-    attacked_sqaures: BoardBitSet,
+    attacked_squares: BoardBitSet,
     king_attackers: BoardBitSet,
 };
 
@@ -183,7 +183,7 @@ pub fn slidingMoves(board: *const Board, p: Piece, pos: Position, ignore_sqaures
     return attacks;
 }
 
-pub fn castleAllowed(self: *const Self, color: Color, attacked_sqaures: BoardBitSet, king_side: bool) bool {
+pub fn castleAllowed(self: *const Self, color: Color, attacked_squares: BoardBitSet, king_side: bool) bool {
     const castle_rights = self.board.meta.castling_rights[@intFromEnum(color)];
     if (king_side and castle_rights.king_side == false) {
         return false;
@@ -202,7 +202,7 @@ pub fn castleAllowed(self: *const Self, color: Color, attacked_sqaures: BoardBit
 
     const moving_through = castle_info.sqaures_moving_through;
 
-    if (moving_through.intersectWith(attacked_sqaures).bit_set.mask != 0) {
+    if (moving_through.intersectWith(attacked_squares).bit_set.mask != 0) {
         return false;
     }
 
@@ -285,7 +285,7 @@ pub fn allAttackedSqaures(board: *const Board) AttackedSqaureInfo {
         }
     }
     attackInfo.king_attackers = king_attackers;
-    attackInfo.attacked_sqaures = attacks;
+    attackInfo.attacked_squares = attacks;
     return attackInfo;
 }
 
@@ -443,18 +443,18 @@ pub fn getValidMoves(
         },
         Kind.Knight => precompute.KNIGHT_MOVES[start_idx].intersectWith(allowed_sqaures).differenceWith(freinds),
         Kind.King => blk: {
-            const enemy_attacked_sqaures = gen_info.attack_info.attacked_sqaures;
+            const enemy_attacked_squares = gen_info.attack_info.attacked_squares;
 
             const king_moves = precompute.KING_MOVES[start_idx];
 
-            if (!captures_only and self.castleAllowed(p.color, enemy_attacked_sqaures, true)) {
+            if (!captures_only and self.castleAllowed(p.color, enemy_attacked_squares, true)) {
                 // king side castle
                 const end = Position.fromIndex(pos.index + 2);
                 const flags = MoveFlags.initOne(MoveType.Castling);
                 const move = Move{ .start = pos, .end = end, .kind = Kind.King, .move_flags = flags };
                 out_moves.append(move);
             }
-            if (!captures_only and self.castleAllowed(p.color, enemy_attacked_sqaures, false)) {
+            if (!captures_only and self.castleAllowed(p.color, enemy_attacked_squares, false)) {
                 // queen side castle
                 const end = Position.fromIndex(pos.index - 2);
                 const flags = MoveFlags.initOne(MoveType.Castling);
@@ -462,7 +462,7 @@ pub fn getValidMoves(
                 out_moves.append(move);
             }
 
-            break :blk king_moves.differenceWith(freinds).differenceWith(enemy_attacked_sqaures);
+            break :blk king_moves.differenceWith(freinds).differenceWith(enemy_attacked_squares);
         },
         Kind.Bishop,
         Kind.Queen,

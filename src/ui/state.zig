@@ -330,7 +330,7 @@ pub fn update(self: *UiState) !void {
 
                 // std.log.debug("make hash: {d}", .{game.board.zhash});
 
-                // attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
+                // attacked_squares = game.allAttackedSqaures(game.board.active_color.get_enemy());
                 break;
             }
         }
@@ -362,7 +362,7 @@ pub fn draw(self: *UiState) !void {
 
     self.board_ui.draw_board(&self.game.board, last_move);
 
-    // var attacked_iter = attacked_sqaures.bit_set.iterator(.{});
+    // var attacked_iter = attacked_squares.bit_set.iterator(.{});
     // while (attacked_iter.next()) |p_idx| {
     //     board_ui.draw_move_marker(Position.fromIndex(p_idx), rl.Color.blue);
     // }
@@ -391,9 +391,6 @@ pub fn draw(self: *UiState) !void {
 fn setBoard(self: *UiState) void {
     // TODO: either don't allow changing pos during search or cancel it here
     const hist = self.move_history.items;
-    if (hist.len == 0) {
-        return;
-    }
     const idx = if (self.hist_index) |idx| idx else hist.len -| 1;
     std.debug.assert(idx < hist.len);
     self.game.board = self.move_history.items[idx].board.clone();

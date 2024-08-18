@@ -144,4 +144,4 @@ test {
 
 // std.log.debug("score: {}", .{game.evaluate()});
 
-// var attacked_sqaures = game.allAttackedSqaures(game.board.active_color.get_enemy());
+// var attacked_squares = game.allAttackedSqaures(game.board.active_color.get_enemy());

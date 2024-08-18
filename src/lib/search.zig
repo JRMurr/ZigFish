@@ -64,6 +64,7 @@ const TranspostionTable = std.AutoHashMap(u64, TranspositionEntry);
 fn score_move(ctx: MoveCompareCtx, move: Move) Score {
     var score: Score = 0;
 
+    // If in a previous iteration of search this was the best move, look at it first
     if (ctx.best_move) |best| {
         if (best.eql(move)) {
             return MAX_SCORE;
@@ -81,18 +82,16 @@ fn score_move(ctx: MoveCompareCtx, move: Move) Score {
 
         score += 10 * captured_score - move_val;
     }
-    //  else {
-    //     score += move_val;
-    // }
 
     if (move.promotion_kind) |k| {
         score += Precompute.PIECE_SCORES.get(k);
     }
-    const attack_info = ctx.gen_info.attack_info;
 
+    // Lower score if position is under attack
+    const attack_info = ctx.gen_info.attack_info;
     if (attack_info.attackers[@intFromEnum(Kind.Pawn)].isSet(move.end.toIndex())) {
         score -= (@divFloor(move_val, 4));
-    } else if (attack_info.attacked_sqaures.isSet(move.end.toIndex())) {
+    } else if (attack_info.attacked_squares.isSet(move.end.toIndex())) {
         score -= (@divFloor(move_val, 8));
     }
 
